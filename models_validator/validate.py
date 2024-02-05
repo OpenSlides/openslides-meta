@@ -52,6 +52,7 @@ OPTIONAL_ATTRIBUTES = (
     "calculated",
     "required",
     "read_only",
+    "constant",
 )
 
 
