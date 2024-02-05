@@ -12,9 +12,7 @@ _field_regex = r"[a-z][a-z0-9_]*"
 
 COLLECTION_REGEX = re.compile(f"^{_collection_regex}$")
 FIELD_REGEX = re.compile(f"^{_field_regex}$")
-COLLECTIONFIELD_REGEX = re.compile(
-    f"^{_collection_regex}{KEYSEPARATOR}{_field_regex}$"
-)
+COLLECTIONFIELD_REGEX = re.compile(f"^{_collection_regex}{KEYSEPARATOR}{_field_regex}$")
 
 DECIMAL_REGEX = re.compile(r"^-?(\d|[1-9]\d+)\.\d{6}$")
 COLOR_REGEX = re.compile(r"^#[0-9a-f]{6}$")
