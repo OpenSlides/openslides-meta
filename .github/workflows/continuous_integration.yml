@@ -26,4 +26,4 @@ jobs:
       run: pip install -r models_validator/requirements.txt
 
     - name: Validate models.yml
-      run: python models_validator/validate.py
+      run: python models_validator/validate.py models.yml
