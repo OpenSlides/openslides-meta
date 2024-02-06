@@ -81,6 +81,7 @@ _meta:  # meta field to hold repeatedly used values
     - "valid"
     - "cast"
     - "entitled"
+    - "entitled_present"
     - "disabled"
 
 organization:
