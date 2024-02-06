@@ -1,5 +1,5 @@
----
 %YAML 1.2
+---
 # Types:
 #     - Nativ datatypes: text, string (text with maxLength=256), number, boolean, JSON
 #     - HTMLStrict: A string with HTML content.
