@@ -65,6 +65,7 @@ _meta:  # meta field to hold repeatedly used values
     - es
     - ru
     - cs
+    - fr
   ballot_paper_selection: &ballot_paper_selection
     - NUMBER_OF_DELEGATES
     - NUMBER_OF_ALL_PARTICIPANTS
