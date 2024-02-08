@@ -1,5 +1,6 @@
 import re
 import sys
+from pathlib import Path
 from typing import Any, cast
 
 import simplejson as json
@@ -17,9 +18,7 @@ COLLECTIONFIELD_REGEX = re.compile(f"^{_collection_regex}{KEYSEPARATOR}{_field_r
 DECIMAL_REGEX = re.compile(r"^-?(\d|[1-9]\d+)\.\d{6}$")
 COLOR_REGEX = re.compile(r"^#[0-9a-f]{6}$")
 
-DEFAULT_FILES = [
-    "../models.yml",
-]
+DEFAULT_FILES = [str((Path(__file__).parent / ".." / ".." / "models.yml").resolve())]
 
 RELATION_TYPES = (
     "relation",
