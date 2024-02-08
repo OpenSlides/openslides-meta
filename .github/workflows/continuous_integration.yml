@@ -13,6 +13,9 @@ jobs:
   validate-models:
     name: CI
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dev/
 
     steps:
     - uses: actions/checkout@v4
@@ -23,7 +26,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Install requirements
-      run: pip install -r models_validator/requirements.txt
+      run: pip install -r requirements.txt
 
     - name: Check black
       if: always()
