@@ -2603,11 +2603,13 @@ motion:
   editor_ids:
     type: relation-list
     to: motion_editor/motion_id
+    on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: B
   working_group_speaker_ids:
     type: relation-list
     to: motion_working_group_speaker/motion_id
+    on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: B
   poll_ids:
