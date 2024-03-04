@@ -61,9 +61,12 @@ class CheckException(Exception):
 
 class Checker:
     def __init__(self, filepath: str) -> None:
-        with open(filepath, "rb") as x:
-            self.models = yaml.safe_load(x.read())
         self.errors: list[str] = []
+        with open(filepath, "rb") as x:
+            content = yaml.safe_load(x.read())
+            self.models = content.get("models", {})
+            if not self.models:
+                self.errors.append("No models found in file.")
 
     def run_check(self) -> None:
         self._run_checks()
