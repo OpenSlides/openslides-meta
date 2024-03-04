@@ -115,7 +115,7 @@ motion:
             id: null
             number: null
             structure_level_ids:
-              type: relation
+              type: relation-list
               collection: structure_level
               fields:
                 id: null

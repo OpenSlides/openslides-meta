@@ -2485,7 +2485,6 @@ motion:
     restriction_mode: C
   workflow_timestamp:
     type: timestamp
-    read_only: true
     restriction_mode: C
   start_line_number:
     type: number
