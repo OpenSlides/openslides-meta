@@ -4,7 +4,6 @@ on:
       - closed
     branches:
       - "feature/*"
-      - "staging/4*"
 
 jobs:
   close-issue:
@@ -47,7 +46,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
-          issue_data=($(echo "${{ steps.get-issues.outputs.data }}" | jq '.data.repository.pullRequest.closingIssuesReferences.nodes[] | .number,.repository.nameWithOwner'))
-          for i in $(seq 1 2 ${#issue_data[@]}); do
-            gh issue close ${issue_data[i-1]} -r ${issue_data[i]}
-          done
+          issue_data="$(echo "${{ steps.get-issues.outputs.data }}" | jq -r '.data.repository.pullRequest.closingIssuesReferences.nodes[] | [.number,.repository.nameWithOwner] | @tsv')"
+          while read number nameWithOwner; do
+            gh issue close "$number" -r "$nameWithOwner"
+          done <<< "$issue_data"
