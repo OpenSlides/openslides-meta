@@ -86,6 +86,7 @@ motion:
     - reason
     - meeting_id
     - amendment_paragraphs
+    - additional_submitter
   searchable_config:
     amendment_paragraphs:
       type: json-int-string-map

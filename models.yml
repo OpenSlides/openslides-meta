@@ -2495,6 +2495,9 @@ motion:
     type: timestamp
     read_only: true
     restriction_mode: A
+  additional_submitter:
+    type: string
+    restriction_mode: C
 
   lead_motion_id:
     type: relation
