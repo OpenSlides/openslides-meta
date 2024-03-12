@@ -10,4 +10,4 @@ simplejson==3.19.2
 
 # typing
 types-PyYAML==6.0.12.12
-types-simplejson==3.19.0.20240218
+types-simplejson==3.19.0.20240310
