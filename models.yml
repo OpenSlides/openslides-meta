@@ -231,7 +231,7 @@ user:
   username:
     type: string
     required: true
-    restriction_mode: B
+    restriction_mode: A
   saml_id:
     type: string
     minLength: 1
