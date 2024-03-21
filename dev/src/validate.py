@@ -7,6 +7,8 @@ import simplejson as json
 import yaml
 
 KEYSEPARATOR = "/"
+OPENBRACKETS = "\("
+CLOSEBRACKETS = "\)"
 
 _collection_regex = r"[a-z](?:[a-z_]+[a-z]+)?"
 _field_regex = r"[a-z][a-z0-9_]*"
@@ -14,6 +16,7 @@ _field_regex = r"[a-z][a-z0-9_]*"
 COLLECTION_REGEX = re.compile(f"^{_collection_regex}$")
 FIELD_REGEX = re.compile(f"^{_field_regex}$")
 COLLECTIONFIELD_REGEX = re.compile(f"^{_collection_regex}{KEYSEPARATOR}{_field_regex}$")
+REFERENCE_REGEX = re.compile(f"{_collection_regex}{OPENBRACKETS}{_field_regex}(, {_field_regex})*{CLOSEBRACKETS}")
 
 DECIMAL_REGEX = re.compile(r"^-?(\d|[1-9]\d+)\.\d{6}$")
 COLOR_REGEX = re.compile(r"^#[0-9a-f]{6}$")
@@ -138,8 +141,13 @@ class Checker:
             "type",
             "restriction_mode",
         ]
-        if type in RELATION_TYPES:
-            required_attributes.append("to")
+        if type in RELATION_TYPES and not any(
+            [attr not in field for attr in ["to", "reference", "sql"]]
+        ):
+            self.errors.append(
+                f"One of 'to', 'reference' or 'sql' required for collectionfield {collectionfield}."
+            )
+            return
         for attr in required_attributes:
             if attr not in field:
                 self.errors.append(
@@ -190,7 +198,14 @@ class Checker:
                     self.validate_value_for_type(type, value, collectionfield)
 
         if type in RELATION_TYPES:
-            valid_attributes.append("on_delete")
+            valid_attributes.extend(["on_delete", "reference", "deferred"])
+            if "deferred" in field:
+                self.validate_value_for_type("boolean", field["deferred"], collectionfield)
+            if "reference" in field:
+                if not REFERENCE_REGEX.match(field["reference"]):
+                    self.errors.append(
+                        f"Value '{field['reference']}' for '{collectionfield}' is not a valid reference."
+                    )
             if "on_delete" in field and field["on_delete"] not in (
                 "CASCADE",
                 "PROTECT",
@@ -201,6 +216,9 @@ class Checker:
             valid_attributes.append("equal_fields")
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
+
+        if type in ("number", "number[]", *RELATION_TYPES):
+            valid_attributes.extend(["sql", "to"])
 
         for attr in field.keys():
             if attr not in valid_attributes:
