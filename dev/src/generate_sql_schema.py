@@ -427,13 +427,21 @@ class GenerateCodeBlocks:
         cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
     ) -> str:
         foreign_table_t = HelperGetNames.get_table_name(foreign_table)
+        insert_trigger_name = HelperGetNames.get_not_null_rel_list_insert_trigger_name(
+            own_table, own_column
+        )
+        update_trigger_name = HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(
+            own_table, own_column
+        )
         return dedent(
             f"""
             -- definition trigger not null for {own_table}.{own_column} against {foreign_table_t}.{foreign_column}
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {foreign_table_t} INITIALLY DEFERRED
+            DROP TRIGGER IF EXISTS {insert_trigger_name} ON {foreign_table_t};
+            CREATE CONSTRAINT TRIGGER {insert_trigger_name} AFTER INSERT ON {foreign_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '{foreign_column}');
 
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t}
+            DROP TRIGGER IF EXISTS {update_trigger_name} ON {foreign_table_t};
+            CREATE CONSTRAINT TRIGGER {update_trigger_name} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t}
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '{foreign_column}');
 
             """
@@ -571,7 +579,7 @@ class Helper:
         """
         -- schema_relational.sql for initial database setup OpenSlides
         -- Code generated. DO NOT EDIT.
-        CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
+        CREATE EXTENSION IF NOT EXISTS hstore;  -- included in standard postgres-installations, check for alpine
 
         create or replace function check_not_null_for_relation_lists() returns trigger as $not_null_trigger$
         -- usage with 3 parameters IN TRIGGER DEFINITION:
