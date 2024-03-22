@@ -54,6 +54,8 @@ class BaseTestCase(TestCase):
                         template_db=sql.Identifier(env['DATABASE_NAME'])))
         cls.set_db_connection(cls.temporary_template_db)
         with cls.db_connection:
+            with cls.db_connection.cursor() as curs:
+                curs.execute("CREATE EXTENSION pldbgapi;") # Postgres debug extension
             cls.populate_database()
 
     @classmethod

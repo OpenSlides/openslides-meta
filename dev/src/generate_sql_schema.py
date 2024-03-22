@@ -77,6 +77,7 @@ class GenerateCodeBlocks:
           im_table_code: Code for intermediate tables.
               n:m-relations name schema: f"nm_{smaller-table-name}_{it's-fieldname}_{greater-table_name}" uses one per relation
               g:m-relations name schema: f"gm_{table_field.table}_{table_field.column}" of table with generic-list-field
+          create_trigger_code Definitions of triggers
         """
         handled_attributes = {
             "required",
@@ -93,8 +94,9 @@ class GenerateCodeBlocks:
             "items",
             "to",  # will be used for creating view-fields, but also replacement for fk-reference to id
             # "on_delete", # must have other name then the key-value-store one
+            # "sql"
             # "equal_fields", # Seems we need, see example_transactional.sql between meeting and groups?
-            # "unique",  # still to design
+            # "unique",  # TODO: still to design
         }
         pre_code: str = ""
         table_name_code: str = ""
@@ -173,14 +175,15 @@ class GenerateCodeBlocks:
             )
         if fname == "id":
             type_ = "primary_key"
-            return (FIELD_TYPES[type_].get("method", "").__get__(cls), type_)
-        if (
-            (type_ := fdata.get("type", ""))
-            and type_ in FIELD_TYPES
-            and (method := FIELD_TYPES[type_].get("method"))
-        ):
-            return (method.__get__(cls), type_)  # returns the callable classmethod
-        text = "no method defined" if type_ else "Unknown Type"
+        else:
+            type_ = fdata.get("type", "")
+        if type_ in FIELD_TYPES:
+            if (method := FIELD_TYPES[type_].get("method")):
+                return (method.__get__(cls), type_)  # returns the callable classmethod
+            else:
+                text = "no method defined"
+        else:
+            text = "Unknown Type"
         return (f"    {fname} type:{fdata.get('type')} {text}\n", type_)
 
     @classmethod
@@ -1010,6 +1013,8 @@ class Helper:
         foreign_collectionfields = []
         for foreign_field in foreign_fields:
             foreign_c, tmp_error = Helper.get_cardinality(foreign_field.field_def)
+            if own_c == "1tR" and foreign_c == "1r":
+                raise Exception(f"{own_field.table}.{own_field.column}:Change this in moduls.yml to 1tR:1t or 1t:1rR, the opposite side of a required can't build a sql with reference, but with to-attribut.")
             foreigns_c.append(foreign_c)
             error = error or tmp_error
             foreign_collectionfields.append(foreign_field.collectionfield)

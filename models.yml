@@ -8,18 +8,25 @@
 #       At the moment we support only X == 6.
 #     - timestamp: Datetime as a unix timestamp. Why a number? This enables queries
 #       in the DB. And we do not need more precision than 1 second.
-#     - <T>[]: This indicates and arbitrary array of the given type. At the moment
+#     - <T>[]: This indicates an arbitrary array of the given type. At the moment
 #       we support only some types. You can add JSON Schema properties for items
 #       using the extra property `items`
 #     - color: string that must match ^#[0-9a-f]{6}$
 # Relations:
 #     - We have the following types: `relation`, `relation-list`, `generic-relation`
-#       and `generic-relation-list`.
+#       and `generic-relation-list`. All relation-types with a `list`-suffix are **always** realized as sql-statements,
+#       in case of n:m-relations with an intermediary table. 
 #     - Non-generic relations: The simple syntax for such a field
-#       `to: <collection>/<field>`. This is a reference to a collection. The reverse
-#       relation field in this collection is <field>. E. g. in a motion the field `meeting_id`
-#       `reference: <collection(field1, ...)` This can be used, if the foreign key reference
-#        is not the <collection/"id">, where the collection is the same as that from the `to`.
+#       `to: <collection>/<field>`. This is a reference to a collection-field, the "other" side of a relation.
+#           In the relational DB this will be a field in a view filled by an automatically generated sql.
+#           During the development of the relational db one relation can have a `to` and a `reference` property.
+#           In this case the `to` value is only used for historical reason, onky the `reference` property is used
+#           for the schema generation.  
+#           If necessary the sql can be written manually, see `sql`.
+#       `reference: <collection(field1, ...)` This will create a foreign key constraint. Therefore a `reference` is
+#           the indicator for a real field in the table and you cannot use it for relation types with a `list` suffix.
+#           For some time there may be also a `to`-property for the relation, but for schema generation 
+#           the `reference` takes the prededence over the `to`.
 #       `deferred: true`: this field get the "INITIALLY DEFERRED" on it's foreign key definition
 #     - Generic relations: The difference to non-generic relations is that you have a
 #       list of possible fields, so `to` can either hold multiple collections (if the
@@ -35,6 +42,10 @@
 #           - motion/option_ids
 #           - user/option_ids
 #           - poll_candidate_list/option_id
+#       The `reference`, only for generic-relation, but not generic-relation-list will be a list of references:
+#         reference:
+#           - agenda_item(id)
+#           - assignment(id)
 #     - on_delete: This fields determines what should happen with the foreign model if
 #       this model gets deleted. Possible values are:
 #           - SET_NULL (default): delete the id from the foreign key
@@ -45,6 +56,9 @@
 #     - You can add JSON Schema properties to the fields like `enum`, `description`,
 #       `items`, `maxLength` and `minimum`
 # Additional properties:
+#     - The property `sql` can be filled manually with an sql-statement, which fills this field. This
+#       field can't be filled with an own vaue and is always defined in a view. You can use it on all
+#        field types, not only relations. 
 #     - The property `read_only` describes a field that can not be changed by an action.
 #     - The property `default` describes the default value that is used for new objects.
 #     - The property `required` describes that this field can not be null or an empty
@@ -52,6 +66,8 @@
 #       fields the value as to be an id of an existing object.
 #     - The property `equal_fields` describes fields that must have the same value in
 #       the instance and the related instance.
+#     - The property `unique` will guarantee the uniqueness of fields or field combinations by databae constraint..
+#       Example: `unique: meeting_id, sequential_number`
 # Restriction Mode:
 #   The field `restriction_mode` is required for every field. It puts the field into a
 #   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview
@@ -2438,6 +2454,7 @@ motion:
     required: true
     restriction_mode: C
     constant: true
+    unique: meeting_id, sequential_number
   title:
     type: string
     required: true
@@ -2533,10 +2550,9 @@ motion:
     to: motion/all_origin_ids
     restriction_mode: A
   identical_motion_ids:
-    type: int[]
+    type: dummy[]
     # type relation-list
-    # to: motion/identical_motion_ids
-    description: Changed from relation-list to int[], because can't still be genmerated
+    description: with psycopg 3.2.0 we could use the as_string method without cursor and change dummy to number.Changed from relation-list to number[], because can't still be generated
     restriction_mode: C
   state_id:
     type: relation

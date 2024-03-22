@@ -29,3 +29,6 @@ migrations/*.sql
 
 # secrets
 secrets/
+
+# code-workspaces
+*.code-workspace

@@ -55,7 +55,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- MODELS_YML_CHECKSUM = 'e27b9c608b3e6c03917de589385560a2'
+-- MODELS_YML_CHECKSUM = 'be37c20e734ef040be86fbb8f0d4b665'
 -- Type definitions
 DO $$
 BEGIN
@@ -1004,7 +1004,7 @@ comment on column motionT.sequential_number is 'The (positive) serial number of 
 /*
  Fields without SQL definition for table motion
 
-    identical_motion_ids type:int[] no method defined
+    identical_motion_ids type:dummy[] Unknown Type
 
 */
 
@@ -2683,4 +2683,4 @@ FIELD 1tR:nt => chat_message/meeting_id:-> meeting/chat_message_ids
 
 */
 
-/*   Missing attribute handling for constant, sql, reference, on_delete, equal_fields, deferred */
+/*   Missing attribute handling for constant, sql, reference, on_delete, equal_fields, unique, deferred */
