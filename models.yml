@@ -151,6 +151,7 @@ organization:
 
   committee_ids:
     type: relation-list
+    to: committee/organization_id
     restriction_mode: B
     sql: (select array_agg(c.id) from committeeT c) as committee_ids
   active_meeting_ids:
@@ -168,15 +169,18 @@ organization:
   organization_tag_ids:
     type: relation-list
     restriction_mode: B
+    to: organization_tag/organization_id
     reference: organization_tag(id)
   theme_id:
     type: relation
     required: true
     restriction_mode: A
+    to: theme/theme_for_organization_id
     reference: theme(id)
   theme_ids:
     type: relation-list
     restriction_mode: A
+    to: theme/organization_id
     reference: theme(id)
   mediafile_ids:
     type: relation-list
@@ -186,6 +190,7 @@ organization:
   user_ids:
     type: relation-list
     restriction_mode: C
+    to: user/organization_id
     reference: user(id)
   users_email_sender:
     type: string
@@ -365,6 +370,12 @@ user:
     description: Calculated. All ids from meetings calculated via meeting_user and group_ids as integers.
     read_only: true
     restriction_mode: E
+  organization_id:
+    type: relation
+    to: organization/user_ids
+    required: True
+    restriction_mode: F
+    constant: true
 
 meeting_user:
   id:
@@ -485,6 +496,11 @@ organization_tag:
         - meeting
       field: organization_tag_ids
     restriction_mode: A
+  organization_id:
+    type: relation
+    to: organization/organization_tag_ids
+    restriction_mode: A
+    required: true
 
 theme:
   id:
@@ -641,6 +657,11 @@ theme:
     restriction_mode: A
     to: organization/theme_id
     type: relation
+  organization_id:
+    type: relation
+    to: organization/theme_ids
+    restriction_mode: A
+    required: true
 
 committee:
   id:
@@ -665,6 +686,7 @@ committee:
     restriction_mode: A
   default_meeting_id:
     type: relation
+    to: meeting/default_meeting_for_committee_id
     reference: meeting(id)
     restriction_mode: A
   user_ids:
@@ -703,6 +725,12 @@ committee:
     type: relation-list
     to: organization_tag/tagged_ids
     restriction_mode: A
+  organization_id:
+    type: relation
+    to: organization/committee_ids
+    required: true
+    restriction_mode: A
+    constant: true
 
 meeting:
   id:
@@ -1654,66 +1682,82 @@ meeting:
   # Logos and Fonts
   logo_projector_main_id:
     type: relation
+    to: mediafile/used_as_logo_projector_main_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   logo_projector_header_id:
     type: relation
+    to: mediafile/used_as_logo_projector_header_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   logo_web_header_id:
     type: relation
+    to: mediafile/used_as_logo_web_header_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   logo_pdf_header_l_id:
     type: relation
+    to: mediafile/used_as_logo_pdf_header_l_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   logo_pdf_header_r_id:
     type: relation
+    to: mediafile/used_as_logo_pdf_header_r_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   logo_pdf_footer_l_id:
     type: relation
+    to: mediafile/used_as_logo_pdf_header_l_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   logo_pdf_footer_r_id:
     type: relation
+    to: mediafile/used_as_logo_pdf_header_l_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   logo_pdf_ballot_paper_id:
     type: relation
+    to: mediafile/used_as_logo_pdf_ballot_paper_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   font_regular_id:
     type: relation
+    to: mediafile/used_as_font_regular_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   font_italic_id:
     type: relation
+    to: mediafile/used_as_font_italic_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   font_bold_id:
     type: relation
+    to: mediafile/used_as_font_bold_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   font_bold_italic_id:
     type: relation
+    to: mediafile/used_as_font_bold_italic_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   font_monospace_id:
     type: relation
+    to: mediafile/used_as_font_monospace_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   font_chyron_speaker_name_id:
     type: relation
+    to: mediafile/used_as_font_chyron_speaker_name_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   font_projector_h1_id:
     type: relation
+    to: mediafile/used_as_font_projector_h1_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   font_projector_h2_id:
     type: relation
+    to: mediafile/used_as_font_projector_h2_in_meeting_id
     reference: mediafile(id)
     restriction_mode: B
   # Other relations
@@ -1747,10 +1791,12 @@ meeting:
     restriction_mode: B
   list_of_speakers_countdown_id:
     type: relation
+    to: projector_countdown/used_as_list_of_speakers_countdown_meeting_id
     reference: projector_countdown(id)
     restriction_mode: B
   poll_countdown_id:
     type: relation
+    to: projector_countdown/used_as_poll_countdown_meeting_id
     reference: projector_countdown(id)
     restriction_mode: B
   projection_ids:
@@ -1773,7 +1819,7 @@ meeting:
     to: projector/used_as_default_projector_for_list_of_speakers_in_meeting_id
     restriction_mode: B
     required: true
-  default_projector_current_list_of_speakers_ids:
+  default_projector_current_los_ids:
     type: relation-list
     to: projector/used_as_default_projector_for_current_los_in_meeting_id
     restriction_mode: B
@@ -1835,6 +1881,7 @@ meeting:
     restriction_mode: B
   admin_group_id:
     type: relation
+    to: group/admin_group_for_meeting_id
     reference: group(id)
     restriction_mode: B
 
@@ -2540,10 +2587,10 @@ motion:
     to: motion/all_origin_ids
     restriction_mode: A
   identical_motion_ids:
-    type: int[]
-    # type relation-list
+    type: number[]
+    # type: relation-list
     # to: motion/identical_motion_ids
-    description: Changed from relation-list to int[], because can't still be genmerated
+    description: Changed from relation-list to number[], because it still can't be generated
     restriction_mode: C
   state_id:
     type: relation
@@ -3382,6 +3429,7 @@ poll:
     restriction_mode: A
   global_option_id:
     type: relation
+    to: option/used_as_global_option_in_poll_id
     reference: option(id)
     on_delete: CASCADE
     equal_fields: meeting_id
@@ -3956,7 +4004,7 @@ projector:
     restriction_mode: A
   used_as_default_projector_for_current_los_in_meeting_id:
     type: relation
-    to: meeting/default_projector_current_list_of_speakers_ids
+    to: meeting/default_projector_current_los_ids
     restriction_mode: A
   used_as_default_projector_for_motion_in_meeting_id:
     type: relation
