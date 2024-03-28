@@ -57,6 +57,33 @@
 #   The field `restriction_mode` is required for every field. It puts the field into a
 #   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview
 
+_meta:  # meta field to hold repeatedly used values
+  languages: &languages
+    - en
+    - de
+    - it
+    - es
+    - ru
+    - cs
+    - fr
+  ballot_paper_selection: &ballot_paper_selection
+    - NUMBER_OF_DELEGATES
+    - NUMBER_OF_ALL_PARTICIPANTS
+    - CUSTOM_NUMBER
+  poll_backends: &poll_backends
+    - long
+    - fast
+  onehundred_percent_bases: &onehundred_percent_bases
+    - "Y"
+    - "YN"
+    - "YNA"
+    - "N"
+    - "valid"
+    - "cast"
+    - "entitled"
+    - "entitled_present"
+    - "disabled"
+
 organization:
   id:
     type: number
@@ -113,14 +140,7 @@ organization:
   default_language:
     type: string
     restriction_mode: A
-    enum:
-      - en
-      - de
-      - it
-      - es
-      - ru
-      - cs
-      - fr
+    enum: *languages
     required: true
 
   # Saml settings
@@ -764,14 +784,7 @@ meeting:
   language:
     type: string
     restriction_mode: A
-    enum:
-      - en
-      - de
-      - it
-      - es
-      - ru
-      - cs
-      - fr
+    enum: *languages
     required: true
     constant: true
 
@@ -1229,10 +1242,7 @@ meeting:
   # Motion poll
   motion_poll_ballot_paper_selection:
     type: string
-    enum:
-      - NUMBER_OF_DELEGATES
-      - NUMBER_OF_ALL_PARTICIPANTS
-      - CUSTOM_NUMBER
+    enum: *ballot_paper_selection
     default: CUSTOM_NUMBER
     restriction_mode: B
   motion_poll_ballot_paper_number:
@@ -1245,16 +1255,7 @@ meeting:
     restriction_mode: B
   motion_poll_default_onehundred_percent_base:
     type: string
-    enum:
-      - "Y"
-      - "YN"
-      - "YNA"
-      - "N"
-      - "valid"
-      - "cast"
-      - "entitled"
-      - "entitled_present"
-      - "disabled"
+    enum: *onehundred_percent_bases
     default: YNA
     restriction_mode: B
   motion_poll_default_group_ids:
@@ -1263,9 +1264,7 @@ meeting:
     restriction_mode: B
   motion_poll_default_backend:
     type: string
-    enum:
-      - long
-      - fast
+    enum: *poll_backends
     default: fast
     restriction_mode: B
 
@@ -1366,10 +1365,7 @@ meeting:
   # Assignment polls
   assignment_poll_ballot_paper_selection:
     type: string
-    enum:
-      - NUMBER_OF_DELEGATES
-      - NUMBER_OF_ALL_PARTICIPANTS
-      - CUSTOM_NUMBER
+    enum: *ballot_paper_selection
     default: CUSTOM_NUMBER
     restriction_mode: B
   assignment_poll_ballot_paper_number:
@@ -1398,16 +1394,7 @@ meeting:
     restriction_mode: B
   assignment_poll_default_onehundred_percent_base:
     type: string
-    enum:
-      - "Y"
-      - "YN"
-      - "YNA"
-      - "N"
-      - "valid"
-      - "cast"
-      - "entitled"
-      - "entitled_present"
-      - "disabled"
+    enum: *onehundred_percent_bases
     default: valid
     restriction_mode: B
   assignment_poll_default_group_ids:
@@ -1416,19 +1403,14 @@ meeting:
     restriction_mode: B
   assignment_poll_default_backend:
     type: string
-    enum:
-      - long
-      - fast
+    enum: *poll_backends
     default: fast
     restriction_mode: B
 
   # Polls
   poll_ballot_paper_selection:
     type: string
-    enum:
-      - NUMBER_OF_DELEGATES
-      - NUMBER_OF_ALL_PARTICIPANTS
-      - CUSTOM_NUMBER
+    enum: *ballot_paper_selection
     restriction_mode: B
   poll_ballot_paper_number:
     type: number
@@ -1445,16 +1427,7 @@ meeting:
     restriction_mode: B
   poll_default_onehundred_percent_base:
     type: string
-    enum:
-      - "Y"
-      - "YN"
-      - "YNA"
-      - "N"
-      - "valid"
-      - "cast"
-      - "entitled"
-      - "entitled_present"
-      - "disabled"
+    enum: *onehundred_percent_bases
     default: YNA
     restriction_mode: B
   poll_default_group_ids:
@@ -1463,9 +1436,7 @@ meeting:
     restriction_mode: B
   poll_default_backend:
     type: string
-    enum:
-      - long
-      - fast
+    enum: *poll_backends
     default: fast
     restriction_mode: B
   poll_couple_countdown:
@@ -3253,9 +3224,7 @@ poll:
   backend:
     type: string
     required: True
-    enum:
-      - long
-      - fast
+    enum: *poll_backends
     default: fast
     restriction_mode: A
   is_pseudoanonymized:
@@ -3309,16 +3278,7 @@ poll:
   onehundred_percent_base:
     type: string
     required: true
-    enum:
-      - "Y"
-      - "YN"
-      - "YNA"
-      - "N"
-      - "valid"
-      - "cast"
-      - "entitled"
-      - "entitled_present"
-      - "disabled"
+    enum: *onehundred_percent_bases
     default: disabled
     restriction_mode: A
   votesvalid:
