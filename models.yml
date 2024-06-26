@@ -2288,11 +2288,9 @@ speaker:
     constant: true
   begin_time:
     type: timestamp
-    read_only: true
     restriction_mode: A
   end_time:
     type: timestamp
-    read_only: true
     restriction_mode: A
   pause_time:
     type: timestamp
@@ -2300,11 +2298,9 @@ speaker:
     restriction_mode: A
   unpause_time:
     type: timestamp
-    read_only: true
     restriction_mode: A
   total_pause:
     type: number
-    read_only: true
     restriction_mode: A
   weight:
     type: number
