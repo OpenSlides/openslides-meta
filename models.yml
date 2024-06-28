@@ -1095,11 +1095,6 @@ meeting:
     to: motion_workflow/default_amendment_workflow_meeting_id
     required: true
     restriction_mode: B
-  motions_default_statute_amendment_workflow_id:
-    type: relation
-    to: motion_workflow/default_statute_amendment_workflow_meeting_id
-    required: true
-    restriction_mode: B
   motions_preamble:
     type: text
     default: "The assembly may decide:"
@@ -1152,9 +1147,6 @@ meeting:
     type: number
     minimum: 1
     restriction_mode: B
-  motions_statute_recommendations_by:
-    type: string
-    restriction_mode: B
   motions_recommendation_text_mode:
     type: string
     enum:
@@ -1184,10 +1176,6 @@ meeting:
     default: 2
     restriction_mode: B
   motions_number_with_blank:
-    type: boolean
-    default: False
-    restriction_mode: B
-  motions_statutes_enabled:
     type: boolean
     default: False
     restriction_mode: B
@@ -1563,11 +1551,6 @@ meeting:
   motion_workflow_ids:
     type: relation-list
     to: motion_workflow/meeting_id
-    on_delete: CASCADE
-    restriction_mode: B
-  motion_statute_paragraph_ids:
-    type: relation-list
-    to: motion_statute_paragraph/meeting_id
     on_delete: CASCADE
     restriction_mode: B
   motion_comment_ids:
@@ -2627,11 +2610,6 @@ motion:
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: C
-  statute_paragraph_id:
-    type: relation
-    to: motion_statute_paragraph/motion_ids
-    equal_fields: meeting_id
-    restriction_mode: C
   comment_ids:
     type: relation-list
     to: motion_comment/motion_id
@@ -3172,49 +3150,9 @@ motion_workflow:
     type: relation
     to: meeting/motions_default_amendment_workflow_id
     restriction_mode: A
-  default_statute_amendment_workflow_meeting_id:
-    type: relation
-    to: meeting/motions_default_statute_amendment_workflow_id
-    restriction_mode: A
   meeting_id:
     type: relation
     to: meeting/motion_workflow_ids
-    required: true
-    restriction_mode: A
-    constant: true
-
-motion_statute_paragraph:
-  id:
-    type: number
-    restriction_mode: A
-    constant: true
-  title:
-    type: string
-    required: true
-    restriction_mode: A
-  text:
-    type: HTMLStrict
-    restriction_mode: A
-  weight:
-    type: number
-    default: 10000
-    restriction_mode: A
-  sequential_number:
-    type: number
-    description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
-    read_only: true
-    required: true
-    restriction_mode: A
-    constant: true
-
-  motion_ids:
-    type: relation-list
-    to: motion/statute_paragraph_id
-    equal_fields: meeting_id
-    restriction_mode: A
-  meeting_id:
-    type: relation
-    to: meeting/motion_statute_paragraph_ids
     required: true
     restriction_mode: A
     constant: true
