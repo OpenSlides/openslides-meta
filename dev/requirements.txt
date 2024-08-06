@@ -5,7 +5,7 @@ isort==5.13.2
 mypy==1.11.1
 pytest==8.3.2
 pyupgrade==3.17.0
-pyyaml==6.0.1
+pyyaml==6.0.2
 simplejson==3.19.2
 
 # typing
