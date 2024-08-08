@@ -1841,6 +1841,10 @@ meeting:
     type: relation
     to: group/admin_group_for_meeting_id
     restriction_mode: B
+  anonymous_group_id:
+    type: relation
+    to: group/anonymous_group_for_meeting_id
+    restriction_mode: B
 
 structure_level:
   id:
@@ -1948,6 +1952,11 @@ group:
   admin_group_for_meeting_id:
     type: relation
     to: meeting/admin_group_id
+    on_delete: PROTECT
+    restriction_mode: A
+  anonymous_group_for_meeting_id:
+    type: relation
+    to: meeting/anonymous_group_id
     on_delete: PROTECT
     restriction_mode: A
   mediafile_access_group_ids:
