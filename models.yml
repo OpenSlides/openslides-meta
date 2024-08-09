@@ -207,6 +207,10 @@ organization:
     to: mediafile/owner_id
     on_delete: CASCADE
     restriction_mode: A
+  public_mediafile_ids:
+    type: relation-list
+    to: mediafile/public_in_organization_id
+    restriction_mode: D
   user_ids:
     type: relation-list
     restriction_mode: C
@@ -1539,6 +1543,11 @@ meeting:
     to: group/meeting_id
     on_delete: CASCADE
     restriction_mode: B
+  meeting_mediafile_ids:
+    type: relation-list
+    to: meeting_mediafile/meeting_id
+    on_delete: CASCADE
+    restriction_mode: B
   mediafile_ids:
     type: relation-list
     to: mediafile/owner_id
@@ -1658,67 +1667,67 @@ meeting:
   # Logos and Fonts
   logo_projector_main_id:
     type: relation
-    to: mediafile/used_as_logo_projector_main_in_meeting_id
+    to: meeting_mediafile/used_as_logo_projector_main_in_meeting_id
     restriction_mode: B
   logo_projector_header_id:
     type: relation
-    to: mediafile/used_as_logo_projector_header_in_meeting_id
+    to: meeting_mediafile/used_as_logo_projector_header_in_meeting_id
     restriction_mode: B
   logo_web_header_id:
     type: relation
-    to: mediafile/used_as_logo_web_header_in_meeting_id
+    to: meeting_mediafile/used_as_logo_web_header_in_meeting_id
     restriction_mode: B
   logo_pdf_header_l_id:
     type: relation
-    to: mediafile/used_as_logo_pdf_header_l_in_meeting_id
+    to: meeting_mediafile/used_as_logo_pdf_header_l_in_meeting_id
     restriction_mode: B
   logo_pdf_header_r_id:
     type: relation
-    to: mediafile/used_as_logo_pdf_header_r_in_meeting_id
+    to: meeting_mediafile/used_as_logo_pdf_header_r_in_meeting_id
     restriction_mode: B
   logo_pdf_footer_l_id:
     type: relation
-    to: mediafile/used_as_logo_pdf_footer_l_in_meeting_id
+    to: meeting_mediafile/used_as_logo_pdf_footer_l_in_meeting_id
     restriction_mode: B
   logo_pdf_footer_r_id:
     type: relation
-    to: mediafile/used_as_logo_pdf_footer_r_in_meeting_id
+    to: meeting_mediafile/used_as_logo_pdf_footer_r_in_meeting_id
     restriction_mode: B
   logo_pdf_ballot_paper_id:
     type: relation
-    to: mediafile/used_as_logo_pdf_ballot_paper_in_meeting_id
+    to: meeting_mediafile/used_as_logo_pdf_ballot_paper_in_meeting_id
     restriction_mode: B
   font_regular_id:
     type: relation
-    to: mediafile/used_as_font_regular_in_meeting_id
+    to: meeting_mediafile/used_as_font_regular_in_meeting_id
     restriction_mode: B
   font_italic_id:
     type: relation
-    to: mediafile/used_as_font_italic_in_meeting_id
+    to: meeting_mediafile/used_as_font_italic_in_meeting_id
     restriction_mode: B
   font_bold_id:
     type: relation
-    to: mediafile/used_as_font_bold_in_meeting_id
+    to: meeting_mediafile/used_as_font_bold_in_meeting_id
     restriction_mode: B
   font_bold_italic_id:
     type: relation
-    to: mediafile/used_as_font_bold_italic_in_meeting_id
+    to: meeting_mediafile/used_as_font_bold_italic_in_meeting_id
     restriction_mode: B
   font_monospace_id:
     type: relation
-    to: mediafile/used_as_font_monospace_in_meeting_id
+    to: meeting_mediafile/used_as_font_monospace_in_meeting_id
     restriction_mode: B
   font_chyron_speaker_name_id:
     type: relation
-    to: mediafile/used_as_font_chyron_speaker_name_in_meeting_id
+    to: meeting_mediafile/used_as_font_chyron_speaker_name_in_meeting_id
     restriction_mode: B
   font_projector_h1_id:
     type: relation
-    to: mediafile/used_as_font_projector_h1_in_meeting_id
+    to: meeting_mediafile/used_as_font_projector_h1_in_meeting_id
     restriction_mode: B
   font_projector_h2_id:
     type: relation
-    to: mediafile/used_as_font_projector_h2_in_meeting_id
+    to: meeting_mediafile/used_as_font_projector_h2_in_meeting_id
     restriction_mode: B
   # Other relations
   committee_id:
@@ -1952,12 +1961,12 @@ group:
     restriction_mode: A
   mediafile_access_group_ids:
     type: relation-list
-    to: mediafile/access_group_ids
+    to: meeting_mediafile/access_group_ids
     equal_fields: meeting_id
     restriction_mode: A
   mediafile_inherited_access_group_ids:
     type: relation-list
-    to: mediafile/inherited_access_group_ids
+    to: meeting_mediafile/inherited_access_group_ids
     description: Calculated field.
     read_only: true
     restriction_mode: A
@@ -2187,7 +2196,7 @@ list_of_speakers:
         - motion_block
         - assignment
         - topic
-        - mediafile
+        - meeting_mediafile
       field: list_of_speakers_id
     required: true
     equal_fields: meeting_id
@@ -2384,7 +2393,7 @@ topic:
 
   attachment_ids:
     type: relation-list
-    to: mediafile/attachment_ids
+    to: meeting_mediafile/attachment_ids
     equal_fields: meeting_id
     restriction_mode: A
   agenda_item_id:
@@ -2664,7 +2673,7 @@ motion:
     restriction_mode: C
   attachment_ids:
     type: relation-list
-    to: mediafile/attachment_ids
+    to: meeting_mediafile/attachment_ids
     equal_fields: meeting_id
     restriction_mode: C
   projection_ids:
@@ -3565,7 +3574,7 @@ assignment:
     restriction_mode: A
   attachment_ids:
     type: relation-list
-    to: mediafile/attachment_ids
+    to: meeting_mediafile/attachment_ids
     equal_fields: meeting_id
     restriction_mode: A
   projection_ids:
@@ -3696,24 +3705,8 @@ mediafile:
   create_timestamp:
     type: timestamp
     restriction_mode: A
-  is_public:
-    type: boolean
-    description: "Calculated field. inherited_access_group_ids == [] can have two causes: cancelling access groups (=> is_public := false) or no access groups at all (=> is_public := true)"
-    read_only: true
-    required: true
-    restriction_mode: A
   token:
     type: string
-    restriction_mode: A
-  inherited_access_group_ids:
-    type: relation-list
-    to: group/mediafile_inherited_access_group_ids
-    description: Calculated field.
-    read_only: true
-    restriction_mode: A
-  access_group_ids:
-    type: relation-list
-    to: group/mediafile_access_group_ids
     restriction_mode: A
   parent_id:
     type: relation
@@ -3724,6 +3717,55 @@ mediafile:
     type: relation-list
     to: mediafile/parent_id
     equal_fields: owner_id
+    restriction_mode: A
+  owner_id:
+    type: generic-relation
+    to:
+      - meeting/mediafile_ids
+      - organization/mediafile_ids
+    restriction_mode: A
+    required: true
+    constant: true
+  meeting_mediafile_ids:
+    type: relation-list
+    to: meeting_mediafile/mediafile_id
+    on_delete: CASCADE
+    restriction_mode: A
+  public_in_organization_id:
+    type: relation
+    to: organization/public_mediafile_ids
+    restriction_mode: A
+
+meeting_mediafile:
+  id:
+    type: number
+    restriction_mode: A
+    constant: true
+  mediafile_id:
+    type: relation
+    to: mediafile/meeting_mediafile_ids
+    required: true
+    restriction_mode: A
+  meeting_id:
+    type: relation
+    to: meeting/meeting_mediafile_ids
+    required: true
+    restriction_mode: A
+  is_public:
+    type: boolean
+    description: "Calculated field. inherited_access_group_ids == [] can have two causes: cancelling access groups (=> is_public := false) or no access groups at all (=> is_public := true)"
+    read_only: true
+    required: true
+    restriction_mode: A
+  inherited_access_group_ids:
+    type: relation-list
+    to: group/mediafile_inherited_access_group_ids
+    description: Calculated field.
+    read_only: true
+    restriction_mode: A
+  access_group_ids:
+    type: relation-list
+    to: group/mediafile_access_group_ids
     restriction_mode: A
   list_of_speakers_id:
     type: relation
@@ -3744,14 +3786,6 @@ mediafile:
         - assignment
       field: attachment_ids
     restriction_mode: A
-  owner_id:
-    type: generic-relation
-    to:
-      - meeting/mediafile_ids
-      - organization/mediafile_ids
-    restriction_mode: A
-    required: true
-    constant: true
 
   # Reverse relations for meetings, if a mediafile is used as a special resource
   used_as_logo_projector_main_in_meeting_id:
@@ -4049,7 +4083,7 @@ projection:
     to:
       - meeting/projection_ids
       - motion/projection_ids
-      - mediafile/projection_ids
+      - meeting_mediafile/projection_ids
       - list_of_speakers/projection_ids
       - motion_block/projection_ids
       - assignment/projection_ids
