@@ -1939,8 +1939,6 @@ group:
         - agenda_item.can_manage
         - agenda_item.can_see
         - agenda_item.can_see_internal
-        - agenda_item.can_manage_moderator_notes
-        - agenda_item.can_see_moderator_notes
         - assignment.can_manage
         - assignment.can_nominate_other
         - assignment.can_nominate_self
@@ -1949,6 +1947,8 @@ group:
         - list_of_speakers.can_be_speaker
         - list_of_speakers.can_manage
         - list_of_speakers.can_see
+        - list_of_speakers.can_manage_moderator_notes
+        - list_of_speakers.can_see_moderator_notes
         - mediafile.can_manage
         - mediafile.can_see
         - meeting.can_manage_logos_and_fonts
@@ -2151,9 +2151,6 @@ agenda_item:
     description: Given in seconds
     minimum: 0
     restriction_mode: B
-  moderator_notes:
-    type: HTMLStrict
-    restriction_mode: D
   is_internal:
     type: boolean
     description: Calculated by the server
@@ -2230,6 +2227,9 @@ list_of_speakers:
     required: true
     restriction_mode: A
     constant: true
+  moderator_notes:
+    type: HTMLStrict
+    restriction_mode: B
 
   content_object_id:
     type: generic-relation
