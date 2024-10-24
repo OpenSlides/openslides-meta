@@ -126,17 +126,17 @@ organization:
     restriction_mode: B
   enable_chat:
     type: boolean
-    restriction_mode: B
+    restriction_mode: A
   limit_of_meetings:
     type: number
     description: Maximum of active meetings for the whole organization. 0 means no limitation at all
-    restriction_mode: B
+    restriction_mode: C
     default: 0
     minimum: 0
   limit_of_users:
     type: number
     description: Maximum of active users for the whole organization. 0 means no limitation at all
-    restriction_mode: B
+    restriction_mode: C
     default: 0
     minimum: 0
   default_language:
@@ -161,16 +161,16 @@ organization:
     restriction_mode: A
   saml_attr_mapping:
     type: JSON
-    restriction_mode: A
+    restriction_mode: D
   saml_metadata_idp:
     type: text
-    restriction_mode: A
+    restriction_mode: D
   saml_metadata_sp:
     type: text
-    restriction_mode: A
+    restriction_mode: D
   saml_private_key:
     type: text
-    restriction_mode: A
+    restriction_mode: D
 
   vote_decrypt_public_main_key:
     type: string
@@ -818,13 +818,13 @@ meeting:
   # Configuration (only for the server owner)
   jitsi_domain:
     type: string
-    restriction_mode: B
+    restriction_mode: E
   jitsi_room_name:
     type: string
-    restriction_mode: B
+    restriction_mode: E
   jitsi_room_password:
     type: string
-    restriction_mode: B
+    restriction_mode: E
 
   # System
   template_for_organization_id:
