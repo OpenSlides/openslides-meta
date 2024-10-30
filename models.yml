@@ -423,13 +423,13 @@ meeting_user:
     type: relation
     to: user/meeting_user_ids
     required: true
-    restriction_mode: A
+    restriction_mode: C
     constant: true
   meeting_id:
     type: relation
     to: meeting/meeting_user_ids
     required: true
-    restriction_mode: A
+    restriction_mode: C
     constant: true
 
   personal_note_ids:
@@ -442,57 +442,57 @@ meeting_user:
     type: relation-list
     to: speaker/meeting_user_id
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
   supported_motion_ids:
     type: relation-list
     to: motion/supporter_meeting_user_ids
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
   motion_editor_ids:
     type: relation-list
     to: motion_editor/meeting_user_id
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
   motion_working_group_speaker_ids:
     type: relation-list
     to: motion_working_group_speaker/meeting_user_id
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
   motion_submitter_ids:
     type: relation-list
     to: motion_submitter/meeting_user_id
     equal_fields: meeting_id
     on_delete: CASCADE
-    restriction_mode: A
+    restriction_mode: C
   assignment_candidate_ids:
     type: relation-list
     to: assignment_candidate/meeting_user_id
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
   vote_delegated_to_id:
     type: relation
     to: meeting_user/vote_delegations_from_ids
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
   vote_delegations_from_ids:
     type: relation-list
     to: meeting_user/vote_delegated_to_id
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
   chat_message_ids:
     type: relation-list
     to: chat_message/meeting_user_id
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
   group_ids:
     type: relation-list
     to: group/meeting_user_ids
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
   structure_level_ids:
     type: relation-list
     equal_fields: meeting_id
-    restriction_mode: A
+    restriction_mode: C
     to: structure_level/meeting_user_ids
 
 gender:
