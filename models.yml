@@ -265,11 +265,11 @@ user:
   member_number:
     type: string
     restriction_mode: B
-  saml_id:
+  idp_id:
     type: string
     minLength: 1
     restriction_mode: B
-    description: unique-key from IdP for SAML login
+    description: unique-key from IdP
   pronoun:
     type: string
     maxLength: 32
