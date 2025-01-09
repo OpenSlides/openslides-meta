@@ -195,7 +195,7 @@ organization:
     restriction_mode: A
   organization_tag_ids:
     type: relation-list
-    restriction_mode: B
+    restriction_mode: A
     to: organization_tag/organization_id
   theme_id:
     type: relation
@@ -796,7 +796,7 @@ meeting:
     restriction_mode: A
   locked_from_inside:
     type: boolean
-    restriction_mode: B
+    restriction_mode: A
   imported_at:
     type: timestamp
     restriction_mode: B
@@ -1749,7 +1749,7 @@ meeting:
     type: number[]
     description: Calculated. All user ids from all users assigned to groups of this meeting.
     read_only: true
-    restriction_mode: B
+    restriction_mode: A
   reference_projector_id:
     type: relation
     to: projector/used_as_reference_projector_meeting_id
