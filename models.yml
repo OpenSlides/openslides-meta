@@ -1544,7 +1544,7 @@ meeting:
     type: relation-list
     to: group/meeting_id
     on_delete: CASCADE
-    restriction_mode: B
+    restriction_mode: A
   meeting_mediafile_ids:
     type: relation-list
     to: meeting_mediafile/meeting_id
