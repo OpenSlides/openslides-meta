@@ -54,6 +54,7 @@ motion:
         can_see:
 poll:
     can_manage:
+        can_see_progress:
 projector:
     can_manage:
         can_see:
