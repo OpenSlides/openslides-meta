@@ -3224,10 +3224,10 @@ poll:
   entitled_users_at_stop:
     type: JSON
     restriction_mode: A
-  vote_count:
-    type: number
+  has_voted_user_ids:
+    type: number[]
     calculated: true
-    description: get it from vote-service, anyway not handled by backend
+    description: user_ids of the users, that have voted, while a poll is running.
     restriction_mode: C
   sequential_number:
     type: number
