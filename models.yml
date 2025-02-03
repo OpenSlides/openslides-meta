@@ -2699,7 +2699,6 @@ motion_editor:
     type: relation
     to: meeting_user/motion_editor_ids
     restriction_mode: A
-    required: true
   motion_id:
     type: relation
     to: motion/editor_ids
@@ -2723,7 +2722,6 @@ motion_working_group_speaker:
     type: relation
     to: meeting_user/motion_working_group_speaker_ids
     restriction_mode: A
-    required: true
   motion_id:
     type: relation
     to: motion/working_group_speaker_ids
