@@ -30,7 +30,8 @@ class SchemaZoneTexts(TypedDict, total=False):
     post_view: str
     alter_table: str
     alter_table_final: str
-    create_trigger: str
+    create_trigger_relationlistnotnull: str
+    create_trigger_notify: str
     undecided: str
     final_info: str
     errors: list[str]
@@ -80,7 +81,8 @@ class GenerateCodeBlocks:
           im_table_code: Code for intermediate tables.
               n:m-relations name schema: f"nm_{smaller-table-name}_{it's-fieldname}_{greater-table_name}" uses one per relation
               g:m-relations name schema: f"gm_{table_field.table}_{table_field.column}" of table with generic-list-field
-          create_trigger_code Definitions of triggers
+          create_trigger_relationlistnotnull_code: Definitions of triggers calling check_not_null_for_relation_lists
+          create_trigger_notify_code: Definitions of triggers calling notify_modified_models
           errors: to show
         """
         handled_attributes = {
@@ -107,7 +109,8 @@ class GenerateCodeBlocks:
         table_name_code: str = ""
         view_name_code: str = ""
         alter_table_final_code: str = ""
-        create_trigger_code: str = ""
+        create_trigger_relationlistnotnull_code: str = ""
+        create_trigger_notify_code: str = ""
         final_info_code: str = ""
         missing_handled_attributes = []
         im_table_code = ""
@@ -152,12 +155,21 @@ class GenerateCodeBlocks:
                 view_name_code += code
             if code := schema_zone_texts["alter_table_final"]:
                 alter_table_final_code += code + "\n"
-            if code := schema_zone_texts["create_trigger"]:
-                create_trigger_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_relationlistnotnull"]:
+                create_trigger_relationlistnotnull_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
             for im_table in cls.intermediate_tables.values():
                 im_table_code += im_table
+
+            # schema_zone_texts is filled per model field.
+            # If any fields for this collection generated table code, create the main notify trigger on it.
+            if schema_zone_texts["table"]:
+                create_trigger_notify_code += Helper.get_notify_trigger(table_name) + "\n"
+            # Special triggers (e.g. for relation fields) come after
+            # TODO: needs to be filled in the get_*_relation_*_type functions
+            if code := schema_zone_texts["create_trigger_notify"]:
+                create_trigger_notify_code += code + "\n"
 
         return (
             pre_code,
@@ -167,7 +179,8 @@ class GenerateCodeBlocks:
             final_info_code,
             missing_handled_attributes,
             im_table_code,
-            create_trigger_code,
+            create_trigger_relationlistnotnull_code,
+            create_trigger_notify_code,
             errors,
         )
 
@@ -421,7 +434,7 @@ class GenerateCodeBlocks:
                         HelperGetNames.get_view_name(table_name), fname, comment
                     )
                 if own_table_field.field_def.get("required"):
-                    text["create_trigger"] = (
+                    text["create_trigger_relationlistnotnull"] = (
                         cls.get_trigger_check_not_null_for_relation_lists(
                             own_table_field.table,
                             own_table_field.column,
@@ -574,10 +587,14 @@ class GenerateCodeBlocks:
 
 
 class Helper:
-    FILE_TEMPLATE = dedent(
+    FILE_TEMPLATE_HEADER = dedent(
         """
         -- schema_relational.sql for initial database setup OpenSlides
         -- Code generated. DO NOT EDIT.
+        """
+    )
+    FILE_TEMPLATE_CONSTANT_DEFINITIONS = dedent(
+        """
         CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
 
         CREATE FUNCTION check_not_null_for_relation_lists() RETURNS trigger as $not_null_trigger$
@@ -619,6 +636,31 @@ class Helper:
             RETURN NULL;  -- AFTER TRIGGER needs no return
         end;
         $not_null_trigger$ language plpgsql;
+
+        CREATE FUNCTION notify_modified_models() RETURNS trigger AS $notify_trigger$
+        DECLARE
+            channel TEXT;
+            payload TEXT;
+        BEGIN
+            channel:= LOWER(TG_OP);
+            payload := TG_TABLE_NAME || '/' || NEW.id;
+            IF (TG_OP = 'DELETE') THEN
+                payload = TG_TABLE_NAME || '/' || OLD.id;
+            END IF;
+
+            PERFORM pg_notify(channel, payload);
+            INSERT INTO os_notify_log_t (channel, payload, xact_id, timestamp) VALUES (channel, payload, pg_current_xact_id(), 'now');
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $notify_trigger$ LANGUAGE plpgsql;
+
+        CREATE TABLE os_notify_log_t (
+            id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+            channel varchar(32),
+            payload varchar(256),
+            xact_id xid8,
+            timestamp timestamptz
+        );
         """
     )
     FIELD_TEMPLATE = string.Template(
@@ -714,6 +756,13 @@ class Helper:
     def get_view_body_end(table_name: str, code: str) -> str:
         code = code[:-2] + "\n"  # last attribute line without ",", but with "\n"
         code += f"FROM {HelperGetNames.get_table_name(table_name)} {Helper.get_table_letter(table_name)};\n\n"
+        return code
+
+    @staticmethod
+    def get_notify_trigger(table_name: str) -> str:
+        own_table = HelperGetNames.get_table_name(table_name)
+        code = f"CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
+        code += f"FOR EACH ROW EXECUTE FUNCTION notify_modified_models();"
         return code
 
     @staticmethod
@@ -1078,24 +1127,29 @@ def main() -> None:
         final_info_code,
         missing_handled_attributes,
         im_table_code,
-        create_trigger_code,
+        create_trigger_relationlistnotnull_code,
+        create_trigger_notify_code,
         errors,
     ) = GenerateCodeBlocks.generate_the_code()
     with open(DESTINATION, "w") as dest:
-        dest.write(Helper.FILE_TEMPLATE)
+        dest.write(Helper.FILE_TEMPLATE_HEADER)
         dest.write("-- MODELS_YML_CHECKSUM = " + repr(checksum) + "\n")
-        dest.write("-- Type definitions")
+        dest.write("\n\n-- Function and meta table definitions\n")
+        dest.write(Helper.FILE_TEMPLATE_CONSTANT_DEFINITIONS)
+        dest.write("\n\n-- Type definitions\n")
         dest.write(pre_code)
-        dest.write("\n\n-- Table definitions")
+        dest.write("\n\n-- Table definitions\n")
         dest.write(table_name_code)
         dest.write("\n\n-- Intermediate table definitions\n")
         dest.write(im_table_code)
-        dest.write("-- View definitions\n")
+        dest.write("\n\n-- View definitions\n")
         dest.write(view_name_code)
-        dest.write("-- Alter table relations\n")
+        dest.write("\n\n-- Alter table relations\n")
         dest.write(alter_table_code)
-        dest.write("-- Create trigger\n")
-        dest.write(create_trigger_code)
+        dest.write("\n\n-- Create triggers checking foreign_id not null for relation-lists\n")
+        dest.write(create_trigger_relationlistnotnull_code)
+        dest.write("\n\n-- Create triggers for notify\n")
+        dest.write(create_trigger_notify_code)
         dest.write(Helper.RELATION_LIST_AGENDA)
         dest.write("/*\n")
         dest.write(final_info_code)
