@@ -971,7 +971,7 @@ meeting:
     enum:
       - A4
       - A5
-    default: AF
+    default: A4
     restriction_mode: B
 
   # Agenda
