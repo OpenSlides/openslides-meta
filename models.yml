@@ -1291,6 +1291,19 @@ meeting:
     enum: *poll_backends
     default: fast
     restriction_mode: B
+  motion_poll_projection_name_order_first:
+    type: string
+    enum:
+      - first_name
+      - last_name
+    default: last_name
+    required: true
+    restriction_mode: B
+  motion_poll_projection_max_columns:
+    type: number
+    default: 6
+    required: true
+    restriction_mode: B
 
   # poll list election
   poll_candidate_list_ids:
