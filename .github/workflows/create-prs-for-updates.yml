@@ -23,6 +23,9 @@ jobs:
           - repository: openslides-autoupdate-service
             assignee: ostcar
             setup-action: setup-autoupdate-pr
+          - repository: openslides-go
+            assignee: ostcar
+            setup-action: setup-autoupdate-pr
           - repository: openslides-backend
             assignee: r-peschke
           - repository: openslides-client
