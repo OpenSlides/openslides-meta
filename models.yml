@@ -449,11 +449,13 @@ meeting_user:
     type: relation-list
     to: motion_editor/meeting_user_id
     equal_fields: meeting_id
+    on_delete: CASCADE
     restriction_mode: A
   motion_working_group_speaker_ids:
     type: relation-list
     to: motion_working_group_speaker/meeting_user_id
     equal_fields: meeting_id
+    on_delete: CASCADE
     restriction_mode: A
   motion_submitter_ids:
     type: relation-list
@@ -752,7 +754,7 @@ meeting:
   id: *id_field
   external_id:
     type: string
-    restriction_mode: A
+    restriction_mode: F
     description: unique in committee
   welcome_title:
     type: string
@@ -773,12 +775,12 @@ meeting:
   is_active_in_organization_id:
     type: relation
     to: organization/active_meeting_ids
-    restriction_mode: A
+    restriction_mode: F
     description: Backrelation and boolean flag at once
   is_archived_in_organization_id:
     type: relation
     to: organization/archived_meeting_ids
-    restriction_mode: A
+    restriction_mode: F
     description: Backrelation and boolean flag at once
   description:
     type: string
@@ -787,22 +789,22 @@ meeting:
     restriction_mode: B
   location:
     type: string
-    restriction_mode: A
+    restriction_mode: F
   start_time:
     type: timestamp
-    restriction_mode: A
+    restriction_mode: F
   end_time:
     type: timestamp
-    restriction_mode: A
+    restriction_mode: F
   locked_from_inside:
     type: boolean
-    restriction_mode: A
+    restriction_mode: F
   imported_at:
     type: timestamp
     restriction_mode: B
   language:
     type: string
-    restriction_mode: A
+    restriction_mode: F
     enum: *languages
     required: true
     constant: true
@@ -826,7 +828,7 @@ meeting:
   enable_anonymous:
     type: boolean
     default: False
-    restriction_mode: A
+    restriction_mode: F
   custom_translations:
     type: JSON
     restriction_mode: B
@@ -1122,12 +1124,12 @@ meeting:
       - inline
       - none
     default: outside
-    restriction_mode: B
+    restriction_mode: A
   motions_line_length:
     type: number
     minimum: 40
     default: 85
-    restriction_mode: B
+    restriction_mode: A
   motions_reason_required:
     type: boolean
     default: False
@@ -1289,6 +1291,19 @@ meeting:
     enum: *poll_backends
     default: fast
     restriction_mode: B
+  motion_poll_projection_name_order_first:
+    type: string
+    enum:
+      - first_name
+      - last_name
+    default: last_name
+    required: true
+    restriction_mode: B
+  motion_poll_projection_max_columns:
+    type: number
+    default: 6
+    required: true
+    restriction_mode: B
 
   # poll list election
   poll_candidate_list_ids:
@@ -1304,7 +1319,7 @@ meeting:
   meeting_user_ids:
     type: relation-list
     to: meeting_user/meeting_id
-    restriction_mode: A
+    restriction_mode: F
     on_delete: CASCADE
   users_enable_presence_view:
     type: boolean
