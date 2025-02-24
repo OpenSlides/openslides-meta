@@ -67,4 +67,3 @@ jobs:
           reviewers: ${{ inputs.assignee }}
           assignees: ${{ inputs.assignee }}
           labels: dependencies
-          milestone: 4
