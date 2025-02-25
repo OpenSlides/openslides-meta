@@ -7,6 +7,7 @@ import simplejson as json
 import yaml
 
 KEYSEPARATOR = "/"
+MAX_FIELD_NAME_LENGTH = 63
 
 _collection_regex = r"[a-z](?:[a-z_]+[a-z]+)?"
 _field_regex = r"[a-z][a-z0-9_]*"
@@ -117,6 +118,12 @@ class Checker:
         field: str | dict[str, Any],
         nested: bool = False,
     ) -> None:
+        if len(field_name) > MAX_FIELD_NAME_LENGTH:
+            self.errors.append(
+                f"Field name '{field_name}' for collection {collection} is longer than the maximum {MAX_FIELD_NAME_LENGTH} characters."
+            )
+            return
+
         collectionfield = f"{collection}{KEYSEPARATOR}{field_name}"
 
         if isinstance(field, str):
