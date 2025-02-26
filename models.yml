@@ -3918,11 +3918,12 @@ projector:
     required: true
     constant: true
 
-# A projection is an M2M model between an element that is assigned to a
-# projector. This element can either be the current one projected, in the
-# preview, or in the history, but not more than one at once. A projection is
-# projector-specific, meaning that once a projection is created for a projector
-# and element, these references will not change.
+# A projection is an M2M model between a projector and an element which is assigned to it. 
+# It can either be the current projection, a preview or a history projection (i.e. previously 
+# projected, with reference retained for protocolling purposes). The projection can only be 
+# connected to the projector once in one of these contexts. Projections are projector- and 
+# element-specific, meaning that, while the type of projector reference may change, neither 
+# the referenced projector, nor the content_object of the projection may be changed.
 projection:
   id: *id_field
   options:
