@@ -65,6 +65,31 @@ BEGIN
 END;
 $notify_trigger$ LANGUAGE plpgsql;
 
+CREATE FUNCTION notify_modified_related_models() RETURNS trigger AS $notify_trigger$
+DECLARE
+    channel TEXT;
+    payload TEXT;
+    ref_column TEXT;
+    foreign_table TEXT;
+    foreign_id TEXT;
+BEGIN
+    channel:= LOWER(TG_OP);
+    ref_column := TG_ARGV[0];
+    foreign_table := TG_ARGV[1];
+
+    EXECUTE format('SELECT %s FROM %s', ref_column, NEW) INTO foreign_id;
+    IF (TG_OP = 'DELETE') THEN
+        EXECUTE format('SELECT %s FROM %s', ref_column, OLD) INTO foreign_id;
+    END IF;
+
+    payload := foreign_table || '/' || foreign_id;
+
+    PERFORM pg_notify(channel, payload);
+    INSERT INTO os_notify_log_t (channel, payload, xact_id, timestamp) VALUES (channel, payload, pg_current_xact_id(), 'now');
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$notify_trigger$ LANGUAGE plpgsql;
+
 CREATE TABLE os_notify_log_t (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     channel varchar(32),
@@ -1970,92 +1995,405 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('meeting', 'defa
 -- Create triggers for notify
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON organization_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_theme_id AFTER INSERT OR UPDATE OF theme_id OR DELETE ON organization_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('theme_id', 'theme_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_user_id AFTER INSERT OR UPDATE OF user_id OR DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('user_id', 'user_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_vote_delegated_to_id AFTER INSERT OR UPDATE OF vote_delegated_to_id OR DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('vote_delegated_to_id', 'meeting_user_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON organization_tag_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON theme_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON committee_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_default_meeting_id AFTER INSERT OR UPDATE OF default_meeting_id OR DELETE ON committee_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('default_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_forwarding_user_id AFTER INSERT OR UPDATE OF forwarding_user_id OR DELETE ON committee_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('forwarding_user_id', 'user_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_is_active_in_organization_id AFTER INSERT OR UPDATE OF is_active_in_organization_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('is_active_in_organization_id', 'organization_t');
+CREATE TRIGGER modified_model_relation_is_archived_in_organization_id AFTER INSERT OR UPDATE OF is_archived_in_organization_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('is_archived_in_organization_id', 'organization_t');
+CREATE TRIGGER modified_model_relation_template_for_organization_id AFTER INSERT OR UPDATE OF template_for_organization_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('template_for_organization_id', 'organization_t');
+CREATE TRIGGER modified_model_relation_motions_default_workflow_id AFTER INSERT OR UPDATE OF motions_default_workflow_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('motions_default_workflow_id', 'motion_workflow_t');
+CREATE TRIGGER modified_model_relation_motions_default_amendment_workflow_id AFTER INSERT OR UPDATE OF motions_default_amendment_workflow_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('motions_default_amendment_workflow_id', 'motion_workflow_t');
+CREATE TRIGGER modified_model_relation_motions_default_statute_amendment_workflow_id AFTER INSERT OR UPDATE OF motions_default_statute_amendment_workflow_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('motions_default_statute_amendment_workflow_id', 'motion_workflow_t');
+CREATE TRIGGER modified_model_relation_logo_projector_main_id AFTER INSERT OR UPDATE OF logo_projector_main_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('logo_projector_main_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_logo_projector_header_id AFTER INSERT OR UPDATE OF logo_projector_header_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('logo_projector_header_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_logo_web_header_id AFTER INSERT OR UPDATE OF logo_web_header_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('logo_web_header_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_logo_pdf_header_l_id AFTER INSERT OR UPDATE OF logo_pdf_header_l_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('logo_pdf_header_l_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_logo_pdf_header_r_id AFTER INSERT OR UPDATE OF logo_pdf_header_r_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('logo_pdf_header_r_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_logo_pdf_footer_l_id AFTER INSERT OR UPDATE OF logo_pdf_footer_l_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('logo_pdf_footer_l_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_logo_pdf_footer_r_id AFTER INSERT OR UPDATE OF logo_pdf_footer_r_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('logo_pdf_footer_r_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_logo_pdf_ballot_paper_id AFTER INSERT OR UPDATE OF logo_pdf_ballot_paper_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('logo_pdf_ballot_paper_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_font_regular_id AFTER INSERT OR UPDATE OF font_regular_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('font_regular_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_font_italic_id AFTER INSERT OR UPDATE OF font_italic_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('font_italic_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_font_bold_id AFTER INSERT OR UPDATE OF font_bold_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('font_bold_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_font_bold_italic_id AFTER INSERT OR UPDATE OF font_bold_italic_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('font_bold_italic_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_font_monospace_id AFTER INSERT OR UPDATE OF font_monospace_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('font_monospace_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_font_chyron_speaker_name_id AFTER INSERT OR UPDATE OF font_chyron_speaker_name_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('font_chyron_speaker_name_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_font_projector_h1_id AFTER INSERT OR UPDATE OF font_projector_h1_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('font_projector_h1_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_font_projector_h2_id AFTER INSERT OR UPDATE OF font_projector_h2_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('font_projector_h2_id', 'meeting_mediafile_t');
+CREATE TRIGGER modified_model_relation_committee_id AFTER INSERT OR UPDATE OF committee_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('committee_id', 'committee_t');
+CREATE TRIGGER modified_model_relation_reference_projector_id AFTER INSERT OR UPDATE OF reference_projector_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('reference_projector_id', 'projector_t');
+CREATE TRIGGER modified_model_relation_list_of_speakers_countdown_id AFTER INSERT OR UPDATE OF list_of_speakers_countdown_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('list_of_speakers_countdown_id', 'projector_countdown_t');
+CREATE TRIGGER modified_model_relation_poll_countdown_id AFTER INSERT OR UPDATE OF poll_countdown_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('poll_countdown_id', 'projector_countdown_t');
+CREATE TRIGGER modified_model_relation_default_group_id AFTER INSERT OR UPDATE OF default_group_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('default_group_id', 'group_t');
+CREATE TRIGGER modified_model_relation_admin_group_id AFTER INSERT OR UPDATE OF admin_group_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('admin_group_id', 'group_t');
+CREATE TRIGGER modified_model_relation_anonymous_group_id AFTER INSERT OR UPDATE OF anonymous_group_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('anonymous_group_id', 'group_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON structure_level_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON structure_level_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON group_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_used_as_motion_poll_default_id AFTER INSERT OR UPDATE OF used_as_motion_poll_default_id OR DELETE ON group_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_motion_poll_default_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_assignment_poll_default_id AFTER INSERT OR UPDATE OF used_as_assignment_poll_default_id OR DELETE ON group_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_assignment_poll_default_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_topic_poll_default_id AFTER INSERT OR UPDATE OF used_as_topic_poll_default_id OR DELETE ON group_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_topic_poll_default_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_poll_default_id AFTER INSERT OR UPDATE OF used_as_poll_default_id OR DELETE ON group_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_poll_default_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON group_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON personal_note_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id OR DELETE ON personal_note_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_user_id', 'meeting_user_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON personal_note_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON tag_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON tag_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON agenda_item_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_parent_id AFTER INSERT OR UPDATE OF parent_id OR DELETE ON agenda_item_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('parent_id', 'agenda_item_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON agenda_item_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON list_of_speakers_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON structure_level_list_of_speakers_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_structure_level_id AFTER INSERT OR UPDATE OF structure_level_id OR DELETE ON structure_level_list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('structure_level_id', 'structure_level_t');
+CREATE TRIGGER modified_model_relation_list_of_speakers_id AFTER INSERT OR UPDATE OF list_of_speakers_id OR DELETE ON structure_level_list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('list_of_speakers_id', 'list_of_speakers_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON structure_level_list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON point_of_order_category_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON point_of_order_category_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON speaker_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_list_of_speakers_id AFTER INSERT OR UPDATE OF list_of_speakers_id OR DELETE ON speaker_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('list_of_speakers_id', 'list_of_speakers_t');
+CREATE TRIGGER modified_model_relation_structure_level_list_of_speakers_id AFTER INSERT OR UPDATE OF structure_level_list_of_speakers_id OR DELETE ON speaker_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('structure_level_list_of_speakers_id', 'structure_level_list_of_speakers_t');
+CREATE TRIGGER modified_model_relation_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id OR DELETE ON speaker_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_user_id', 'meeting_user_t');
+CREATE TRIGGER modified_model_relation_point_of_order_category_id AFTER INSERT OR UPDATE OF point_of_order_category_id OR DELETE ON speaker_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('point_of_order_category_id', 'point_of_order_category_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON speaker_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON topic_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON topic_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_lead_motion_id AFTER INSERT OR UPDATE OF lead_motion_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('lead_motion_id', 'motion_t');
+CREATE TRIGGER modified_model_relation_sort_parent_id AFTER INSERT OR UPDATE OF sort_parent_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('sort_parent_id', 'motion_t');
+CREATE TRIGGER modified_model_relation_origin_id AFTER INSERT OR UPDATE OF origin_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('origin_id', 'motion_t');
+CREATE TRIGGER modified_model_relation_origin_meeting_id AFTER INSERT OR UPDATE OF origin_meeting_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('origin_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_state_id AFTER INSERT OR UPDATE OF state_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('state_id', 'motion_state_t');
+CREATE TRIGGER modified_model_relation_recommendation_id AFTER INSERT OR UPDATE OF recommendation_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('recommendation_id', 'motion_state_t');
+CREATE TRIGGER modified_model_relation_category_id AFTER INSERT OR UPDATE OF category_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('category_id', 'motion_category_t');
+CREATE TRIGGER modified_model_relation_block_id AFTER INSERT OR UPDATE OF block_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('block_id', 'motion_block_t');
+CREATE TRIGGER modified_model_relation_statute_paragraph_id AFTER INSERT OR UPDATE OF statute_paragraph_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('statute_paragraph_id', 'motion_statute_paragraph_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_submitter_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id OR DELETE ON motion_submitter_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_user_id', 'meeting_user_t');
+CREATE TRIGGER modified_model_relation_motion_id AFTER INSERT OR UPDATE OF motion_id OR DELETE ON motion_submitter_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('motion_id', 'motion_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_submitter_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_editor_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id OR DELETE ON motion_editor_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_user_id', 'meeting_user_t');
+CREATE TRIGGER modified_model_relation_motion_id AFTER INSERT OR UPDATE OF motion_id OR DELETE ON motion_editor_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('motion_id', 'motion_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_editor_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_working_group_speaker_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id OR DELETE ON motion_working_group_speaker_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_user_id', 'meeting_user_t');
+CREATE TRIGGER modified_model_relation_motion_id AFTER INSERT OR UPDATE OF motion_id OR DELETE ON motion_working_group_speaker_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('motion_id', 'motion_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_working_group_speaker_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_comment_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_motion_id AFTER INSERT OR UPDATE OF motion_id OR DELETE ON motion_comment_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('motion_id', 'motion_t');
+CREATE TRIGGER modified_model_relation_section_id AFTER INSERT OR UPDATE OF section_id OR DELETE ON motion_comment_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('section_id', 'motion_comment_section_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_comment_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_comment_section_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_comment_section_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_category_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_parent_id AFTER INSERT OR UPDATE OF parent_id OR DELETE ON motion_category_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('parent_id', 'motion_category_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_category_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_block_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_block_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_change_recommendation_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_motion_id AFTER INSERT OR UPDATE OF motion_id OR DELETE ON motion_change_recommendation_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('motion_id', 'motion_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_change_recommendation_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_state_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_submitter_withdraw_state_id AFTER INSERT OR UPDATE OF submitter_withdraw_state_id OR DELETE ON motion_state_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('submitter_withdraw_state_id', 'motion_state_t');
+CREATE TRIGGER modified_model_relation_workflow_id AFTER INSERT OR UPDATE OF workflow_id OR DELETE ON motion_state_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('workflow_id', 'motion_workflow_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_state_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_workflow_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_first_state_id AFTER INSERT OR UPDATE OF first_state_id OR DELETE ON motion_workflow_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('first_state_id', 'motion_state_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_workflow_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_statute_paragraph_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_statute_paragraph_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON poll_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_global_option_id AFTER INSERT OR UPDATE OF global_option_id OR DELETE ON poll_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('global_option_id', 'option_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON poll_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON option_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_poll_id AFTER INSERT OR UPDATE OF poll_id OR DELETE ON option_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('poll_id', 'poll_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON option_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON vote_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_option_id AFTER INSERT OR UPDATE OF option_id OR DELETE ON vote_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('option_id', 'option_t');
+CREATE TRIGGER modified_model_relation_user_id AFTER INSERT OR UPDATE OF user_id OR DELETE ON vote_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('user_id', 'user_t');
+CREATE TRIGGER modified_model_relation_delegated_user_id AFTER INSERT OR UPDATE OF delegated_user_id OR DELETE ON vote_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('delegated_user_id', 'user_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON vote_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON assignment_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON assignment_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON assignment_candidate_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_assignment_id AFTER INSERT OR UPDATE OF assignment_id OR DELETE ON assignment_candidate_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('assignment_id', 'assignment_t');
+CREATE TRIGGER modified_model_relation_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id OR DELETE ON assignment_candidate_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_user_id', 'meeting_user_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON assignment_candidate_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_list_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON poll_candidate_list_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_poll_candidate_list_id AFTER INSERT OR UPDATE OF poll_candidate_list_id OR DELETE ON poll_candidate_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('poll_candidate_list_id', 'poll_candidate_list_t');
+CREATE TRIGGER modified_model_relation_user_id AFTER INSERT OR UPDATE OF user_id OR DELETE ON poll_candidate_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('user_id', 'user_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON poll_candidate_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON mediafile_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_published_to_meetings_in_organization_id AFTER INSERT OR UPDATE OF published_to_meetings_in_organization_id OR DELETE ON mediafile_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('published_to_meetings_in_organization_id', 'organization_t');
+CREATE TRIGGER modified_model_relation_parent_id AFTER INSERT OR UPDATE OF parent_id OR DELETE ON mediafile_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('parent_id', 'mediafile_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON meeting_mediafile_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_mediafile_id AFTER INSERT OR UPDATE OF mediafile_id OR DELETE ON meeting_mediafile_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('mediafile_id', 'mediafile_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON meeting_mediafile_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON projector_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_agenda_item_list_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_agenda_item_list_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_agenda_item_list_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_topic_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_topic_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_topic_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_list_of_speakers_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_list_of_speakers_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_list_of_speakers_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_current_los_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_current_los_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_current_los_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_motion_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_motion_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_motion_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_amendment_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_amendment_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_amendment_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_motion_block_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_motion_block_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_motion_block_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_assignment_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_assignment_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_assignment_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_mediafile_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_mediafile_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_mediafile_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_message_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_message_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_message_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_countdown_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_countdown_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_countdown_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_assignment_poll_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_assignment_poll_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_assignment_poll_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_motion_poll_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_motion_poll_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_motion_poll_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_used_as_default_projector_for_poll_in_meeting_id AFTER INSERT OR UPDATE OF used_as_default_projector_for_poll_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('used_as_default_projector_for_poll_in_meeting_id', 'meeting_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON projection_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_current_projector_id AFTER INSERT OR UPDATE OF current_projector_id OR DELETE ON projection_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('current_projector_id', 'projector_t');
+CREATE TRIGGER modified_model_relation_preview_projector_id AFTER INSERT OR UPDATE OF preview_projector_id OR DELETE ON projection_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('preview_projector_id', 'projector_t');
+CREATE TRIGGER modified_model_relation_history_projector_id AFTER INSERT OR UPDATE OF history_projector_id OR DELETE ON projection_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('history_projector_id', 'projector_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON projection_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON projector_message_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON projector_message_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON projector_countdown_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON projector_countdown_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON chat_group_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON chat_group_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON chat_message_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
+CREATE TRIGGER modified_model_relation_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id OR DELETE ON chat_message_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_user_id', 'meeting_user_t');
+CREATE TRIGGER modified_model_relation_chat_group_id AFTER INSERT OR UPDATE OF chat_group_id OR DELETE ON chat_message_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('chat_group_id', 'chat_group_t');
+CREATE TRIGGER modified_model_relation_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON chat_message_t
+FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('meeting_id', 'meeting_t');
+
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON action_worker_t
 FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 CREATE TRIGGER modified_model AFTER INSERT OR UPDATE OR DELETE ON import_preview_t

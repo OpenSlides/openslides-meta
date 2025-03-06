@@ -206,6 +206,31 @@ class HelperGetNames:
         HelperGetNames.trigger_unique_list.append(name)
         return name
 
+    @staticmethod
+    @max_length
+    def get_notify_trigger_name(
+        table_name: str,
+    ) -> str:
+        """gets the name of the trigger for notifying changes on models"""
+        name = f"tr_notify_{table_name}"[: HelperGetNames.MAX_LEN]
+        if name in HelperGetNames.trigger_unique_list:
+            raise Exception(f"trigger {name} is not unique!")
+        HelperGetNames.trigger_unique_list.append(name)
+        return name
+
+    @staticmethod
+    @max_length
+    def get_notify_related_trigger_name(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """gets the name of the trigger for notifying changes on related models"""
+        name = f"tr_notify_rel_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
+        if name in HelperGetNames.trigger_unique_list:
+            raise Exception(f"trigger {name} is not unique!")
+        HelperGetNames.trigger_unique_list.append(name)
+        return name
+
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}
