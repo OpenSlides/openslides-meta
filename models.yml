@@ -1124,6 +1124,14 @@ meeting:
     type: boolean
     default: False
     restriction_mode: B
+  motions_origin_motion_toggle_default:
+    type: boolean
+    default: False
+    restriction_mode: B
+  motions_enable_origin_motion_display:
+    type: boolean
+    default: False
+    restriction_mode: B
   motions_enable_text_on_projector:
     type: boolean
     default: True
