@@ -470,13 +470,21 @@ meeting_user:
     to: meeting_user/vote_delegated_to_id
     equal_fields: meeting_id
     restriction_mode: A
-  crypt_default_secretary_id:
+  crypt_default_secretary_in_meeting_id:
     type: relation
     to: meeting/crypt_default_secretary_id
     restriction_mode: X
-  crypt_default_auditor_id:
+  crypt_default_auditor_in_meeting_id:
     type: relation
     to: meeting/crypt_default_auditor_id
+    restriction_mode: X
+  crypt_secretary_for_poll_ids:
+    type: relation-list
+    to: poll/crypt_secretary_id
+    restriction_mode: X
+  crypt_auditor_for_poll_ids:
+    type: relation-list
+    to: poll/crypt_auditor_id
     restriction_mode: X
   chat_message_ids:
     type: relation-list
@@ -1303,11 +1311,11 @@ meeting:
     restriction_mode: B
   crypt_default_secretary_id:
     type: relation
-    to: meeting_user/crypt_default_secretary_id
+    to: meeting_user/crypt_default_secretary_in_meeting_id
     restriction_mode: X
-  crypt_default_pollassistent_auditor_id:
+  crypt_default_auditor_id:
     type: relation
-    to: meeting_user/crypt_default_pollassistent_auditor_id
+    to: meeting_user/crypt_default_auditor_in_meeting_id
     restriction_mode: X
 
   # Users
@@ -3256,6 +3264,16 @@ poll:
     type: string
     description: base64 public key of the auditor.
     read_only: true
+    restriction_mode: A
+  crypt_secretary_id:
+    type: relation
+    to: meeting_user/crypt_secretary_for_poll_ids
+    description: ID of the secretary for this poll.
+    restriction_mode: A
+  crypt_auditor_id:
+    type: relation
+    to: meeting_user/crypt_auditor_for_poll_ids
+    description: ID of the auditor for this poll.
     restriction_mode: A
   crypt_documents:
     type: text
