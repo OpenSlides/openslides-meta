@@ -317,6 +317,9 @@ user:
     type: timestamp
     restriction_mode: A
     read_only: true
+  guest:
+    type: boolean
+    restriction_mode: E
   gender_id:
     type: relation
     to: gender/user_ids
