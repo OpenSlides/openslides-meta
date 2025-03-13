@@ -385,7 +385,7 @@ user:
     restriction_mode: A
   home_committee_id:
     type: relation
-    to: user/native_user_ids
+    to: committee/native_user_ids
     restriction_mode: E
 
   meeting_ids:
