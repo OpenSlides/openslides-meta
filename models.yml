@@ -317,6 +317,9 @@ user:
     type: timestamp
     restriction_mode: A
     read_only: true
+  guest:
+    type: boolean
+    restriction_mode: E
   gender_id:
     type: relation
     to: gender/user_ids
@@ -377,6 +380,10 @@ user:
     type: relation-list
     to: poll_candidate/user_id
     restriction_mode: A
+  home_committee_id:
+    type: relation
+    to: committee/native_user_ids
+    restriction_mode: E
 
   meeting_ids:
     type: number[]
@@ -721,6 +728,26 @@ committee:
     to: user/committee_management_ids
     restriction_mode: B
 
+  parent_id:
+    type: relation
+    to: committee/child_ids
+    restriction_mode: A
+  child_ids:
+    type: relation-list
+    to: committee/parent_id
+    restriction_mode: A
+  all_parent_ids: # Calculated: All parents, grandparents, etc. of this motion.
+    type: relation-list
+    to: committee/all_child_ids
+    restriction_mode: A
+  all_child_ids: # Calculated: All children, grandchildren, etc. of this motion.
+    type: relation-list
+    to: committee/all_parent_ids
+    restriction_mode: A
+  native_user_ids:
+    type: relation-list
+    to: user/home_committee_id
+    restriction_mode: B
   forward_to_committee_ids:
     type: relation-list
     to: committee/receive_forwardings_from_committee_ids
