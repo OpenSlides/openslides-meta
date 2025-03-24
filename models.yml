@@ -355,12 +355,6 @@ user:
     to: committee/manager_ids
     restriction_mode: E
 
-  # for the motion forwarding
-  forwarding_committee_ids:
-    type: relation-list
-    to: committee/forwarding_user_id
-    restriction_mode: E
-
   meeting_user_ids:
     type: relation-list
     to: meeting_user/user_id
@@ -762,10 +756,6 @@ committee:
     type: relation-list
     to: committee/forward_to_committee_ids
     restriction_mode: B
-  forwarding_user_id:
-    type: relation
-    to: user/forwarding_committee_ids
-    restriction_mode: B
   organization_tag_ids:
     type: relation-list
     to: organization_tag/tagged_ids
@@ -1158,6 +1148,14 @@ meeting:
     default: 85
     restriction_mode: A
   motions_reason_required:
+    type: boolean
+    default: False
+    restriction_mode: B
+  motions_origin_motion_toggle_default:
+    type: boolean
+    default: False
+    restriction_mode: B
+  motions_enable_origin_motion_display:
     type: boolean
     default: False
     restriction_mode: B

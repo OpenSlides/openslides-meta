@@ -60,7 +60,7 @@ jobs:
           path: service-repository
           token: ${{ steps.generate-token.outputs.token }}
           commit-message: Update meta repository
-          branch: dep/update-meta-repo
+          branch: dep/update-meta-${{ github.ref_name }}
           delete-branch: true
           title: "Update meta repository (${{ github.ref_name }})"
           body: "Triggered by commit [${{ inputs.commit }}](https://github.com/${{ github.repository_owner }}/openslides-meta/commit/${{ inputs.commit }})"
