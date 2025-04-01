@@ -132,7 +132,12 @@ motion:
                 last_name: null
                 pronoun: null
                 username: null
-                gender: null
+                gender_id:
+                  type: relation
+                  collection: gender
+                  fields: 
+                    id: null
+                    name: null
 motion_change_recommendation:
   contains:
     - motion
@@ -251,7 +256,6 @@ user:
     - title
     - first_name
     - last_name
-    - gender
     - email
     - organization_management_level
     - meeting_ids
@@ -278,3 +282,9 @@ user:
           fields:
             id: null
             name: null
+    gender_id:
+      type: relation
+      collection: gender
+      fields: 
+        id: null
+        name: null
