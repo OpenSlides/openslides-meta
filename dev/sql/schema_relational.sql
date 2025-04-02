@@ -52,7 +52,6 @@ CREATE FUNCTION notify_modified_models() RETURNS trigger AS $notify_trigger$
 DECLARE
     channel TEXT;
     payload TEXT;
-    t_name TEXT;
 BEGIN
     channel:= LOWER(TG_OP);
     payload := TG_TABLE_NAME || '/' || NEW.id;

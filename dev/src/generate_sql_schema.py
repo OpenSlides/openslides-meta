@@ -643,6 +643,7 @@ class Helper:
         DECLARE
             channel TEXT;
             payload TEXT;
+            t_name TEXT;
         BEGIN
             channel:= LOWER(TG_OP);
             t_name := trim(trailing '_t' from TG_TABLE_NAME);
