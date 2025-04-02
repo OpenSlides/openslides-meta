@@ -645,9 +645,10 @@ class Helper:
             payload TEXT;
         BEGIN
             channel:= LOWER(TG_OP);
-            payload := TG_TABLE_NAME || '/' || NEW.id;
+            t_name := trim(trailing '_t' from TG_TABLE_NAME);
+            payload := t_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                payload = TG_TABLE_NAME || '/' || OLD.id;
+                payload = t_name || '/' || OLD.id;
             END IF;
 
             PERFORM pg_notify(channel, payload);
