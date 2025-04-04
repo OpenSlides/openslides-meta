@@ -352,12 +352,6 @@ user:
     to: committee/manager_ids
     restriction_mode: E
 
-  # for the motion forwarding
-  forwarding_committee_ids:
-    type: relation-list
-    to: committee/forwarding_user_id
-    restriction_mode: E
-
   meeting_user_ids:
     type: relation-list
     to: meeting_user/user_id
@@ -734,10 +728,6 @@ committee:
   receive_forwardings_from_committee_ids:
     type: relation-list
     to: committee/forward_to_committee_ids
-    restriction_mode: B
-  forwarding_user_id:
-    type: relation
-    to: user/forwarding_committee_ids
     restriction_mode: B
   organization_tag_ids:
     type: relation-list
@@ -1134,6 +1124,14 @@ meeting:
     type: boolean
     default: False
     restriction_mode: B
+  motions_origin_motion_toggle_default:
+    type: boolean
+    default: False
+    restriction_mode: B
+  motions_enable_origin_motion_display:
+    type: boolean
+    default: False
+    restriction_mode: B
   motions_enable_text_on_projector:
     type: boolean
     default: True
@@ -1290,6 +1288,19 @@ meeting:
     type: string
     enum: *poll_backends
     default: fast
+    restriction_mode: B
+  motion_poll_projection_name_order_first:
+    type: string
+    enum:
+      - first_name
+      - last_name
+    default: last_name
+    required: true
+    restriction_mode: B
+  motion_poll_projection_max_columns:
+    type: number
+    default: 6
+    required: true
     restriction_mode: B
 
   # poll list election
@@ -1785,9 +1796,9 @@ meeting:
     to: projector/used_as_default_projector_for_list_of_speakers_in_meeting_id
     restriction_mode: B
     required: true
-  default_projector_current_list_of_speakers_ids:
+  default_projector_current_los_ids:
     type: relation-list
-    to: projector/used_as_default_projector_for_current_list_of_speakers_in_meeting_id
+    to: projector/used_as_default_projector_for_current_los_in_meeting_id
     restriction_mode: B
     required: true
   default_projector_motion_ids:
@@ -3226,10 +3237,10 @@ poll:
   entitled_users_at_stop:
     type: JSON
     restriction_mode: A
-  vote_count:
-    type: number
+  has_voted_user_ids:
+    type: number[]
     calculated: true
-    description: get it from vote-service, anyway not handled by backend
+    description: user_ids of the users, that have voted, while a poll is running.
     restriction_mode: C
   sequential_number:
     type: number
@@ -3854,9 +3865,9 @@ projector:
     type: relation
     to: meeting/default_projector_list_of_speakers_ids
     restriction_mode: A
-  used_as_default_projector_for_current_list_of_speakers_in_meeting_id:
+  used_as_default_projector_for_current_los_in_meeting_id:
     type: relation
-    to: meeting/default_projector_current_list_of_speakers_ids
+    to: meeting/default_projector_current_los_ids
     restriction_mode: A
   used_as_default_projector_for_motion_in_meeting_id:
     type: relation
@@ -3905,11 +3916,12 @@ projector:
     required: true
     constant: true
 
-# A projection is a M2M model between an element that is assigned to a
-# projector. This element can either be the current one projected, in the
-# preview, or in the history, but not more than one once. A projection is
-# projector-specific, meaning that once a projection is created for a projector
-# and element, these references will not change.
+# A projection is an M2M model between a projector and an element which is assigned to it. 
+# It can either be the current projection, a preview or a history projection (i.e. previously 
+# projected, with reference retained for protocolling purposes). The projection can only be 
+# connected to the projector once in one of these contexts. Projections are projector- and 
+# element-specific, meaning that, while the type of projector reference may change, neither 
+# the referenced projector, nor the content_object of the projection may be changed.
 projection:
   id: *id_field
   options:
