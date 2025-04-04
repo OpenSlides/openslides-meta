@@ -1054,12 +1054,8 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
     "float": {"pg_type": "real", "method": GenerateCodeBlocks.get_schema_simple_types},
-    "decimal": {
-        "pg_type": string.Template("decimal(${maxLength})"),
-        "method": GenerateCodeBlocks.get_schema_simple_types,
-    },
     "decimal(6)": {
-        "pg_type": "decimal(6)",
+        "pg_type": "decimal(16,6)",
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
     "timestamp": {
