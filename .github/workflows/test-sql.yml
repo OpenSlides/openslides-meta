@@ -12,6 +12,11 @@ jobs:
           POSTGRES_PASSWORD: postgres
           DATABASE_USER: openslides
           DATABASE_NAME: openslides
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Check out code into the Go module directory
