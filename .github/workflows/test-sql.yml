@@ -34,7 +34,7 @@ jobs:
           DATABASE_PORT: 5432
           DATABASE_USER: openslides
           DATABASE_NAME: openslides
-          POSTGRES_PASSWORD: password
+          PGPASSWORD: password
 
       - name: insert init data
         run: sh dev/scripts/apply_init_data.sh
@@ -43,4 +43,4 @@ jobs:
           DATABASE_PORT: 5432
           DATABASE_USER: openslides
           DATABASE_NAME: openslides
-          POSTGRES_PASSWORD: password
+          PGPASSWORD: password
