@@ -17,8 +17,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
       - name: Check out code into the Go module directory
@@ -27,17 +25,17 @@ jobs:
       - name: apply schema
         run: sh dev/scripts/apply_db_schema.sh
         env:
-          DATABASE_HOST: postgres
+          DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_USER: openslides
           DATABASE_NAME: openslides
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: password
 
       - name: insert init data
         run: sh dev/scripts/apply_init_data.sh
         env:
-          DATABASE_HOST: postgres
+          DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_USER: openslides
           DATABASE_NAME: openslides
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: password
