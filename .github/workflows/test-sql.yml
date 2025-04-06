@@ -26,6 +26,7 @@ jobs:
         run: sh dev/scripts/apply_db_schema.sh
         env:
           POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
           POSTGRES_USER: openslides
           DATABASE_NAME: openslides
           POSTGRES_PASSWORD: postgres
@@ -34,6 +35,7 @@ jobs:
         run: sh dev/scripts/apply_init_data.sh
         env:
           POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
           POSTGRES_USER: openslides
           DATABASE_NAME: openslides
           POSTGRES_PASSWORD: postgres
