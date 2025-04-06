@@ -3,6 +3,7 @@ on: [pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    container: node:20-bookworm-slim
 
     services:
       postgres:
@@ -18,13 +19,13 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Check out code into the Go module directory
+      - name: Check out code
         uses: actions/checkout@v4
 
       - name: apply schema
         run: sh dev/scripts/apply_db_schema.sh
         env:
-          DATABASE_HOST: localhost
+          DATABASE_HOST: postgres
           DATABASE_PORT: 5432
           DATABASE_USER: openslides
           DATABASE_NAME: openslides
@@ -33,7 +34,7 @@ jobs:
       - name: insert init data
         run: sh dev/scripts/apply_init_data.sh
         env:
-          DATABASE_HOST: localhost
+          DATABASE_HOST: postgres
           DATABASE_PORT: 5432
           DATABASE_USER: openslides
           DATABASE_NAME: openslides
