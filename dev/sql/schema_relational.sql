@@ -1291,7 +1291,7 @@ CREATE TABLE nm_chat_group_write_group_ids_group (
 
 -- View definitions
 
-CREATE VIEW organization AS SELECT *,
+CREATE VIEW "organization" AS SELECT *,
 (select array_agg(g.id) from gender_t g where g.organization_id = o.id) as gender_ids,
 (select array_agg(c.id) from committee_t c where c.organization_id = o.id) as committee_ids,
 (select array_agg(m.id) from meeting_t m where m.is_active_in_organization_id = o.id) as active_meeting_ids,
@@ -1305,7 +1305,7 @@ CREATE VIEW organization AS SELECT *,
 FROM organization_t o;
 
 
-CREATE VIEW user_ AS SELECT *,
+CREATE VIEW "user" AS SELECT *,
 (select array_agg(n.meeting_id) from nm_meeting_present_user_ids_user n where n.user_id = u.id) as is_present_in_meeting_ids,
 (select array_agg(n.committee_id) from nm_committee_user_ids_user n where n.user_id = u.id) as committee_ids,
 (select array_agg(n.committee_id) from nm_committee_manager_ids_user n where n.user_id = u.id) as committee_management_ids,
@@ -1317,9 +1317,9 @@ CREATE VIEW user_ AS SELECT *,
 (select array_agg(p.id) from poll_candidate_t p where p.user_id = u.id) as poll_candidate_ids
 FROM user_t u;
 
-comment on column user_.committee_ids is 'Calculated field: Returns committee_ids, where the user is manager or member in a meeting';
+comment on column "user".committee_ids is 'Calculated field: Returns committee_ids, where the user is manager or member in a meeting';
 
-CREATE VIEW meeting_user AS SELECT *,
+CREATE VIEW "meeting_user" AS SELECT *,
 (select array_agg(p.id) from personal_note_t p where p.meeting_user_id = m.id) as personal_note_ids,
 (select array_agg(s.id) from speaker_t s where s.meeting_user_id = m.id) as speaker_ids,
 (select array_agg(n.motion_id) from nm_meeting_user_supported_motion_ids_motion n where n.meeting_user_id = m.id) as supported_motion_ids,
@@ -1334,22 +1334,22 @@ CREATE VIEW meeting_user AS SELECT *,
 FROM meeting_user_t m;
 
 
-CREATE VIEW gender AS SELECT *,
+CREATE VIEW "gender" AS SELECT *,
 (select array_agg(u.id) from user_t u where u.gender_id = g.id) as user_ids
 FROM gender_t g;
 
 
-CREATE VIEW organization_tag AS SELECT *,
+CREATE VIEW "organization_tag" AS SELECT *,
 (select array_agg(g.id) from gm_organization_tag_tagged_ids g where g.organization_tag_id = o.id) as tagged_ids
 FROM organization_tag_t o;
 
 
-CREATE VIEW theme AS SELECT *,
+CREATE VIEW "theme" AS SELECT *,
 (select o.id from organization_t o where o.theme_id = t.id) as theme_for_organization_id
 FROM theme_t t;
 
 
-CREATE VIEW committee AS SELECT *,
+CREATE VIEW "committee" AS SELECT *,
 (select array_agg(m.id) from meeting_t m where m.committee_id = c.id) as meeting_ids,
 (select array_agg(n.user_id) from nm_committee_user_ids_user n where n.committee_id = c.id) as user_ids,
 (select array_agg(n.user_id) from nm_committee_manager_ids_user n where n.committee_id = c.id) as manager_ids,
@@ -1358,9 +1358,9 @@ CREATE VIEW committee AS SELECT *,
 (select array_agg(g.organization_tag_id) from gm_organization_tag_tagged_ids g where g.tagged_id_committee_id = c.id) as organization_tag_ids
 FROM committee_t c;
 
-comment on column committee.user_ids is 'Calculated field: All users which are in a group of a meeting, belonging to the committee or beeing manager of the committee';
+comment on column "committee".user_ids is 'Calculated field: All users which are in a group of a meeting, belonging to the committee or beeing manager of the committee';
 
-CREATE VIEW meeting AS SELECT *,
+CREATE VIEW "meeting" AS SELECT *,
 (select array_agg(g.id) from group_t g where g.used_as_motion_poll_default_id = m.id) as motion_poll_default_group_ids,
 (select array_agg(p.id) from poll_candidate_list_t p where p.meeting_id = m.id) as poll_candidate_list_ids,
 (select array_agg(p.id) from poll_candidate_t p where p.meeting_id = m.id) as poll_candidate_ids,
@@ -1424,13 +1424,13 @@ CREATE VIEW meeting AS SELECT *,
 FROM meeting_t m;
 
 
-CREATE VIEW structure_level AS SELECT *,
+CREATE VIEW "structure_level" AS SELECT *,
 (select array_agg(n.meeting_user_id) from nm_meeting_user_structure_level_ids_structure_level n where n.structure_level_id = s.id) as meeting_user_ids,
 (select array_agg(sl.id) from structure_level_list_of_speakers_t sl where sl.structure_level_id = s.id) as structure_level_list_of_speakers_ids
 FROM structure_level_t s;
 
 
-CREATE VIEW group_ AS SELECT *,
+CREATE VIEW "group" AS SELECT *,
 (select array_agg(n.meeting_user_id) from nm_group_meeting_user_ids_meeting_user n where n.group_id = g.id) as meeting_user_ids,
 (select m.id from meeting_t m where m.default_group_id = g.id) as default_group_for_meeting_id,
 (select m.id from meeting_t m where m.admin_group_id = g.id) as admin_group_for_meeting_id,
@@ -1444,38 +1444,38 @@ CREATE VIEW group_ AS SELECT *,
 (select array_agg(n.poll_id) from nm_group_poll_ids_poll n where n.group_id = g.id) as poll_ids
 FROM group_t g;
 
-comment on column group_.meeting_mediafile_inherited_access_group_ids is 'Calculated field.';
+comment on column "group".meeting_mediafile_inherited_access_group_ids is 'Calculated field.';
 
-CREATE VIEW tag AS SELECT *,
+CREATE VIEW "tag" AS SELECT *,
 (select array_agg(g.id) from gm_tag_tagged_ids g where g.tag_id = t.id) as tagged_ids
 FROM tag_t t;
 
 
-CREATE VIEW agenda_item AS SELECT *,
+CREATE VIEW "agenda_item" AS SELECT *,
 (select array_agg(ai.id) from agenda_item_t ai where ai.parent_id = a.id) as child_ids,
 (select array_agg(g.tag_id) from gm_tag_tagged_ids g where g.tagged_id_agenda_item_id = a.id) as tag_ids,
 (select array_agg(p.id) from projection_t p where p.content_object_id_agenda_item_id = a.id) as projection_ids
 FROM agenda_item_t a;
 
 
-CREATE VIEW list_of_speakers AS SELECT *,
+CREATE VIEW "list_of_speakers" AS SELECT *,
 (select array_agg(s.id) from speaker_t s where s.list_of_speakers_id = l.id) as speaker_ids,
 (select array_agg(s.id) from structure_level_list_of_speakers_t s where s.list_of_speakers_id = l.id) as structure_level_list_of_speakers_ids,
 (select array_agg(p.id) from projection_t p where p.content_object_id_list_of_speakers_id = l.id) as projection_ids
 FROM list_of_speakers_t l;
 
 
-CREATE VIEW structure_level_list_of_speakers AS SELECT *,
+CREATE VIEW "structure_level_list_of_speakers" AS SELECT *,
 (select array_agg(st.id) from speaker_t st where st.structure_level_list_of_speakers_id = s.id) as speaker_ids
 FROM structure_level_list_of_speakers_t s;
 
 
-CREATE VIEW point_of_order_category AS SELECT *,
+CREATE VIEW "point_of_order_category" AS SELECT *,
 (select array_agg(s.id) from speaker_t s where s.point_of_order_category_id = p.id) as speaker_ids
 FROM point_of_order_category_t p;
 
 
-CREATE VIEW topic AS SELECT *,
+CREATE VIEW "topic" AS SELECT *,
 (select array_agg(g.meeting_mediafile_id) from gm_meeting_mediafile_attachment_ids g where g.attachment_id_topic_id = t.id) as attachment_meeting_mediafile_ids,
 (select a.id from agenda_item_t a where a.content_object_id_topic_id = t.id) as agenda_item_id,
 (select l.id from list_of_speakers_t l where l.content_object_id_topic_id = t.id) as list_of_speakers_id,
@@ -1484,7 +1484,7 @@ CREATE VIEW topic AS SELECT *,
 FROM topic_t t;
 
 
-CREATE VIEW motion AS SELECT *,
+CREATE VIEW "motion" AS SELECT *,
 (select array_agg(mt.id) from motion_t mt where mt.lead_motion_id = m.id) as amendment_ids,
 (select array_agg(mt.id) from motion_t mt where mt.sort_parent_id = m.id) as sort_child_ids,
 (select array_agg(mt.id) from motion_t mt where mt.origin_id = m.id) as derived_motion_ids,
@@ -1512,20 +1512,20 @@ CREATE VIEW motion AS SELECT *,
 FROM motion_t m;
 
 
-CREATE VIEW motion_comment_section AS SELECT *,
+CREATE VIEW "motion_comment_section" AS SELECT *,
 (select array_agg(mc.id) from motion_comment_t mc where mc.section_id = m.id) as comment_ids,
 (select array_agg(n.group_id) from nm_group_read_comment_section_ids_motion_comment_section n where n.motion_comment_section_id = m.id) as read_group_ids,
 (select array_agg(n.group_id) from nm_group_write_comment_section_ids_motion_comment_section n where n.motion_comment_section_id = m.id) as write_group_ids
 FROM motion_comment_section_t m;
 
 
-CREATE VIEW motion_category AS SELECT *,
+CREATE VIEW "motion_category" AS SELECT *,
 (select array_agg(mc.id) from motion_category_t mc where mc.parent_id = m.id) as child_ids,
 (select array_agg(mt.id) from motion_t mt where mt.category_id = m.id) as motion_ids
 FROM motion_category_t m;
 
 
-CREATE VIEW motion_block AS SELECT *,
+CREATE VIEW "motion_block" AS SELECT *,
 (select array_agg(mt.id) from motion_t mt where mt.block_id = m.id) as motion_ids,
 (select a.id from agenda_item_t a where a.content_object_id_motion_block_id = m.id) as agenda_item_id,
 (select l.id from list_of_speakers_t l where l.content_object_id_motion_block_id = m.id) as list_of_speakers_id,
@@ -1533,7 +1533,7 @@ CREATE VIEW motion_block AS SELECT *,
 FROM motion_block_t m;
 
 
-CREATE VIEW motion_state AS SELECT *,
+CREATE VIEW "motion_state" AS SELECT *,
 (select array_agg(ms.id) from motion_state_t ms where ms.submitter_withdraw_state_id = m.id) as submitter_withdraw_back_ids,
 (select array_agg(n.next_state_id) from nm_motion_state_next_state_ids_motion_state n where n.previous_state_id = m.id) as next_state_ids,
 (select array_agg(n.previous_state_id) from nm_motion_state_next_state_ids_motion_state n where n.next_state_id = m.id) as previous_state_ids,
@@ -1543,14 +1543,14 @@ CREATE VIEW motion_state AS SELECT *,
 FROM motion_state_t m;
 
 
-CREATE VIEW motion_workflow AS SELECT *,
+CREATE VIEW "motion_workflow" AS SELECT *,
 (select array_agg(ms.id) from motion_state_t ms where ms.workflow_id = m.id) as state_ids,
 (select m1.id from meeting_t m1 where m1.motions_default_workflow_id = m.id) as default_workflow_meeting_id,
 (select m1.id from meeting_t m1 where m1.motions_default_amendment_workflow_id = m.id) as default_amendment_workflow_meeting_id
 FROM motion_workflow_t m;
 
 
-CREATE VIEW poll AS SELECT *,
+CREATE VIEW "poll" AS SELECT *,
 (select array_agg(o.id) from option_t o where o.poll_id = p.id) as option_ids,
 (select array_agg(n.user_id) from nm_poll_voted_ids_user n where n.poll_id = p.id) as voted_ids,
 (select array_agg(n.group_id) from nm_group_poll_ids_poll n where n.poll_id = p.id) as entitled_group_ids,
@@ -1558,13 +1558,13 @@ CREATE VIEW poll AS SELECT *,
 FROM poll_t p;
 
 
-CREATE VIEW option AS SELECT *,
+CREATE VIEW "option" AS SELECT *,
 (select p.id from poll_t p where p.global_option_id = o.id) as used_as_global_option_in_poll_id,
 (select array_agg(v.id) from vote_t v where v.option_id = o.id) as vote_ids
 FROM option_t o;
 
 
-CREATE VIEW assignment AS SELECT *,
+CREATE VIEW "assignment" AS SELECT *,
 (select array_agg(ac.id) from assignment_candidate_t ac where ac.assignment_id = a.id) as candidate_ids,
 (select array_agg(p.id) from poll_t p where p.content_object_id_assignment_id = a.id) as poll_ids,
 (select ai.id from agenda_item_t ai where ai.content_object_id_assignment_id = a.id) as agenda_item_id,
@@ -1575,19 +1575,19 @@ CREATE VIEW assignment AS SELECT *,
 FROM assignment_t a;
 
 
-CREATE VIEW poll_candidate_list AS SELECT *,
+CREATE VIEW "poll_candidate_list" AS SELECT *,
 (select array_agg(pc.id) from poll_candidate_t pc where pc.poll_candidate_list_id = p.id) as poll_candidate_ids,
 (select o.id from option_t o where o.content_object_id_poll_candidate_list_id = p.id) as option_id
 FROM poll_candidate_list_t p;
 
 
-CREATE VIEW mediafile AS SELECT *,
+CREATE VIEW "mediafile" AS SELECT *,
 (select array_agg(mt.id) from mediafile_t mt where mt.parent_id = m.id) as child_ids,
 (select array_agg(mm.id) from meeting_mediafile_t mm where mm.mediafile_id = m.id) as meeting_mediafile_ids
 FROM mediafile_t m;
 
 
-CREATE VIEW meeting_mediafile AS SELECT *,
+CREATE VIEW "meeting_mediafile" AS SELECT *,
 (select array_agg(n.group_id) from nm_group_mmiagi_meeting_mediafile n where n.meeting_mediafile_id = m.id) as inherited_access_group_ids,
 (select array_agg(n.group_id) from nm_group_mmagi_meeting_mediafile n where n.meeting_mediafile_id = m.id) as access_group_ids,
 (select l.id from list_of_speakers_t l where l.content_object_id_meeting_mediafile_id = m.id) as list_of_speakers_id,
@@ -1611,9 +1611,9 @@ CREATE VIEW meeting_mediafile AS SELECT *,
 (select m1.id from meeting_t m1 where m1.font_projector_h2_id = m.id) as used_as_font_projector_h2_in_meeting_id
 FROM meeting_mediafile_t m;
 
-comment on column meeting_mediafile.inherited_access_group_ids is 'Calculated in actions. Shows what access group permissions are actually relevant. Calculated as the intersection of this meeting_mediafiles access_group_ids and the related mediafiles potential parent mediafiles inherited_access_group_ids. If the parent has no meeting_mediafile for this meeting, its inherited access group is assumed to be the meetings admin group. If there is no parent, the inherited_access_group_ids is equal to the access_group_ids. If the access_group_ids are empty, the interpretations is that every group has access rights, therefore the parent inherited_access_group_ids are used as-is.';
+comment on column "meeting_mediafile".inherited_access_group_ids is 'Calculated in actions. Shows what access group permissions are actually relevant. Calculated as the intersection of this meeting_mediafiles access_group_ids and the related mediafiles potential parent mediafiles inherited_access_group_ids. If the parent has no meeting_mediafile for this meeting, its inherited access group is assumed to be the meetings admin group. If there is no parent, the inherited_access_group_ids is equal to the access_group_ids. If the access_group_ids are empty, the interpretations is that every group has access rights, therefore the parent inherited_access_group_ids are used as-is.';
 
-CREATE VIEW projector AS SELECT *,
+CREATE VIEW "projector" AS SELECT *,
 (select array_agg(pt.id) from projection_t pt where pt.current_projector_id = p.id) as current_projection_ids,
 (select array_agg(pt.id) from projection_t pt where pt.preview_projector_id = p.id) as preview_projection_ids,
 (select array_agg(pt.id) from projection_t pt where pt.history_projector_id = p.id) as history_projection_ids,
@@ -1621,19 +1621,19 @@ CREATE VIEW projector AS SELECT *,
 FROM projector_t p;
 
 
-CREATE VIEW projector_message AS SELECT *,
+CREATE VIEW "projector_message" AS SELECT *,
 (select array_agg(pt.id) from projection_t pt where pt.content_object_id_projector_message_id = p.id) as projection_ids
 FROM projector_message_t p;
 
 
-CREATE VIEW projector_countdown AS SELECT *,
+CREATE VIEW "projector_countdown" AS SELECT *,
 (select array_agg(pt.id) from projection_t pt where pt.content_object_id_projector_countdown_id = p.id) as projection_ids,
 (select m.id from meeting_t m where m.list_of_speakers_countdown_id = p.id) as used_as_list_of_speakers_countdown_meeting_id,
 (select m.id from meeting_t m where m.poll_countdown_id = p.id) as used_as_poll_countdown_meeting_id
 FROM projector_countdown_t p;
 
 
-CREATE VIEW chat_group AS SELECT *,
+CREATE VIEW "chat_group" AS SELECT *,
 (select array_agg(cm.id) from chat_message_t cm where cm.chat_group_id = c.id) as chat_message_ids,
 (select array_agg(n.group_id) from nm_chat_group_read_group_ids_group n where n.chat_group_id = c.id) as read_group_ids,
 (select array_agg(n.group_id) from nm_chat_group_write_group_ids_group n where n.chat_group_id = c.id) as write_group_ids
