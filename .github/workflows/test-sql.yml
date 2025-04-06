@@ -2,15 +2,15 @@ name: Test SQL
 on: [pull_request]
 jobs:
   test:
-    name: Test
     runs-on: ubuntu-latest
+    container: node:20-bookworm-slim
 
     services:
       postgres:
         image: postgres:15
         env:
+          POSTGRES_PASSWORD: postgres
           POSTGRES_USER: openslides
-          POSTGRES_PASSWORD: password
           POSTGRES_DB: openslides
         options: >-
           --health-cmd pg_isready
