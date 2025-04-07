@@ -3,6 +3,7 @@ on: [pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    # TODO: What container should be used? This is from the github example
     container: node:20-bookworm-slim
 
     services:
