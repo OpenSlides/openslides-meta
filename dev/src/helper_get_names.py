@@ -95,10 +95,8 @@ class HelperGetNames:
     @staticmethod
     @max_length
     def get_view_name(table_name: str) -> str:
-        """get's the name of a view, usually the old collection name"""
-        if table_name in ("group", "user"):
-            return table_name + "_"
-        return table_name
+        """get's the name of a view. Its the collection name in quotes"""
+        return f'"{table_name}"'
 
     @staticmethod
     @max_length
