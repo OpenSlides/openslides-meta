@@ -82,7 +82,7 @@ DECLARE
 BEGIN
     -- Running the trigger for the first time in a transaction the table is created and dropped after commiting the transaction.
     -- Every next run of the trigger in this transaction raises a notice that teh table exists. This is not ideal.
-    CREATE LOCAL TEMPORARY UNLOGGED TABLE
+    CREATE LOCAL TEMPORARY TABLE
     IF NOT EXISTS tbl_notify_counter_tx_once (
         "id" integer NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY
     ) ON COMMIT DROP;
@@ -104,7 +104,7 @@ BEGIN
             ',"fqids":["' ||
             body_content_text ||
             '"]}';
-        PERFORM pg_notify('os-notify', pl);
+        PERFORM pg_notify('os_notify', pl);
     END IF;
 
     RETURN NULL;  -- AFTER TRIGGER needs no return
