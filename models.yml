@@ -186,7 +186,7 @@ organization:
     type: string
     restriction_mode: A
     enum: *languages
-    required: true
+    default: en
   require_duplicate_from:
     type: boolean
     restriction_mode: A
@@ -622,7 +622,7 @@ theme:
   accent_500:
     restriction_mode: A
     type: color
-    required: true
+    default: "#2196f3"
   accent_600:
     restriction_mode: A
     type: color
@@ -665,7 +665,7 @@ theme:
   primary_500:
     restriction_mode: A
     type: color
-    required: true
+    default: "#317796"
   primary_600:
     restriction_mode: A
     type: color
@@ -708,7 +708,7 @@ theme:
   warn_500:
     restriction_mode: A
     type: color
-    required: true
+    default: "#f06400"
   warn_600:
     restriction_mode: A
     type: color
@@ -877,7 +877,7 @@ meeting:
     type: string
     restriction_mode: F
     enum: *languages
-    required: true
+    default: "en"
     constant: true
 
   # Configuration (only for the server owner)
