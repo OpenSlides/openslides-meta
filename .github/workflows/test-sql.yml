@@ -38,7 +38,7 @@ jobs:
           PGPASSWORD: password
 
       - name: insert init data
-        run: sh dev/scripts/apply_init_data.sh
+        run: sh dev/scripts/apply_base_data.sh
         env:
           DATABASE_HOST: postgres
           DATABASE_PORT: 5432
