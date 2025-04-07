@@ -2,20 +2,12 @@
 INSERT INTO
     theme (id, name, accent_500, primary_500, warn_500)
 VALUES
-    (
-        1,
-        'standard theme',
-        -- TODO: This lines can be remved once this is merged: https://github.com/OpenSlides/openslides-meta/pull/247
-        '#2196f3',
-        '#317796',
-        '#f06400'
-    );
+    (1, 'standard theme',);
 
 INSERT INTO
     organization (name, theme_id, default_language)
 VALUES
-    -- TODO: The language can be removed once this is merged: https://github.com/OpenSlides/openslides-meta/pull/247
-    ('Intevation', 1, 'en');
+    ('Intevation', 1);
 
 INSERT INTO
     committee (id, name)
@@ -35,8 +27,7 @@ INSERT INTO
         language
     )
 VALUES
-    -- TODO: The language can be removed once this is merged: https://github.com/OpenSlides/openslides-meta/pull/247
-    (1, 1, 2, 1, 1, 1, 1, 'meeting', 'en');
+    (1, 1, 2, 1, 1, 1, 1, 'meeting');
 
 INSERT INTO
     -- TODO Replace it with "group" after this is fixed: https://github.com/OpenSlides/openslides-meta/issues/243
