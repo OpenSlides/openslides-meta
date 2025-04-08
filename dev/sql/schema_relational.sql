@@ -53,7 +53,7 @@ DECLARE
     channel TEXT;
     payload TEXT;
 BEGIN
-    channel:= LOWER(TG_OP);
+    channel:= 'action';
     payload := TG_TABLE_NAME || '/' || NEW.id;
     IF (TG_OP = 'DELETE') THEN
         payload = TG_TABLE_NAME || '/' || OLD.id;
