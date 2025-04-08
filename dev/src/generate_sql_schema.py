@@ -652,13 +652,15 @@ class Helper:
 
         CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_notify_trigger$
         DECLARE
+            escaped_table_name varchar;
             operation TEXT;
             payload TEXT;
         BEGIN
+            escaped_table_name := TG_ARGV[0];
             operation := LOWER(TG_OP);
-            payload := TG_TABLE_NAME || '/' || NEW.id;
+            payload :=  escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                payload = TG_TABLE_NAME || '/' || OLD.id;
+                payload = escaped_table_name || '/' || OLD.id;
             END IF;
 
             INSERT INTO os_notify_log_t (operation, payload, xact_id, timestamp) VALUES (operation, payload, pg_current_xact_id(), 'now');
@@ -809,8 +811,9 @@ class Helper:
     @staticmethod
     def get_notify_trigger(table_name: str) -> str:
         own_table = HelperGetNames.get_table_name(table_name)
+        escaped_table_name = '\'' + table_name + '\''
         code = f"CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
-        code += "FOR EACH ROW EXECUTE FUNCTION log_modified_models();\n"
+        code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
         code += f"CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();\n"
         return code

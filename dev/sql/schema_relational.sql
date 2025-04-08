@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'b032c8ffd6e7dab1ae122c190520ce74'
+-- MODELS_YML_CHECKSUM = '4e5ae1fdf08fa7cefceb58d0dff6b957'
 
 
 -- Database parameters
@@ -61,13 +61,15 @@ $not_null_trigger$ language plpgsql;
 
 CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_notify_trigger$
 DECLARE
+    escaped_table_name varchar;
     operation TEXT;
     payload TEXT;
 BEGIN
+    escaped_table_name := TG_ARGV[0];
     operation := LOWER(TG_OP);
-    payload := TG_TABLE_NAME || '/' || NEW.id;
+    payload :=  escaped_table_name || '/' || NEW.id;
     IF (TG_OP = 'DELETE') THEN
-        payload = TG_TABLE_NAME || '/' || OLD.id;
+        payload = escaped_table_name || '/' || OLD.id;
     END IF;
 
     INSERT INTO os_notify_log_t (operation, payload, xact_id, timestamp) VALUES (operation, payload, pg_current_xact_id(), 'now');
@@ -137,7 +139,7 @@ CREATE TABLE organization_t (
     enable_chat boolean,
     limit_of_meetings integer CONSTRAINT minimum_limit_of_meetings CHECK (limit_of_meetings >= 0) DEFAULT 0,
     limit_of_users integer CONSTRAINT minimum_limit_of_users CHECK (limit_of_users >= 0) DEFAULT 0,
-    default_language varchar(256) NOT NULL CONSTRAINT enum_organization_default_language CHECK (default_language IN ('en', 'de', 'it', 'es', 'ru', 'cs', 'fr')),
+    default_language varchar(256) CONSTRAINT enum_organization_default_language CHECK (default_language IN ('en', 'de', 'it', 'es', 'ru', 'cs', 'fr')) DEFAULT 'en',
     require_duplicate_from boolean,
     enable_anonymous boolean,
     saml_enabled boolean,
@@ -251,7 +253,7 @@ CREATE TABLE theme_t (
     accent_300 varchar(7) CHECK (accent_300 is null or accent_300 ~* '^#[a-f0-9]{6}$'),
     accent_400 varchar(7) CHECK (accent_400 is null or accent_400 ~* '^#[a-f0-9]{6}$'),
     accent_50 varchar(7) CHECK (accent_50 is null or accent_50 ~* '^#[a-f0-9]{6}$'),
-    accent_500 varchar(7) CHECK (accent_500 is null or accent_500 ~* '^#[a-f0-9]{6}$') NOT NULL,
+    accent_500 varchar(7) CHECK (accent_500 is null or accent_500 ~* '^#[a-f0-9]{6}$') DEFAULT '#2196f3',
     accent_600 varchar(7) CHECK (accent_600 is null or accent_600 ~* '^#[a-f0-9]{6}$'),
     accent_700 varchar(7) CHECK (accent_700 is null or accent_700 ~* '^#[a-f0-9]{6}$'),
     accent_800 varchar(7) CHECK (accent_800 is null or accent_800 ~* '^#[a-f0-9]{6}$'),
@@ -265,7 +267,7 @@ CREATE TABLE theme_t (
     primary_300 varchar(7) CHECK (primary_300 is null or primary_300 ~* '^#[a-f0-9]{6}$'),
     primary_400 varchar(7) CHECK (primary_400 is null or primary_400 ~* '^#[a-f0-9]{6}$'),
     primary_50 varchar(7) CHECK (primary_50 is null or primary_50 ~* '^#[a-f0-9]{6}$'),
-    primary_500 varchar(7) CHECK (primary_500 is null or primary_500 ~* '^#[a-f0-9]{6}$') NOT NULL,
+    primary_500 varchar(7) CHECK (primary_500 is null or primary_500 ~* '^#[a-f0-9]{6}$') DEFAULT '#317796',
     primary_600 varchar(7) CHECK (primary_600 is null or primary_600 ~* '^#[a-f0-9]{6}$'),
     primary_700 varchar(7) CHECK (primary_700 is null or primary_700 ~* '^#[a-f0-9]{6}$'),
     primary_800 varchar(7) CHECK (primary_800 is null or primary_800 ~* '^#[a-f0-9]{6}$'),
@@ -279,7 +281,7 @@ CREATE TABLE theme_t (
     warn_300 varchar(7) CHECK (warn_300 is null or warn_300 ~* '^#[a-f0-9]{6}$'),
     warn_400 varchar(7) CHECK (warn_400 is null or warn_400 ~* '^#[a-f0-9]{6}$'),
     warn_50 varchar(7) CHECK (warn_50 is null or warn_50 ~* '^#[a-f0-9]{6}$'),
-    warn_500 varchar(7) CHECK (warn_500 is null or warn_500 ~* '^#[a-f0-9]{6}$') NOT NULL,
+    warn_500 varchar(7) CHECK (warn_500 is null or warn_500 ~* '^#[a-f0-9]{6}$') DEFAULT '#f06400',
     warn_600 varchar(7) CHECK (warn_600 is null or warn_600 ~* '^#[a-f0-9]{6}$'),
     warn_700 varchar(7) CHECK (warn_700 is null or warn_700 ~* '^#[a-f0-9]{6}$'),
     warn_800 varchar(7) CHECK (warn_800 is null or warn_800 ~* '^#[a-f0-9]{6}$'),
@@ -326,7 +328,7 @@ CREATE TABLE meeting_t (
     end_time timestamptz,
     locked_from_inside boolean,
     imported_at timestamptz,
-    language varchar(256) NOT NULL CONSTRAINT enum_meeting_language CHECK (language IN ('en', 'de', 'it', 'es', 'ru', 'cs', 'fr')),
+    language varchar(256) CONSTRAINT enum_meeting_language CHECK (language IN ('en', 'de', 'it', 'es', 'ru', 'cs', 'fr')) DEFAULT 'en',
     jitsi_domain varchar(256),
     jitsi_room_name varchar(256),
     jitsi_room_password varchar(256),
@@ -2011,232 +2013,232 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('meeting', 'defa
 
 -- Create triggers for notify
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON organization_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('organization');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON organization_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON user_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('user');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON user_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON meeting_user_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('meeting_user');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON meeting_user_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON gender_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('gender');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON gender_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON organization_tag_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('organization_tag');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON organization_tag_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON theme_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('theme');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON theme_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON committee_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('committee');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON committee_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON meeting_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('meeting');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON meeting_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON structure_level_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('structure_level');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON structure_level_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON group_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('group');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON group_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON personal_note_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('personal_note');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON personal_note_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON tag_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('tag');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON tag_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON agenda_item_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('agenda_item');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON agenda_item_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON list_of_speakers_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('list_of_speakers');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON list_of_speakers_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON structure_level_list_of_speakers_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('structure_level_list_of_speakers');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON structure_level_list_of_speakers_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON point_of_order_category_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('point_of_order_category');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON point_of_order_category_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON speaker_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('speaker');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON speaker_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON topic_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('topic');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON topic_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_submitter_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_submitter');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_submitter_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_editor_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_editor');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_editor_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_working_group_speaker_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_working_group_speaker');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_working_group_speaker_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_comment_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_comment');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_comment_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_comment_section_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_comment_section');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_comment_section_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_category_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_category');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_category_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_block_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_block');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_block_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_change_recommendation_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_change_recommendation');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_change_recommendation_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_state_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_state');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_state_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_workflow_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('motion_workflow');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON motion_workflow_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON poll_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON poll_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON option_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('option');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON option_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON vote_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('vote');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON vote_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON assignment_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('assignment');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON assignment_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON assignment_candidate_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('assignment_candidate');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON assignment_candidate_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_list_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_candidate_list');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_list_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_candidate');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON mediafile_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('mediafile');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON mediafile_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON meeting_mediafile_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('meeting_mediafile');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON meeting_mediafile_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON projector_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('projector');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON projector_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON projection_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('projection');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON projection_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON projector_message_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('projector_message');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON projector_message_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON projector_countdown_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('projector_countdown');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON projector_countdown_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON chat_group_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('chat_group');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON chat_group_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON chat_message_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('chat_message');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON chat_message_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON action_worker_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('action_worker');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON action_worker_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
 CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON import_preview_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models();
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('import_preview');
 CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON import_preview_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();
 
