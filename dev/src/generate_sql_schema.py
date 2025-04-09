@@ -811,7 +811,7 @@ class Helper:
     @staticmethod
     def get_notify_trigger(table_name: str) -> str:
         own_table = HelperGetNames.get_table_name(table_name)
-        escaped_table_name = '\'' + table_name + '\''
+        escaped_table_name = "'" + table_name + "'"
         code = f"CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
         code += f"CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
