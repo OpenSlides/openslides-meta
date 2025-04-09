@@ -1,0 +1,15 @@
+id: *id_field
+name:
+  type: string
+  required: True
+  restriction_mode: A
+  description: unique
+organization_id:
+  type: relation
+  required: True
+  to: organization/gender_ids
+  restriction_mode: A
+user_ids:
+  type: relation-list
+  to: user/gender_id
+  restriction_mode: A
