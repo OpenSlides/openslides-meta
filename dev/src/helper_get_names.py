@@ -95,10 +95,8 @@ class HelperGetNames:
     @staticmethod
     @max_length
     def get_view_name(table_name: str) -> str:
-        """get's the name of a view, usually the old collection name"""
-        if table_name in ("group", "user"):
-            return table_name + "_"
-        return table_name
+        """get's the name of a view. Its the collection name in quotes"""
+        return f'"{table_name}"'
 
     @staticmethod
     @max_length
@@ -204,6 +202,32 @@ class HelperGetNames:
         if name in HelperGetNames.trigger_unique_list:
             raise Exception(f"trigger {name} is not unique!")
         HelperGetNames.trigger_unique_list.append(name)
+        return name
+
+    @staticmethod
+    @max_length
+    def get_notify_trigger_name(
+        table_name: str,
+    ) -> str:
+        """gets the name of the trigger for notifying changes on models"""
+        name = f"tr_notify_{table_name}"[: HelperGetNames.MAX_LEN]
+        if name in HelperGetNames.trigger_unique_list:
+            raise Exception(f"trigger {name} is not unique!")
+        HelperGetNames.trigger_unique_list.append(name)
+        return name
+
+    @staticmethod
+    @max_length
+    def get_notify_related_trigger_name(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """gets the name of the trigger for notifying changes on related models"""
+        name = f"tr_not_rel_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
+        if name in HelperGetNames.trigger_unique_list:
+            name += "+"  # raise Exception(f"trigger {name} is not unique!")
+        HelperGetNames.trigger_unique_list.append(name)
+        print(name)
         return name
 
 

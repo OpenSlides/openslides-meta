@@ -608,6 +608,17 @@ class Helper:
         -- Code generated. DO NOT EDIT.
         """
     )
+    FILE_TEMPLATE_PARAMETERS = dedent(
+        """
+        -- Do not log messages lower than WARNING
+        -- For client side logging this can be overwritten using
+        --
+        -- SET client_min_messages TO NOTICE;
+        --
+        -- to get the log messages in the client locally.
+        SET log_min_messages TO WARNING;
+        """
+    )
     FILE_TEMPLATE_CONSTANT_DEFINITIONS = dedent(
         """
         CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
@@ -652,32 +663,87 @@ class Helper:
         end;
         $not_null_trigger$ language plpgsql;
 
-        CREATE FUNCTION notify_modified_models(table_name varchar) RETURNS trigger AS $notify_trigger$
+        CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_notify_trigger$
         DECLARE
-            channel TEXT;
+            escaped_table_name varchar;
+            operation TEXT;
             payload TEXT;
         BEGIN
-            channel:= LOWER(TG_OP);
-            payload := table_name || '/' || NEW.id;
+            escaped_table_name := TG_ARGV[0];
+            operation := LOWER(TG_OP);
+            payload :=  escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                payload = table_name || '/' || OLD.id;
+                payload = escaped_table_name || '/' || OLD.id;
             END IF;
 
-            PERFORM pg_notify(channel, payload);
-            INSERT INTO os_notify_log_t (channel, payload, xact_id, timestamp) VALUES (channel, payload, pg_current_xact_id(), 'now');
+            INSERT INTO os_notify_log_t (operation, payload, xact_id, timestamp) VALUES (operation, payload, pg_current_xact_id(), 'now');
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $log_notify_trigger$ LANGUAGE plpgsql;
+
+        CREATE FUNCTION notify_modified_models() RETURNS trigger AS $notify_trigger$
+        DECLARE
+            pl TEXT;
+            body_content_text TEXT;
+        BEGIN
+            -- Running the trigger for the first time in a transaction the table is created and dropped after commiting the transaction.
+            -- Every next run of the trigger in this transaction raises a notice that the table exists. This is not ideal.
+            CREATE LOCAL TEMPORARY TABLE
+            IF NOT EXISTS tbl_notify_counter_tx_once (
+                "id" integer NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+            ) ON COMMIT DROP;
+
+            -- If running for the first time, select all modification notifications for the current transaction and send them to os-notify.
+            IF NOT EXISTS (SELECT * FROM tbl_notify_counter_tx_once) THEN
+                INSERT INTO tbl_notify_counter_tx_once DEFAULT VALUES;
+                -- Get all modifications as fqid of the current transaction and format them using a comma separated list.
+                SELECT array_to_string(
+                    ARRAY (
+                        SELECT payload
+                            FROM os_notify_log_t
+                            WHERE xact_id = pg_current_xact_id()),
+                        '","')
+                    INTO body_content_text;
+                -- Concat current transaction id and formated fqid list to a json object.
+                pl := '{"xactId":' ||
+                    pg_current_xact_id() ||
+                    ',"fqids":["' ||
+                    body_content_text ||
+                    '"]}';
+                PERFORM pg_notify('os_notify', pl);
+            END IF;
+
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $notify_trigger$ LANGUAGE plpgsql;
 
-        CREATE FUNCTION notify_modified_related_models() RETURNS trigger AS $notify_trigger$
+        CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_notify_trigger$
         DECLARE
-            channel TEXT;
+            escaped_table_name varchar;
+            operation TEXT;
+            payload TEXT;
+        BEGIN
+            escaped_table_name := TG_ARGV[0];
+            operation := LOWER(TG_OP);
+            payload :=  escaped_table_name || '/' || NEW.id;
+            IF (TG_OP = 'DELETE') THEN
+                payload = escaped_table_name || '/' || OLD.id;
+            END IF;
+
+            INSERT INTO os_notify_log_t (operation, payload, xact_id, timestamp) VALUES (operation, payload, pg_current_xact_id(), 'now');
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $log_notify_trigger$ LANGUAGE plpgsql;
+
+        CREATE FUNCTION log_modified_related_models() RETURNS trigger AS $notify_trigger$
+        DECLARE
+            operation TEXT;
             payload TEXT;
             ref_column TEXT;
             foreign_table TEXT;
             foreign_id TEXT;
         BEGIN
-            channel:= LOWER(TG_OP);
+            operation:= LOWER(TG_OP);
             ref_column := TG_ARGV[0];
             foreign_table := TG_ARGV[1];
 
@@ -688,15 +754,14 @@ class Helper:
 
             payload := foreign_table || '/' || foreign_id;
 
-            PERFORM pg_notify(channel, payload);
-            INSERT INTO os_notify_log_t (channel, payload, xact_id, timestamp) VALUES (channel, payload, pg_current_xact_id(), 'now');
+            INSERT INTO os_notify_log_t (operation, payload, xact_id, timestamp) VALUES (operation, payload, pg_current_xact_id(), 'now');
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $notify_trigger$ LANGUAGE plpgsql;
 
         CREATE TABLE os_notify_log_t (
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-            channel varchar(32),
+            operation varchar(32),
             payload varchar(256),
             xact_id xid8,
             timestamp timestamptz
@@ -802,8 +867,11 @@ class Helper:
     def get_notify_trigger(table_name: str) -> str:
         trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
         own_table = HelperGetNames.get_table_name(table_name)
+        escaped_table_name = "'" + table_name + "'"
         code = f"CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
-        code += f"FOR EACH ROW EXECUTE FUNCTION notify_modified_models({table_name});"
+        code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
+        code += f"CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
+        code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();\n"
         return code
 
     @staticmethod
@@ -898,7 +966,7 @@ class Helper:
         )
 
         trigger_name = HelperGetNames.get_notify_related_trigger_name(
-            table_name, ref_column
+            foreign_table, ref_column
         )
         own_table = HelperGetNames.get_table_name(table_name)
         foreign_table = HelperGetNames.get_table_name(foreign_table)
@@ -1122,12 +1190,8 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
     "float": {"pg_type": "real", "method": GenerateCodeBlocks.get_schema_simple_types},
-    "decimal": {
-        "pg_type": string.Template("decimal(${maxLength})"),
-        "method": GenerateCodeBlocks.get_schema_simple_types,
-    },
     "decimal(6)": {
-        "pg_type": "decimal(6)",
+        "pg_type": "decimal(16,6)",
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
     "timestamp": {
@@ -1204,6 +1268,8 @@ def main() -> None:
     with open(DESTINATION, "w") as dest:
         dest.write(Helper.FILE_TEMPLATE_HEADER)
         dest.write("-- MODELS_YML_CHECKSUM = " + repr(checksum) + "\n")
+        dest.write("\n\n-- Database parameters\n")
+        dest.write(Helper.FILE_TEMPLATE_PARAMETERS)
         dest.write("\n\n-- Function and meta table definitions\n")
         dest.write(Helper.FILE_TEMPLATE_CONSTANT_DEFINITIONS)
         dest.write("\n\n-- Type definitions\n")
