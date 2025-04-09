@@ -650,54 +650,43 @@ class Helper:
         end;
         $not_null_trigger$ language plpgsql;
 
-        CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_notify_trigger$
+        CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_modified_trigger$
         DECLARE
             escaped_table_name varchar;
             operation TEXT;
-            payload TEXT;
+            fqid TEXT;
         BEGIN
             escaped_table_name := TG_ARGV[0];
             operation := LOWER(TG_OP);
-            payload :=  escaped_table_name || '/' || NEW.id;
+            fqid :=  escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                payload = escaped_table_name || '/' || OLD.id;
+                fqid = escaped_table_name || '/' || OLD.id;
             END IF;
 
-            INSERT INTO os_notify_log_t (operation, payload, xact_id, timestamp) VALUES (operation, payload, pg_current_xact_id(), 'now');
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
-        $log_notify_trigger$ LANGUAGE plpgsql;
+        $log_modified_trigger$ LANGUAGE plpgsql;
 
-        CREATE FUNCTION notify_modified_models() RETURNS trigger AS $notify_trigger$
+        CREATE FUNCTION notify_transaction_end() RETURNS trigger AS $notify_trigger$
         DECLARE
-            pl TEXT;
+            payload TEXT;
             body_content_text TEXT;
         BEGIN
-            -- Running the trigger for the first time in a transaction the table is created and dropped after commiting the transaction.
-            -- Every next run of the trigger in this transaction raises a notice that the table exists. This is not ideal.
+            -- Running the trigger for the first time in a transaction creates the table and after commiting the transaction the table is dropped.
+            -- Every next run of the trigger in this transaction raises a notice that the table exists. Setting the log_min_messages to notice increases the noise because of such messages.
             CREATE LOCAL TEMPORARY TABLE
             IF NOT EXISTS tbl_notify_counter_tx_once (
                 "id" integer NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY
             ) ON COMMIT DROP;
 
-            -- If running for the first time, select all modification notifications for the current transaction and send them to os-notify.
+            -- If running for the first time, the transaction id is send via os_notify.
             IF NOT EXISTS (SELECT * FROM tbl_notify_counter_tx_once) THEN
                 INSERT INTO tbl_notify_counter_tx_once DEFAULT VALUES;
-                -- Get all modifications as fqid of the current transaction and format them using a comma separated list.
-                SELECT array_to_string(
-                    ARRAY (
-                        SELECT payload
-                            FROM os_notify_log_t
-                            WHERE xact_id = pg_current_xact_id()),
-                        '","')
-                    INTO body_content_text;
-                -- Concat current transaction id and formated fqid list to a json object.
-                pl := '{"xactId":' ||
+                payload := '{"xactId":' ||
                     pg_current_xact_id() ||
-                    ',"fqids":["' ||
-                    body_content_text ||
-                    '"]}';
-                PERFORM pg_notify('os_notify', pl);
+                    '}';
+                PERFORM pg_notify('os_notify', payload);
             END IF;
 
             RETURN NULL;  -- AFTER TRIGGER needs no return
@@ -707,7 +696,7 @@ class Helper:
         CREATE TABLE os_notify_log_t (
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             operation varchar(32),
-            payload varchar(256),
+            fqid varchar(256),
             xact_id xid8,
             timestamp timestamptz
         );
@@ -814,8 +803,8 @@ class Helper:
         escaped_table_name = "'" + table_name + "'"
         code = f"CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
-        code += f"CREATE CONSTRAINT TRIGGER notify_modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
-        code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_modified_models();\n"
+        code += f"CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
+        code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();\n"
         return code
 
     @staticmethod
