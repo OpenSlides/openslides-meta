@@ -288,7 +288,6 @@ class GenerateCodeBlocks:
         )
 
         if state == FieldSqlErrorType.FIELD:
-            # print("FIELD: " + table_name + "." + fname)
             text, error = cls.get_schema_simple_types(
                 table_name, fname, fdata, "number"
             )
@@ -314,7 +313,6 @@ class GenerateCodeBlocks:
                 initially_deferred,
             )
         elif state == FieldSqlErrorType.SQL:
-            # print("SQL  : " + table_name + "." + fname)
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
             elif foreign_table_field.field_def["type"] == "generic-relation":
@@ -334,7 +332,6 @@ class GenerateCodeBlocks:
                     cast(str, foreign_table_field.column),
                 )
         text["final_info"] = final_info
-        print(json.dumps(dict(text), sort_keys=True, indent=2))
         return text, error
 
     @classmethod
@@ -667,16 +664,16 @@ class Helper:
         DECLARE
             escaped_table_name varchar;
             operation TEXT;
-            payload TEXT;
+            fqid TEXT;
         BEGIN
             escaped_table_name := TG_ARGV[0];
             operation := LOWER(TG_OP);
-            payload :=  escaped_table_name || '/' || NEW.id;
+            fqid :=  escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                payload = escaped_table_name || '/' || OLD.id;
+                fqid = escaped_table_name || '/' || OLD.id;
             END IF;
 
-            INSERT INTO os_notify_log_t (operation, payload, xact_id, timestamp) VALUES (operation, payload, pg_current_xact_id(), 'now');
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $log_notify_trigger$ LANGUAGE plpgsql;
@@ -699,7 +696,7 @@ class Helper:
                 -- Get all modifications as fqid of the current transaction and format them using a comma separated list.
                 SELECT array_to_string(
                     ARRAY (
-                        SELECT payload
+                        SELECT fqid
                             FROM os_notify_log_t
                             WHERE xact_id = pg_current_xact_id()),
                         '","')
@@ -721,48 +718,48 @@ class Helper:
         DECLARE
             escaped_table_name varchar;
             operation TEXT;
-            payload TEXT;
+            fqid TEXT;
         BEGIN
             escaped_table_name := TG_ARGV[0];
             operation := LOWER(TG_OP);
-            payload :=  escaped_table_name || '/' || NEW.id;
+            fqid :=  escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                payload = escaped_table_name || '/' || OLD.id;
+                fqid = escaped_table_name || '/' || OLD.id;
             END IF;
 
-            INSERT INTO os_notify_log_t (operation, payload, xact_id, timestamp) VALUES (operation, payload, pg_current_xact_id(), 'now');
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $log_notify_trigger$ LANGUAGE plpgsql;
 
-        CREATE FUNCTION log_modified_related_models() RETURNS trigger AS $notify_trigger$
+        CREATE FUNCTION log_modified_related_models() RETURNS trigger AS $log_notify_related_trigger$
         DECLARE
             operation TEXT;
-            payload TEXT;
+            fqid TEXT;
             ref_column TEXT;
             foreign_table TEXT;
             foreign_id TEXT;
         BEGIN
             operation:= LOWER(TG_OP);
-            ref_column := TG_ARGV[0];
-            foreign_table := TG_ARGV[1];
+            ref_column := TG_ARGV[1];
+            foreign_table := TG_ARGV[0];
 
-            EXECUTE format('SELECT %s FROM %s', ref_column, NEW) INTO foreign_id;
+            EXECUTE format('SELECT $1.%s', ref_column) INTO foreign_id USING NEW;
             IF (TG_OP = 'DELETE') THEN
-                EXECUTE format('SELECT %s FROM %s', ref_column, OLD) INTO foreign_id;
+                EXECUTE format('SELECT $1.%s', ref_column) INTO foreign_id USING OLD;
             END IF;
 
-            payload := foreign_table || '/' || foreign_id;
+            fqid := foreign_table || '/' || foreign_id;
 
-            INSERT INTO os_notify_log_t (operation, payload, xact_id, timestamp) VALUES (operation, payload, pg_current_xact_id(), 'now');
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
-        $notify_trigger$ LANGUAGE plpgsql;
+        $log_notify_related_trigger$ LANGUAGE plpgsql;
 
         CREATE TABLE os_notify_log_t (
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             operation varchar(32),
-            payload varchar(256),
+            fqid varchar(256),
             xact_id xid8,
             timestamp timestamptz
         );
@@ -962,14 +959,13 @@ class Helper:
     ) -> str:
         FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE = string.Template(
             "CREATE TRIGGER ${trigger_name} AFTER INSERT OR UPDATE OF ${ref_column} OR DELETE ON ${own_table}\n"
-            + "FOR EACH ROW EXECUTE FUNCTION notify_modified_related_models('${ref_column}', '${foreign_table}');\n"
+            + "FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('${foreign_table}', '${ref_column}');\n"
         )
 
         trigger_name = HelperGetNames.get_notify_related_trigger_name(
-            foreign_table, ref_column
+            table_name, ref_column
         )
         own_table = HelperGetNames.get_table_name(table_name)
-        foreign_table = HelperGetNames.get_table_name(foreign_table)
         return FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE.substitute(
             {
                 "trigger_name": trigger_name,
