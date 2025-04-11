@@ -700,25 +700,7 @@ class Helper:
         END;
         $notify_trigger$ LANGUAGE plpgsql;
 
-        CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_notify_trigger$
-        DECLARE
-            escaped_table_name varchar;
-            operation TEXT;
-            fqid TEXT;
-        BEGIN
-            escaped_table_name := TG_ARGV[0];
-            operation := LOWER(TG_OP);
-            fqid :=  escaped_table_name || '/' || NEW.id;
-            IF (TG_OP = 'DELETE') THEN
-                fqid = escaped_table_name || '/' || OLD.id;
-            END IF;
-
-            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
-            RETURN NULL;  -- AFTER TRIGGER needs no return
-        END;
-        $log_notify_trigger$ LANGUAGE plpgsql;
-
-        CREATE FUNCTION log_modified_related_models() RETURNS trigger AS $log_notify_related_trigger$
+        CREATE FUNCTION log_modified_related_models() RETURNS trigger AS $log_modified_related_trigger$
         DECLARE
             operation TEXT;
             fqid TEXT;
@@ -740,7 +722,7 @@ class Helper:
             INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
-        $log_notify_related_trigger$ LANGUAGE plpgsql;
+        $log_modified_related_trigger$ LANGUAGE plpgsql;
 
         CREATE TABLE os_notify_log_t (
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
