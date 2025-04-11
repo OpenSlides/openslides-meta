@@ -1,3 +1,6 @@
+import json
+
+
 import string
 import sys
 from collections import defaultdict
@@ -301,6 +304,13 @@ class GenerateCodeBlocks:
                     foreign_table_field.ref_column,
                     initially_deferred,
                 )
+            )
+            text["create_trigger_notify"] = Helper.get_foreign_key_notify_trigger(
+                table_name,
+                foreign_table_field.table,
+                fname,
+                foreign_table_field.ref_column,
+                initially_deferred,
             )
         elif state == FieldSqlErrorType.SQL:
             if sql := fdata.get("sql", ""):
@@ -693,6 +703,48 @@ class Helper:
         END;
         $notify_trigger$ LANGUAGE plpgsql;
 
+        CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_notify_trigger$
+        DECLARE
+            escaped_table_name varchar;
+            operation TEXT;
+            fqid TEXT;
+        BEGIN
+            escaped_table_name := TG_ARGV[0];
+            operation := LOWER(TG_OP);
+            fqid :=  escaped_table_name || '/' || NEW.id;
+            IF (TG_OP = 'DELETE') THEN
+                fqid = escaped_table_name || '/' || OLD.id;
+            END IF;
+
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $log_notify_trigger$ LANGUAGE plpgsql;
+
+        CREATE FUNCTION log_modified_related_models() RETURNS trigger AS $log_notify_related_trigger$
+        DECLARE
+            operation TEXT;
+            fqid TEXT;
+            ref_column TEXT;
+            foreign_table TEXT;
+            foreign_id TEXT;
+        BEGIN
+            operation:= LOWER(TG_OP);
+            ref_column := TG_ARGV[1];
+            foreign_table := TG_ARGV[0];
+
+            EXECUTE format('SELECT $1.%s', ref_column) INTO foreign_id USING NEW;
+            IF (TG_OP = 'DELETE') THEN
+                EXECUTE format('SELECT $1.%s', ref_column) INTO foreign_id USING OLD;
+            END IF;
+
+            fqid := foreign_table || '/' || foreign_id;
+
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $log_notify_related_trigger$ LANGUAGE plpgsql;
+
         CREATE TABLE os_notify_log_t (
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             operation varchar(32),
@@ -799,9 +851,10 @@ class Helper:
 
     @staticmethod
     def get_notify_trigger(table_name: str) -> str:
+        trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
         own_table = HelperGetNames.get_table_name(table_name)
         escaped_table_name = "'" + table_name + "'"
-        code = f"CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
+        code = f"CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
         code += f"CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();\n"
@@ -882,6 +935,34 @@ class Helper:
             else:
                 raise Exception(f"{action} is not a valid action mode")
         return ""
+
+    @staticmethod
+    def get_foreign_key_notify_trigger(
+        table_name: str,
+        foreign_table: str,
+        ref_column: str,
+        fk_columns: list[str] | str,
+        initially_deferred: bool = False,
+        delete_action: str = "",
+        update_action: str = "",
+    ) -> str:
+        FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE = string.Template(
+            "CREATE TRIGGER ${trigger_name} AFTER INSERT OR UPDATE OF ${ref_column} OR DELETE ON ${own_table}\n"
+            + "FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('${foreign_table}', '${ref_column}');\n"
+        )
+
+        trigger_name = HelperGetNames.get_notify_related_trigger_name(
+            table_name, ref_column
+        )
+        own_table = HelperGetNames.get_table_name(table_name)
+        return FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE.substitute(
+            {
+                "trigger_name": trigger_name,
+                "own_table": own_table,
+                "ref_column": ref_column,
+                "foreign_table": foreign_table,
+            }
+        )
 
     @staticmethod
     def get_nm_table_for_n_m_relation_lists(
