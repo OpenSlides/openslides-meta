@@ -3043,6 +3043,10 @@ motion_state:
     type: boolean
     restriction_mode: A
     default: false
+  allow_amendment_forwarding:
+    type: boolean
+    restriction_mode: A
+    default: false
   set_workflow_timestamp:
     type: boolean
     restriction_mode: A
