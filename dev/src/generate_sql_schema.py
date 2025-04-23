@@ -148,9 +148,10 @@ class GenerateCodeBlocks:
                 table_name_code += code + "\n"
             if code := schema_zone_texts["undecided"]:
                 table_name_code += Helper.get_undecided_all(table_name, code)
-            if code := schema_zone_texts["view"]:
-                view_name_code += Helper.get_view_head(table_name)
-                view_name_code += Helper.get_view_body_end(table_name, code)
+            view_name_code += Helper.get_view_head(table_name)
+            view_name_code += Helper.get_view_body_end(
+                table_name, schema_zone_texts.get("view", "")
+            )
             if code := schema_zone_texts["post_view"]:
                 view_name_code += code
             if code := schema_zone_texts["alter_table_final"]:
@@ -818,13 +819,17 @@ class Helper:
 
     @staticmethod
     def get_view_head(table_name: str) -> str:
-        return (
-            f"\nCREATE VIEW {HelperGetNames.get_view_name(table_name)} AS SELECT *,\n"
-        )
+        return f"\nCREATE VIEW {HelperGetNames.get_view_name(table_name)} AS SELECT *"
 
     @staticmethod
     def get_view_body_end(table_name: str, code: str) -> str:
-        code = code[:-2] + "\n"  # last attribute line without ",", but with "\n"
+        # change the code only if there is
+        if code:
+            # comma and "\n" for the header
+            # last attribute line without ",", but with "\n"
+            code = ",\n" + code[:-2] + "\n"
+        else:
+            code = " "
         code += f"FROM {HelperGetNames.get_table_name(table_name)} {Helper.get_table_letter(table_name)};\n\n"
         return code
 

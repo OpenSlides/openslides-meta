@@ -237,7 +237,7 @@ class InternalHelper:
 
     @classmethod
     def read_models_yml(cls, file: str) -> tuple[dict[str, Any], str]:
-        """method reads modesl.yml from file or web and returns MODELS and it's checksum"""
+        """method reads models.yml from file or web and returns MODELS and it's checksum"""
         if os.path.isfile(file):
             with open(file, "rb") as x:
                 models_yml = x.read()
@@ -289,7 +289,7 @@ class InternalHelper:
     @staticmethod
     def get_foreign_key_table_column(reference: str | None) -> tuple[str, str]:
         """
-        Returns a tuple (table_name, field_name) gotten from "reference"-attribut
+        Returns a tuple (table_name, field_name) gotten from "reference"-attribute
         """
         if reference:
             result = InternalHelper.ref_compiled.search(reference)
@@ -318,7 +318,7 @@ class InternalHelper:
     def get_cardinality(field_all: TableFieldType) -> tuple[str, str]:
         """
         Returns
-        - string with cardinality string (1, 1G, n or nG= Cardinality, G=Generatic-relation, r=reference, t=to, s=sql, R=required)
+        - string with cardinality string (1, 1G, n or nG= Cardinality, G=Generic-relation, r=reference, t=to, s=sql, R=required)
         - string with error message or empty string if no error
         """
         error = ""
@@ -330,14 +330,14 @@ class InternalHelper:
             reference = bool(field.get("reference"))
 
             # general rules of inconsistent field descriptions on field level
-            if reference and not to:  # temporaray rule to keep all to-attributes
-                error = "Field with reference temporarely needs also to-attribute\n"
+            if reference and not to:  # temporary rule to keep all to-attributes
+                error = "Field with reference temporarily needs also to-attribute\n"
             elif field.get("sql") == "":
                 error = "sql attribute may not be empty\n"
             elif required and sql:
                 error = "Field with attribute sql cannot be required\n"
             elif not (to or reference):
-                error = "Relation field must have `to` or `reference` attribut set\n"
+                error = "Relation field must have `to` or `reference` attribute set\n"
             elif field["type"] == "generic-relation-list" and required:
                 error = "generic-relation-list cannot be required: not implemented\n"
 
@@ -357,7 +357,7 @@ class InternalHelper:
                 result += "r"
             if (
                 to and not reference
-            ):  # to with reference only for temporaray backup compatibility in backend relation-handling
+            ):  # to with reference only for temporary backup compatibility in backend relation-handling
                 result += "t"
             if required:
                 result += "R"
@@ -369,7 +369,7 @@ class InternalHelper:
 
     @staticmethod
     def generate_field_or_sql_decision(
-        own: TableFieldType, own_c: str, foreign: TableFieldType, foreign_c: str
+        own: TableFieldType, own_card: str, foreign: TableFieldType, foreign_card: str
     ) -> tuple[FieldSqlErrorType, bool, str]:
         """
         Returns:
@@ -401,7 +401,7 @@ class InternalHelper:
             ("nts", "nts"): (FieldSqlErrorType.SQL, False),
         }
 
-        foreign_c_replacement_list: list[str] = [
+        foreign_card_replacement_list: list[str] = [
             "1Gr",
             "1GrR",
             "1r",
@@ -413,12 +413,12 @@ class InternalHelper:
         primary: bool | str | None
         error = ""
 
-        if own_c in foreign_c_replacement_list:
-            foreign_c = ""
+        if own_card in foreign_card_replacement_list:
+            foreign_card = ""
 
-        state, primary = decision_list.get((own_c, foreign_c), (None, None))
+        state, primary = decision_list.get((own_card, foreign_card), (None, None))
         if state is None:
-            error = f"Type combination not implemented: {own_c}:{foreign_c} on field {own.collectionfield}\n"
+            error = f"Type combination not implemented: {own_card}:{foreign_card} on field {own.collectionfield}\n"
             state = FieldSqlErrorType.ERROR
         elif primary == "primary_decide_alphabetical":
             primary = (
@@ -434,12 +434,12 @@ class InternalHelper:
     ) -> tuple[FieldSqlErrorType, bool, str, str]:
         """
         Decides for the own-field,
-          - whether it is a field, a sql-expression or is there an error
+          - whether it is a field, an sql-expression or if there is an error
           - relation-list and generic-relation-list are always sql-expressions.
-            True significates, that it is the pimary that creates the intermediate table
+            True signifies that it is the primary that creates the intermediate table.
 
         Also checks relational behaviour and produces the informative relation line and in
-        case of an error an error text
+        case of an error an error text.
 
         Returns:
         - field, sql, error => enum FieldSqlErrorType
@@ -448,13 +448,13 @@ class InternalHelper:
         - error line if error else empty string
         """
         error = ""
-        own_c, tmp_error = InternalHelper.get_cardinality(own_field)
+        own_card, tmp_error = InternalHelper.get_cardinality(own_field)
         error = error or tmp_error
-        foreigns_c = []
+        foreign_card = []
         foreign_collectionfields = []
         for foreign_field in foreign_fields:
             foreign_c, tmp_error = InternalHelper.get_cardinality(foreign_field)
-            foreigns_c.append(foreign_c)
+            foreign_card.append(foreign_c)
             error = error or tmp_error
             foreign_collectionfields.append(foreign_field.collectionfield)
 
@@ -466,23 +466,23 @@ class InternalHelper:
                 if i == 0:
                     state, primary, error = (
                         InternalHelper.generate_field_or_sql_decision(
-                            own_field, own_c, foreign_field, foreigns_c[i]
+                            own_field, own_card, foreign_field, foreign_card[i]
                         )
                     )
                 else:
                     statex, primaryx, error = (
                         InternalHelper.generate_field_or_sql_decision(
-                            own_field, own_c, foreign_field, foreigns_c[i]
+                            own_field, own_card, foreign_field, foreign_card[i]
                         )
                     )
                     if not error and (statex != state or primaryx != primary):
-                        error = f"Error in generation for generic collectionfield '{own_field.collectionfield}'"
+                        error = f"Error in generation for generic collection field '{own_field.collectionfield}'"
                 if error:
                     state = FieldSqlErrorType.ERROR
                     break
 
         state_text = "***" if state == FieldSqlErrorType.ERROR else state.name
-        text = f"{state_text} {own_c}:{','.join(foreigns_c)} => {own_field.collectionfield}:-> {','.join(foreign_collectionfields)}\n"
+        text = f"{state_text} {own_card}:{','.join(foreign_card)} => {own_field.collectionfield}:-> {','.join(foreign_collectionfields)}\n"
         if state == FieldSqlErrorType.ERROR:
             text += f"    {error}"
         return state, primary, text, error
@@ -495,7 +495,7 @@ class InternalHelper:
         """
         used for generic_relation with multiple foreign relations
         """
-        # temporarely allowed
+        # temporarily allowed
         # if to and reference:
         #     raise Exception(
         #         f"Field {table}/{field}: On generic-relation fields it is not allowed to use 'to' and 'reference' for 1 field"

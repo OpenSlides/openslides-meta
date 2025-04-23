@@ -1507,6 +1507,9 @@ FROM group_t g;
 
 comment on column "group".meeting_mediafile_inherited_access_group_ids is 'Calculated field.';
 
+CREATE VIEW "personal_note" AS SELECT * FROM personal_note_t p;
+
+
 CREATE VIEW "tag" AS SELECT *,
 (select array_agg(g.id) from gm_tag_tagged_ids g where g.tag_id = t.id) as tagged_ids
 FROM tag_t t;
@@ -1534,6 +1537,9 @@ FROM structure_level_list_of_speakers_t s;
 CREATE VIEW "point_of_order_category" AS SELECT *,
 (select array_agg(s.id) from speaker_t s where s.point_of_order_category_id = p.id) as speaker_ids
 FROM point_of_order_category_t p;
+
+
+CREATE VIEW "speaker" AS SELECT * FROM speaker_t s;
 
 
 CREATE VIEW "topic" AS SELECT *,
@@ -1573,6 +1579,18 @@ CREATE VIEW "motion" AS SELECT *,
 FROM motion_t m;
 
 
+CREATE VIEW "motion_submitter" AS SELECT * FROM motion_submitter_t m;
+
+
+CREATE VIEW "motion_editor" AS SELECT * FROM motion_editor_t m;
+
+
+CREATE VIEW "motion_working_group_speaker" AS SELECT * FROM motion_working_group_speaker_t m;
+
+
+CREATE VIEW "motion_comment" AS SELECT * FROM motion_comment_t m;
+
+
 CREATE VIEW "motion_comment_section" AS SELECT *,
 (select array_agg(mc.id) from motion_comment_t mc where mc.section_id = m.id) as comment_ids,
 (select array_agg(n.group_id) from nm_group_read_comment_section_ids_motion_comment_section n where n.motion_comment_section_id = m.id) as read_group_ids,
@@ -1592,6 +1610,9 @@ CREATE VIEW "motion_block" AS SELECT *,
 (select l.id from list_of_speakers_t l where l.content_object_id_motion_block_id = m.id) as list_of_speakers_id,
 (select array_agg(p.id) from projection_t p where p.content_object_id_motion_block_id = m.id) as projection_ids
 FROM motion_block_t m;
+
+
+CREATE VIEW "motion_change_recommendation" AS SELECT * FROM motion_change_recommendation_t m;
 
 
 CREATE VIEW "motion_state" AS SELECT *,
@@ -1625,6 +1646,9 @@ CREATE VIEW "option" AS SELECT *,
 FROM option_t o;
 
 
+CREATE VIEW "vote" AS SELECT * FROM vote_t v;
+
+
 CREATE VIEW "assignment" AS SELECT *,
 (select array_agg(ac.id) from assignment_candidate_t ac where ac.assignment_id = a.id) as candidate_ids,
 (select array_agg(p.id) from poll_t p where p.content_object_id_assignment_id = a.id) as poll_ids,
@@ -1636,10 +1660,16 @@ CREATE VIEW "assignment" AS SELECT *,
 FROM assignment_t a;
 
 
+CREATE VIEW "assignment_candidate" AS SELECT * FROM assignment_candidate_t a;
+
+
 CREATE VIEW "poll_candidate_list" AS SELECT *,
 (select array_agg(pc.id) from poll_candidate_t pc where pc.poll_candidate_list_id = p.id) as poll_candidate_ids,
 (select o.id from option_t o where o.content_object_id_poll_candidate_list_id = p.id) as option_id
 FROM poll_candidate_list_t p;
+
+
+CREATE VIEW "poll_candidate" AS SELECT * FROM poll_candidate_t p;
 
 
 CREATE VIEW "mediafile" AS SELECT *,
@@ -1682,6 +1712,9 @@ CREATE VIEW "projector" AS SELECT *,
 FROM projector_t p;
 
 
+CREATE VIEW "projection" AS SELECT * FROM projection_t p;
+
+
 CREATE VIEW "projector_message" AS SELECT *,
 (select array_agg(pt.id) from projection_t pt where pt.content_object_id_projector_message_id = p.id) as projection_ids
 FROM projector_message_t p;
@@ -1699,6 +1732,15 @@ CREATE VIEW "chat_group" AS SELECT *,
 (select array_agg(n.group_id) from nm_chat_group_read_group_ids_group n where n.chat_group_id = c.id) as read_group_ids,
 (select array_agg(n.group_id) from nm_chat_group_write_group_ids_group n where n.chat_group_id = c.id) as write_group_ids
 FROM chat_group_t c;
+
+
+CREATE VIEW "chat_message" AS SELECT * FROM chat_message_t c;
+
+
+CREATE VIEW "action_worker" AS SELECT * FROM action_worker_t a;
+
+
+CREATE VIEW "import_preview" AS SELECT * FROM import_preview_t i;
 
 
 
