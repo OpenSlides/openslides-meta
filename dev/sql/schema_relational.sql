@@ -119,9 +119,11 @@ BEGIN
         EXECUTE format('SELECT $1.%s', ref_column) INTO foreign_id USING OLD;
     END IF;
 
-    fqid := foreign_table || '/' || foreign_id;
+    IF foreign_id IS NOT NULL THEN
+        fqid := foreign_table || '/' || foreign_id;
+        INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
+    END IF;
 
-    INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
     RETURN NULL;  -- AFTER TRIGGER needs no return
 END;
 $log_modified_related_trigger$ LANGUAGE plpgsql;
@@ -129,7 +131,7 @@ $log_modified_related_trigger$ LANGUAGE plpgsql;
 CREATE TABLE os_notify_log_t (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     operation varchar(32),
-    fqid varchar(256),
+    fqid varchar(256) NOT NULL,
     xact_id xid8,
     timestamp timestamptz
 );
