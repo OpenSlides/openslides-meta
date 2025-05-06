@@ -304,7 +304,7 @@ class GenerateCodeBlocks:
                 )
             )
             text["create_trigger_notify"] = Helper.get_foreign_key_notify_trigger(
-                table_name,
+                table_name + "_t",
                 foreign_table_field.table,
                 fname,
                 foreign_table_field.ref_column,
@@ -365,16 +365,43 @@ class GenerateCodeBlocks:
 
         if state != FieldSqlErrorType.ERROR:
             if primary:
+                # __import__("ipdb").set_trace()
+                print(
+                    "primary +",
+                    own_table_field.field_def,
+                    "\nfk:     +",
+                    foreign_table_field.field_def,
+                )
                 if foreign_table_field.field_def.get("type") == "relation-list":
                     nm_table_name, value = Helper.get_nm_table_for_n_m_relation_lists(
                         own_table_field, foreign_table_field
                     )
+                    print("-----1")
                     if nm_table_name not in cls.intermediate_tables:
                         cls.intermediate_tables[nm_table_name] = value
+                        print("-------2")
+                        __import__("ipdb").set_trace()
+                        text["create_trigger_notify"] = (
+                            Helper.get_foreign_key_notify_trigger(
+                                nm_table_name,
+                                foreign_table_field.table,
+                                fname,
+                                foreign_table_field.ref_column,
+                                # initially_deferred,
+                            )
+                        )
                     else:
                         raise Exception(
                             f"Tried to create im_table '{nm_table_name}' twice"
                         )
+            else:
+                print(
+                    "Not     -",
+                    own_table_field.field_def,
+                    "\nfk:     -",
+                    foreign_table_field.field_def,
+                )
+
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
             else:
@@ -750,6 +777,7 @@ class Helper:
         """
         )
     )
+
     INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE = string.Template(
         dedent(
             """
@@ -766,6 +794,10 @@ class Helper:
     )
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
         "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id),"
+    )
+    FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE = string.Template(
+        "CREATE TRIGGER ${trigger_name} AFTER INSERT OR UPDATE OF ${ref_column} OR DELETE ON ${own_table}\n"
+        + "FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('${foreign_table}', '${ref_column}');\n"
     )
 
     RELATION_LIST_AGENDA = dedent(
@@ -932,16 +964,12 @@ class Helper:
         delete_action: str = "",
         update_action: str = "",
     ) -> str:
-        FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE = string.Template(
-            "CREATE TRIGGER ${trigger_name} AFTER INSERT OR UPDATE OF ${ref_column} OR DELETE ON ${own_table}\n"
-            + "FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('${foreign_table}', '${ref_column}');\n"
-        )
-
         trigger_name = HelperGetNames.get_notify_related_trigger_name(
             table_name, ref_column
         )
-        own_table = HelperGetNames.get_table_name(table_name)
-        return FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE.substitute(
+        # own_table = HelperGetNames.get_table_name(table_name)
+        own_table = table_name
+        return Helper.FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE.substitute(
             {
                 "trigger_name": trigger_name,
                 "own_table": own_table,
