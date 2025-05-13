@@ -2495,7 +2495,9 @@ motion:
   additional_submitter:
     type: string
     restriction_mode: C
-
+  was_forwarded:
+    type: boolean
+    restriction_mode: A
   lead_motion_id:
     type: relation
     to: motion/amendment_ids
