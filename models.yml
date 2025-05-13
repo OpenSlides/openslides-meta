@@ -2495,7 +2495,7 @@ motion:
   additional_submitter:
     type: string
     restriction_mode: C
-  was_forwarded:
+  marked_forwarded:
     type: boolean
     restriction_mode: A
 
