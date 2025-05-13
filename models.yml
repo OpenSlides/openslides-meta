@@ -2498,6 +2498,7 @@ motion:
   marked_forwarded:
     type: boolean
     restriction_mode: A
+    description: Forwarded amendments can be marked as such. This is just optional, however. Forwarded amendments can also have this field set to false.
 
   lead_motion_id:
     type: relation
