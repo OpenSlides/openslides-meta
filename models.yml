@@ -2498,6 +2498,7 @@ motion:
   was_forwarded:
     type: boolean
     restriction_mode: A
+
   lead_motion_id:
     type: relation
     to: motion/amendment_ids
