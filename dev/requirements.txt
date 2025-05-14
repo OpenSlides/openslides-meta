@@ -1,6 +1,6 @@
 autoflake==2.3.1
 black==25.1.0
-flake8==7.1.2
+flake8==7.2.0
 isort==6.0.1
 mypy==1.15.0
 pytest==8.3.5
@@ -9,5 +9,5 @@ pyyaml==6.0.2
 simplejson==3.20.1
 
 # typing
-types-PyYAML==6.0.12.20241230
-types-simplejson==3.20.0.20250318
+types-PyYAML==6.0.12.20250402
+types-simplejson==3.20.0.20250326
