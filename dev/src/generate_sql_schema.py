@@ -393,7 +393,7 @@ class GenerateCodeBlocks:
                             foreign_table_name = HelperGetNames.get_nm_table_name(
                                 own_table_field, foreign_table_field
                             )
-                            foreign_table_column = foreign_table_field.column[:-1]
+                            foreign_table_column = foreign_table_field.intermediate_column
                         else:
                             own_ref_column = own_table_field.ref_column
                             foreign_table_ref_column = f"{foreign_table_field.table}_{foreign_table_field.ref_column}"
@@ -410,7 +410,7 @@ class GenerateCodeBlocks:
                             foreign_table_field
                         )
                         foreign_table_column = (
-                            f"{foreign_table_column[:-1]}_{table_name}_id"
+                            f"{foreign_table_field.intermediate_column}_{table_name}_id"
                         )
                     elif type_ == "relation" or foreign_table_field_ref_id:
                         own_ref_column = own_table_field.ref_column
@@ -578,7 +578,7 @@ class GenerateCodeBlocks:
                 own_table_field.ref_column,
                 gm_foreign_table,
                 f"{own_table_field.table}_{own_table_field.ref_column}",
-                own_table_field.ref_column,
+                own_table_field.intermediate_column,
             )
             if comment := fdata.get("description"):
                 text["post_view"] += Helper.get_post_view_comment(
@@ -710,8 +710,8 @@ class Helper:
         dedent(
             """
             CREATE TABLE ${table_name} (
-                ${field1} integer NOT NULL REFERENCES ${table1} (id),
-                ${field2} integer NOT NULL REFERENCES ${table2} (id),
+                ${field1} integer NOT NULL REFERENCES ${table1} (id) INITIALLY DEFERRED,
+                ${field2} integer NOT NULL REFERENCES ${table2} (id) INITIALLY DEFERRED,
                 PRIMARY KEY (${list_of_keys})
             );
         """
@@ -722,7 +722,7 @@ class Helper:
             """
             CREATE TABLE ${table_name} (
                 id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}),
+                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) INITIALLY DEFERRED,
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
@@ -932,7 +932,7 @@ class Helper:
             + "')"
         )
         foreign_table_ref_lines = []
-        own_table_column = own_table_field.column[:-1]
+        own_table_column = own_table_field.intermediate_column
         for foreign_table_field in foreign_table_fields:
             foreign_table_name = foreign_table_field.table
             subst_dict = {
