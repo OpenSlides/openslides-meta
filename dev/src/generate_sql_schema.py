@@ -393,7 +393,9 @@ class GenerateCodeBlocks:
                             foreign_table_name = HelperGetNames.get_nm_table_name(
                                 own_table_field, foreign_table_field
                             )
-                            foreign_table_column = foreign_table_field.intermediate_column
+                            foreign_table_column = (
+                                foreign_table_field.intermediate_column
+                            )
                         else:
                             own_ref_column = own_table_field.ref_column
                             foreign_table_ref_column = f"{foreign_table_field.table}_{foreign_table_field.ref_column}"
