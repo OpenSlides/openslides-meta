@@ -1168,20 +1168,20 @@ CREATE TABLE import_preview_t (
 -- Intermediate table definitions
 
 CREATE TABLE nm_meeting_user_supported_motion_ids_motion (
-    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id),
-    motion_id integer NOT NULL REFERENCES motion_t (id),
+    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) INITIALLY DEFERRED,
+    motion_id integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (meeting_user_id, motion_id)
 );
 
 CREATE TABLE nm_meeting_user_structure_level_ids_structure_level (
-    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id),
-    structure_level_id integer NOT NULL REFERENCES structure_level_t (id),
+    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) INITIALLY DEFERRED,
+    structure_level_id integer NOT NULL REFERENCES structure_level_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (meeting_user_id, structure_level_id)
 );
 
 CREATE TABLE gm_organization_tag_tagged_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    organization_tag_id integer NOT NULL REFERENCES organization_tag_t(id),
+    organization_tag_id integer NOT NULL REFERENCES organization_tag_t(id) INITIALLY DEFERRED,
     tagged_id varchar(100) NOT NULL,
     tagged_id_committee_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'committee' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES committee_t(id),
     tagged_id_meeting_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'meeting' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES meeting_t(id),
@@ -1190,68 +1190,68 @@ CREATE TABLE gm_organization_tag_tagged_ids (
 );
 
 CREATE TABLE nm_committee_user_ids_user (
-    committee_id integer NOT NULL REFERENCES committee_t (id),
-    user_id integer NOT NULL REFERENCES user_t (id),
+    committee_id integer NOT NULL REFERENCES committee_t (id) INITIALLY DEFERRED,
+    user_id integer NOT NULL REFERENCES user_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (committee_id, user_id)
 );
 
 CREATE TABLE nm_committee_manager_ids_user (
-    committee_id integer NOT NULL REFERENCES committee_t (id),
-    user_id integer NOT NULL REFERENCES user_t (id),
+    committee_id integer NOT NULL REFERENCES committee_t (id) INITIALLY DEFERRED,
+    user_id integer NOT NULL REFERENCES user_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (committee_id, user_id)
 );
 
 CREATE TABLE nm_committee_forward_to_committee_ids_committee (
-    forward_to_committee_id integer NOT NULL REFERENCES committee_t (id),
-    receive_forwardings_from_committee_id integer NOT NULL REFERENCES committee_t (id),
+    forward_to_committee_id integer NOT NULL REFERENCES committee_t (id) INITIALLY DEFERRED,
+    receive_forwardings_from_committee_id integer NOT NULL REFERENCES committee_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (forward_to_committee_id, receive_forwardings_from_committee_id)
 );
 
 CREATE TABLE nm_meeting_present_user_ids_user (
-    meeting_id integer NOT NULL REFERENCES meeting_t (id),
-    user_id integer NOT NULL REFERENCES user_t (id),
+    meeting_id integer NOT NULL REFERENCES meeting_t (id) INITIALLY DEFERRED,
+    user_id integer NOT NULL REFERENCES user_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (meeting_id, user_id)
 );
 
 CREATE TABLE nm_group_meeting_user_ids_meeting_user (
-    group_id integer NOT NULL REFERENCES group_t (id),
-    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id),
+    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
+    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (group_id, meeting_user_id)
 );
 
 CREATE TABLE nm_group_mmagi_meeting_mediafile (
-    group_id integer NOT NULL REFERENCES group_t (id),
-    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t (id),
+    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
+    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (group_id, meeting_mediafile_id)
 );
 
 CREATE TABLE nm_group_mmiagi_meeting_mediafile (
-    group_id integer NOT NULL REFERENCES group_t (id),
-    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t (id),
+    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
+    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (group_id, meeting_mediafile_id)
 );
 
 CREATE TABLE nm_group_read_comment_section_ids_motion_comment_section (
-    group_id integer NOT NULL REFERENCES group_t (id),
-    motion_comment_section_id integer NOT NULL REFERENCES motion_comment_section_t (id),
+    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
+    motion_comment_section_id integer NOT NULL REFERENCES motion_comment_section_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (group_id, motion_comment_section_id)
 );
 
 CREATE TABLE nm_group_write_comment_section_ids_motion_comment_section (
-    group_id integer NOT NULL REFERENCES group_t (id),
-    motion_comment_section_id integer NOT NULL REFERENCES motion_comment_section_t (id),
+    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
+    motion_comment_section_id integer NOT NULL REFERENCES motion_comment_section_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (group_id, motion_comment_section_id)
 );
 
 CREATE TABLE nm_group_poll_ids_poll (
-    group_id integer NOT NULL REFERENCES group_t (id),
-    poll_id integer NOT NULL REFERENCES poll_t (id),
+    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
+    poll_id integer NOT NULL REFERENCES poll_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (group_id, poll_id)
 );
 
 CREATE TABLE gm_tag_tagged_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    tag_id integer NOT NULL REFERENCES tag_t(id),
+    tag_id integer NOT NULL REFERENCES tag_t(id) INITIALLY DEFERRED,
     tagged_id varchar(100) NOT NULL,
     tagged_id_agenda_item_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'agenda_item' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES agenda_item_t(id),
     tagged_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'assignment' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES assignment_t(id),
@@ -1261,20 +1261,20 @@ CREATE TABLE gm_tag_tagged_ids (
 );
 
 CREATE TABLE nm_motion_all_derived_motion_ids_motion (
-    all_derived_motion_id integer NOT NULL REFERENCES motion_t (id),
-    all_origin_id integer NOT NULL REFERENCES motion_t (id),
+    all_derived_motion_id integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
+    all_origin_id integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (all_derived_motion_id, all_origin_id)
 );
 
 CREATE TABLE nm_motion_identical_motion_ids_motion (
-    identical_motion_id_1 integer NOT NULL REFERENCES motion_t (id),
-    identical_motion_id_2 integer NOT NULL REFERENCES motion_t (id),
+    identical_motion_id_1 integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
+    identical_motion_id_2 integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (identical_motion_id_1, identical_motion_id_2)
 );
 
 CREATE TABLE gm_motion_state_extension_reference_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    motion_id integer NOT NULL REFERENCES motion_t(id),
+    motion_id integer NOT NULL REFERENCES motion_t(id) INITIALLY DEFERRED,
     state_extension_reference_id varchar(100) NOT NULL,
     state_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(state_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(state_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id),
     CONSTRAINT valid_state_extension_reference_id_part1 CHECK (split_part(state_extension_reference_id, '/', 1) IN ('motion')),
@@ -1283,7 +1283,7 @@ CREATE TABLE gm_motion_state_extension_reference_ids (
 
 CREATE TABLE gm_motion_recommendation_extension_reference_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    motion_id integer NOT NULL REFERENCES motion_t(id),
+    motion_id integer NOT NULL REFERENCES motion_t(id) INITIALLY DEFERRED,
     recommendation_extension_reference_id varchar(100) NOT NULL,
     recommendation_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(recommendation_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(recommendation_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id),
     CONSTRAINT valid_recommendation_extension_reference_id_part1 CHECK (split_part(recommendation_extension_reference_id, '/', 1) IN ('motion')),
@@ -1291,20 +1291,20 @@ CREATE TABLE gm_motion_recommendation_extension_reference_ids (
 );
 
 CREATE TABLE nm_motion_state_next_state_ids_motion_state (
-    next_state_id integer NOT NULL REFERENCES motion_state_t (id),
-    previous_state_id integer NOT NULL REFERENCES motion_state_t (id),
+    next_state_id integer NOT NULL REFERENCES motion_state_t (id) INITIALLY DEFERRED,
+    previous_state_id integer NOT NULL REFERENCES motion_state_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (next_state_id, previous_state_id)
 );
 
 CREATE TABLE nm_poll_voted_ids_user (
-    poll_id integer NOT NULL REFERENCES poll_t (id),
-    user_id integer NOT NULL REFERENCES user_t (id),
+    poll_id integer NOT NULL REFERENCES poll_t (id) INITIALLY DEFERRED,
+    user_id integer NOT NULL REFERENCES user_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (poll_id, user_id)
 );
 
 CREATE TABLE gm_meeting_mediafile_attachment_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t(id),
+    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t(id) INITIALLY DEFERRED,
     attachment_id varchar(100) NOT NULL,
     attachment_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'motion' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id),
     attachment_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'topic' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES topic_t(id),
@@ -1314,14 +1314,14 @@ CREATE TABLE gm_meeting_mediafile_attachment_ids (
 );
 
 CREATE TABLE nm_chat_group_read_group_ids_group (
-    chat_group_id integer NOT NULL REFERENCES chat_group_t (id),
-    group_id integer NOT NULL REFERENCES group_t (id),
+    chat_group_id integer NOT NULL REFERENCES chat_group_t (id) INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (chat_group_id, group_id)
 );
 
 CREATE TABLE nm_chat_group_write_group_ids_group (
-    chat_group_id integer NOT NULL REFERENCES chat_group_t (id),
-    group_id integer NOT NULL REFERENCES group_t (id),
+    chat_group_id integer NOT NULL REFERENCES chat_group_t (id) INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
     PRIMARY KEY (chat_group_id, group_id)
 );
 
@@ -1377,7 +1377,7 @@ FROM gender_t g;
 
 
 CREATE VIEW "organization_tag" AS SELECT *,
-(select array_agg(g.id) from gm_organization_tag_tagged_ids g where g.organization_tag_id = o.id) as tagged_ids
+(select array_agg(g.tagged_id) from gm_organization_tag_tagged_ids g where g.organization_tag_id = o.id) as tagged_ids
 FROM organization_tag_t o;
 
 
@@ -1487,7 +1487,7 @@ CREATE VIEW "personal_note" AS SELECT * FROM personal_note_t p;
 
 
 CREATE VIEW "tag" AS SELECT *,
-(select array_agg(g.id) from gm_tag_tagged_ids g where g.tag_id = t.id) as tagged_ids
+(select array_agg(g.tagged_id) from gm_tag_tagged_ids g where g.tag_id = t.id) as tagged_ids
 FROM tag_t t;
 
 
@@ -1534,9 +1534,9 @@ CREATE VIEW "motion" AS SELECT *,
 (select array_agg(n.all_origin_id) from nm_motion_all_derived_motion_ids_motion n where n.all_derived_motion_id = m.id) as all_origin_ids,
 (select array_agg(n.all_derived_motion_id) from nm_motion_all_derived_motion_ids_motion n where n.all_origin_id = m.id) as all_derived_motion_ids,
 (select array_cat((select array_agg(n.identical_motion_id_1) from nm_motion_identical_motion_ids_motion n where n.identical_motion_id_2 = m.id), (select array_agg(n.identical_motion_id_2) from nm_motion_identical_motion_ids_motion n where n.identical_motion_id_1 = m.id))) as identical_motion_ids,
-(select array_agg(g.id) from gm_motion_state_extension_reference_ids g where g.motion_id = m.id) as state_extension_reference_ids,
+(select array_agg(g.state_extension_reference_id) from gm_motion_state_extension_reference_ids g where g.motion_id = m.id) as state_extension_reference_ids,
 (select array_agg(g.motion_id) from gm_motion_state_extension_reference_ids g where g.state_extension_reference_id_motion_id = m.id) as referenced_in_motion_state_extension_ids,
-(select array_agg(g.id) from gm_motion_recommendation_extension_reference_ids g where g.motion_id = m.id) as recommendation_extension_reference_ids,
+(select array_agg(g.recommendation_extension_reference_id) from gm_motion_recommendation_extension_reference_ids g where g.motion_id = m.id) as recommendation_extension_reference_ids,
 (select array_agg(g.motion_id) from gm_motion_recommendation_extension_reference_ids g where g.recommendation_extension_reference_id_motion_id = m.id) as referenced_in_motion_recommendation_extension_ids,
 (select array_agg(ms.id) from motion_submitter_t ms where ms.motion_id = m.id) as submitter_ids,
 (select array_agg(n.meeting_user_id) from nm_meeting_user_supported_motion_ids_motion n where n.motion_id = m.id) as supporter_meeting_user_ids,
@@ -1659,7 +1659,7 @@ CREATE VIEW "meeting_mediafile" AS SELECT *,
 (select array_agg(n.group_id) from nm_group_mmagi_meeting_mediafile n where n.meeting_mediafile_id = m.id) as access_group_ids,
 (select l.id from list_of_speakers_t l where l.content_object_id_meeting_mediafile_id = m.id) as list_of_speakers_id,
 (select array_agg(p.id) from projection_t p where p.content_object_id_meeting_mediafile_id = m.id) as projection_ids,
-(select array_agg(g.id) from gm_meeting_mediafile_attachment_ids g where g.meeting_mediafile_id = m.id) as attachment_ids,
+(select array_agg(g.attachment_id) from gm_meeting_mediafile_attachment_ids g where g.meeting_mediafile_id = m.id) as attachment_ids,
 (select m1.id from meeting_t m1 where m1.logo_projector_main_id = m.id) as used_as_logo_projector_main_in_meeting_id,
 (select m1.id from meeting_t m1 where m1.logo_projector_header_id = m.id) as used_as_logo_projector_header_in_meeting_id,
 (select m1.id from meeting_t m1 where m1.logo_web_header_id = m.id) as used_as_logo_web_header_in_meeting_id,
