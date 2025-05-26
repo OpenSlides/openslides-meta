@@ -1,0 +1,23 @@
+id: *id_field
+name:
+  type: string
+  required: True
+  restriction_mode: A
+color:
+  type: color
+  required: True
+  restriction_mode: A
+
+tagged_ids:
+  type: generic-relation-list
+  to:
+    collections:
+      - committee
+      - meeting
+    field: organization_tag_ids
+  restriction_mode: A
+organization_id:
+  type: relation
+  to: organization/organization_tag_ids
+  restriction_mode: A
+  required: true
