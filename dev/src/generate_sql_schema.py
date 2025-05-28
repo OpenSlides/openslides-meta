@@ -119,6 +119,10 @@ class GenerateCodeBlocks:
         for table_name, fields in MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
                 continue
+
+            if not table_name.endswith("_t"):
+                table_name = table_name + "_t"
+
             schema_zone_texts = cast(SchemaZoneTexts, defaultdict(str))
             cls.intermediate_tables = {}
 
@@ -973,7 +977,7 @@ class Helper:
         own_table = table_name
         return Helper.FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE.substitute(
             {
-                "trigger_name": trigger_name,
+                "trigger_name": trigger_name + "_t",
                 "own_table": own_table,
                 "ref_column": ref_column,
                 "foreign_table": foreign_table,
@@ -998,7 +1002,7 @@ class Helper:
             field2 += "_2"
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
             {
-                "table_name": nm_table_name,  # without tailing _t
+                "table_name": nm_table_name + "_t",  # with tailing _t
                 "field1": field1,
                 "table1": HelperGetNames.get_table_name(own_table_field.table),
                 "field2": field2,
