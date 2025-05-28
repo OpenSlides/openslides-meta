@@ -21,6 +21,7 @@ class TableFieldType:
     ):
         self.table = table
         self.column = column
+        self.intermediate_column = column[:-1]
         self.field_def: dict[str, Any] = field_def or {}
         self.ref_column = ref_column
 
@@ -71,7 +72,7 @@ class HelperGetNames:
             name = func(*args, **kwargs)
             assert (
                 len(name) <= HelperGetNames.MAX_LEN
-            ), f"Generated name '{name}' to long in function {func}!"
+            ), f"Name '{name}' generated too long in function {func}!"
             return name
 
         return wrapper
@@ -123,7 +124,7 @@ class HelperGetNames:
         otherwise the related tables names are used
         """
         if own_table_field.table == foreign_table_name:
-            return own_table_field.column[:-1]
+            return own_table_field.intermediate_column
         else:
             return f"{own_table_field.table}_id"
 
