@@ -734,7 +734,7 @@ class Helper:
         )
     )
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id),"
+        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) INITIALLY DEFERRED,"
     )
 
     RELATION_LIST_AGENDA = dedent(
