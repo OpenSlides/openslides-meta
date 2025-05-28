@@ -1,11 +1,11 @@
 -- This script can only be used for an empty database without used sequences.
 INSERT INTO
-    theme (id, name, accent_500, primary_500, warn_500)
+    theme (id, name)
 VALUES
-    (1, 'standard theme',);
+    (1, 'standard theme');
 
 INSERT INTO
-    organization (name, theme_id, default_language)
+    organization (name, theme_id)
 VALUES
     ('Intevation', 1);
 
@@ -23,8 +23,7 @@ INSERT INTO
         motions_default_amendment_workflow_id,
         committee_id,
         reference_projector_id,
-        name,
-        language
+        name
     )
 VALUES
     (1, 1, 2, 1, 1, 1, 1, 'meeting');
