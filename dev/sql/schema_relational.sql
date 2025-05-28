@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '4e5ae1fdf08fa7cefceb58d0dff6b957'
+-- MODELS_YML_CHECKSUM = 'd4f8ce2c570615c2c0d603dce66490b4'
 
 
 -- Database parameters
@@ -689,6 +689,7 @@ CREATE TABLE motion_t (
     start_line_number integer CONSTRAINT minimum_start_line_number CHECK (start_line_number >= 1) DEFAULT 1,
     forwarded timestamptz,
     additional_submitter varchar(256),
+    marked_forwarded boolean,
     lead_motion_id integer,
     sort_parent_id integer,
     origin_id integer,
@@ -704,6 +705,7 @@ CREATE TABLE motion_t (
 
 comment on column motion_t.number_value is 'The number value of this motion. This number is auto-generated and read-only.';
 comment on column motion_t.sequential_number is 'The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.';
+comment on column motion_t.marked_forwarded is 'Forwarded amendments can be marked as such. This is just optional, however. Forwarded amendments can also have this field set to false.';
 
 
 CREATE TABLE motion_submitter_t (
@@ -827,6 +829,7 @@ CREATE TABLE motion_state_t (
     show_recommendation_extension_field boolean DEFAULT False,
     merge_amendment_into_final varchar(256) CONSTRAINT enum_motion_state_merge_amendment_into_final CHECK (merge_amendment_into_final IN ('do_not_merge', 'undefined', 'do_merge')) DEFAULT 'undefined',
     allow_motion_forwarding boolean DEFAULT False,
+    allow_amendment_forwarding boolean,
     set_workflow_timestamp boolean DEFAULT False,
     submitter_withdraw_state_id integer,
     workflow_id integer NOT NULL,

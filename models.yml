@@ -2639,6 +2639,10 @@ motion:
   additional_submitter:
     type: string
     restriction_mode: C
+  marked_forwarded:
+    type: boolean
+    restriction_mode: A
+    description: Forwarded amendments can be marked as such. This is just optional, however. Forwarded amendments can also have this field set to false.
 
   lead_motion_id:
     type: relation
@@ -3213,6 +3217,9 @@ motion_state:
     type: boolean
     restriction_mode: A
     default: false
+  allow_amendment_forwarding:
+    type: boolean
+    restriction_mode: A
   set_workflow_timestamp:
     type: boolean
     restriction_mode: A
