@@ -9,16 +9,14 @@ class DbUtils:
         cls,
         table: Table,
         data_list: list[dict[str, Any]],
-    ) -> tuple[list[Column], list[list[dict[str, Any]]]]:
+    ) -> tuple[list[Column], list[list[dict[str, Any] | None]]]:
         """
         takes a list of dicts, each one to be inserted
         Takes care of columns and row positions and fills
         not existent columns in row with "None"
         """
-        columns: list[Column] = []
-        values: list[list[dict[str, Any]]] = []
         if not data_list:
-            return columns, values
+            return [], []
         # use all keys in same sequence
         keys_set: set = set()
         for data in data_list:
