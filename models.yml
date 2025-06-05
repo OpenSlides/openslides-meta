@@ -444,6 +444,7 @@ user:
     type: relation
     to: committee/native_user_ids
     restriction_mode: E
+    reference: committee
 
   meeting_ids:
     type: number[]
@@ -810,6 +811,7 @@ committee:
     type: relation
     to: committee/child_ids
     restriction_mode: A
+    reference: committee
   child_ids:
     type: relation-list
     to: committee/parent_id

@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'd4f8ce2c570615c2c0d603dce66490b4'
+-- MODELS_YML_CHECKSUM = '849102a66a0fdb700779571c3d949b36'
 
 
 -- Database parameters
@@ -185,8 +185,10 @@ CREATE TABLE user_t (
     last_email_sent timestamptz,
     is_demo_user boolean,
     last_login timestamptz,
+    guest boolean,
     gender_id integer,
     organization_management_level varchar(256) CONSTRAINT enum_user_organization_management_level CHECK (organization_management_level IN ('superadmin', 'can_manage_organization', 'can_manage_users')),
+    home_committee_id integer,
     meeting_ids integer[],
     organization_id integer GENERATED ALWAYS AS (1) STORED NOT NULL
 );
@@ -295,6 +297,7 @@ CREATE TABLE committee_t (
     description text,
     external_id varchar(256),
     default_meeting_id integer,
+    parent_id integer,
     organization_id integer GENERATED ALWAYS AS (1) STORED NOT NULL
 );
 
@@ -1204,6 +1207,12 @@ CREATE TABLE nm_committee_manager_ids_user (
     PRIMARY KEY (committee_id, user_id)
 );
 
+CREATE TABLE nm_committee_all_child_ids_committee (
+    all_child_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    all_parent_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    PRIMARY KEY (all_child_id, all_parent_id)
+);
+
 CREATE TABLE nm_committee_forward_to_committee_ids_committee (
     forward_to_committee_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     receive_forwardings_from_committee_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
@@ -1393,6 +1402,10 @@ CREATE VIEW "committee" AS SELECT *,
 (select array_agg(m.id) from meeting_t m where m.committee_id = c.id) as meeting_ids,
 (select array_agg(n.user_id) from nm_committee_user_ids_user n where n.committee_id = c.id) as user_ids,
 (select array_agg(n.user_id) from nm_committee_manager_ids_user n where n.committee_id = c.id) as manager_ids,
+(select array_agg(ct.id) from committee_t ct where ct.parent_id = c.id) as child_ids,
+(select array_agg(n.all_parent_id) from nm_committee_all_child_ids_committee n where n.all_child_id = c.id) as all_parent_ids,
+(select array_agg(n.all_child_id) from nm_committee_all_child_ids_committee n where n.all_parent_id = c.id) as all_child_ids,
+(select array_agg(u.id) from user_t u where u.home_committee_id = c.id) as native_user_ids,
 (select array_agg(n.forward_to_committee_id) from nm_committee_forward_to_committee_ids_committee n where n.receive_forwardings_from_committee_id = c.id) as forward_to_committee_ids,
 (select array_agg(n.receive_forwardings_from_committee_id) from nm_committee_forward_to_committee_ids_committee n where n.forward_to_committee_id = c.id) as receive_forwardings_from_committee_ids,
 (select array_agg(g.organization_tag_id) from gm_organization_tag_tagged_ids g where g.tagged_id_committee_id = c.id) as organization_tag_ids
@@ -1727,12 +1740,14 @@ CREATE VIEW "import_preview" AS SELECT * FROM import_preview_t i;
 ALTER TABLE organization_t ADD FOREIGN KEY(theme_id) REFERENCES theme_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE user_t ADD FOREIGN KEY(gender_id) REFERENCES gender_t(id) INITIALLY DEFERRED;
+ALTER TABLE user_t ADD FOREIGN KEY(home_committee_id) REFERENCES committee_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE meeting_user_t ADD FOREIGN KEY(user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
 ALTER TABLE meeting_user_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 ALTER TABLE meeting_user_t ADD FOREIGN KEY(vote_delegated_to_id) REFERENCES meeting_user_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE committee_t ADD FOREIGN KEY(default_meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
+ALTER TABLE committee_t ADD FOREIGN KEY(parent_id) REFERENCES committee_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE meeting_t ADD FOREIGN KEY(is_active_in_organization_id) REFERENCES organization_t(id) INITIALLY DEFERRED;
 ALTER TABLE meeting_t ADD FOREIGN KEY(is_archived_in_organization_id) REFERENCES organization_t(id) INITIALLY DEFERRED;
@@ -2318,6 +2333,7 @@ SQL nt:1Gr => user/option_ids:-> option/content_object_id
 SQL nt:1r => user/vote_ids:-> vote/user_id
 SQL nt:1r => user/delegated_vote_ids:-> vote/delegated_user_id
 SQL nt:1r => user/poll_candidate_ids:-> poll_candidate/user_id
+FIELD 1r:nt => user/home_committee_id:-> committee/native_user_ids
 
 FIELD 1rR:nt => meeting_user/user_id:-> user/meeting_user_ids
 FIELD 1rR:nt => meeting_user/meeting_id:-> meeting/meeting_user_ids
@@ -2344,6 +2360,11 @@ SQL nt:1rR => committee/meeting_ids:-> meeting/committee_id
 FIELD 1r:1t => committee/default_meeting_id:-> meeting/default_meeting_for_committee_id
 SQL nt:nt => committee/user_ids:-> user/committee_ids
 SQL nt:nt => committee/manager_ids:-> user/committee_management_ids
+FIELD 1r:nt => committee/parent_id:-> committee/child_ids
+SQL nt:1r => committee/child_ids:-> committee/parent_id
+SQL nt:nt => committee/all_parent_ids:-> committee/all_child_ids
+SQL nt:nt => committee/all_child_ids:-> committee/all_parent_ids
+SQL nt:1r => committee/native_user_ids:-> user/home_committee_id
 SQL nt:nt => committee/forward_to_committee_ids:-> committee/receive_forwardings_from_committee_ids
 SQL nt:nt => committee/receive_forwardings_from_committee_ids:-> committee/forward_to_committee_ids
 SQL nt:nGt => committee/organization_tag_ids:-> organization_tag/tagged_ids
