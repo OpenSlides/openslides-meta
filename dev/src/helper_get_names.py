@@ -486,6 +486,8 @@ class InternalHelper:
                     for collectionfield in to:
                         if collectionfield.startswith(ref):
                             to_field = collectionfield
+                else:
+                    to_field = to
                 if not to_field:
                     raise Exception("Couldn't find foreign field.")
                 results.append(
