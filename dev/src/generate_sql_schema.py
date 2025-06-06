@@ -57,6 +57,7 @@ class SubstDict(TypedDict, total=False):
     minLength: str
     deferred: str
     check_enum: str
+    unique: str
 
 
 class GenerateCodeBlocks:
@@ -222,6 +223,23 @@ class GenerateCodeBlocks:
     def get_schema_simple_types(
         cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
     ) -> tuple[SchemaZoneTexts, str]:
+        text, subst = cls.get_text_for_simple_types(table_name, fname, fdata, type_)
+        text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
+        return text, ""
+
+    @classmethod
+    def get_schema_relation_1_1(
+        cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
+    ) -> tuple[SchemaZoneTexts, str]:
+        text, subst = cls.get_text_for_simple_types(table_name, fname, fdata, type_)
+        subst["unique"] = " UNIQUE"
+        text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
+        return text, ""
+
+    @classmethod
+    def get_text_for_simple_types(
+        cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
+    ) -> tuple[SchemaZoneTexts, SubstDict]:
         text = cast(SchemaZoneTexts, defaultdict(str))
         subst, szt = Helper.get_initials(table_name, fname, type_, fdata)
         text.update(szt)
@@ -233,8 +251,7 @@ class GenerateCodeBlocks:
             elif isinstance(type_, str):  # string
                 tmp = tmp.substitute({"maxLength": 256})
             subst["type"] = tmp
-        text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
-        return text, ""
+        return text, subst
 
     @classmethod
     def get_schema_color(
@@ -285,19 +302,24 @@ class GenerateCodeBlocks:
             own_table_field, [foreign_table_field]
         )
 
+        foreign_table = foreign_table_field.table
         if state == FieldSqlErrorType.FIELD:
-            text, error = cls.get_schema_simple_types(
-                table_name, fname, fdata, "number"
-            )
+            foreign_card, error = InternalHelper.get_cardinality(foreign_table_field)
+            if foreign_card.startswith("1"):
+                text, error = cls.get_schema_relation_1_1(
+                    table_name, fname, fdata, "number"
+                )
+            else:
+                text, error = cls.get_schema_simple_types(
+                    table_name, fname, fdata, "number"
+                )
             initially_deferred = fdata.get(
                 "deferred"
-            ) or ModelsHelper.is_fk_initially_deferred(
-                table_name, foreign_table_field.table
-            )
+            ) or ModelsHelper.is_fk_initially_deferred(table_name, foreign_table)
             text["alter_table_final"] = (
                 Helper.get_foreign_key_table_constraint_as_alter_table(
                     table_name,
-                    foreign_table_field.table,
+                    foreign_table,
                     fname,
                     foreign_table_field.ref_column,
                     initially_deferred,
@@ -311,7 +333,7 @@ class GenerateCodeBlocks:
                     table_name,
                     fname,
                     foreign_table_field.ref_column,
-                    foreign_table_field.table,
+                    foreign_table,
                     f"{foreign_table_field.column}_{own_table_field.table}_{own_table_field.ref_column}",
                 )
             else:
@@ -319,7 +341,7 @@ class GenerateCodeBlocks:
                     table_name,
                     fname,
                     foreign_table_field.ref_column,
-                    foreign_table_field.table,
+                    foreign_table,
                     cast(str, foreign_table_field.column),
                 )
         text["final_info"] = final_info
@@ -528,7 +550,7 @@ class GenerateCodeBlocks:
                 text["table"] += Helper.get_generic_combined_fields(
                     generic_plain_field_name,
                     own_table_field.column,
-                    foreign_table_field.table,
+                    foreign_table_field,
                 )
                 text[
                     "alter_table_final"
@@ -706,14 +728,14 @@ class Helper:
         """
     )
     FIELD_TEMPLATE = string.Template(
-        "    ${field_name} ${type}${primary_key}${required}${check_enum}${minimum}${minLength}${default},\n"
+        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${minimum}${minLength}${default},\n"
     )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(
         dedent(
             """
             CREATE TABLE ${table_name} (
-                ${field1} integer NOT NULL REFERENCES ${table1} (id) INITIALLY DEFERRED,
-                ${field2} integer NOT NULL REFERENCES ${table2} (id) INITIALLY DEFERRED,
+                ${field1} integer NOT NULL REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field2} integer NOT NULL REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
                 PRIMARY KEY (${list_of_keys})
             );
         """
@@ -724,7 +746,7 @@ class Helper:
             """
             CREATE TABLE ${table_name} (
                 id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) INITIALLY DEFERRED,
+                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
@@ -734,7 +756,7 @@ class Helper:
         )
     )
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) INITIALLY DEFERRED,"
+        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
     )
 
     RELATION_LIST_AGENDA = dedent(
@@ -1024,9 +1046,17 @@ class Helper:
 
     @staticmethod
     def get_generic_combined_fields(
-        generic_plain_field_name: str, own_column: str, foreign_table: str
+        generic_plain_field_name: str, own_column: str, foreign_field: TableFieldType
     ) -> str:
-        return f"    {generic_plain_field_name} integer GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
+        foreign_table = foreign_field.table
+        foreign_card, error = InternalHelper.get_cardinality(foreign_field)
+        if error:
+            raise Exception(error)
+        if foreign_card.startswith("1"):
+            unique = " UNIQUE"
+        else:
+            unique = ""
+        return f"    {generic_plain_field_name} integer{unique} GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
 
     @staticmethod
     def get_generic_field_constraint(own_column: str, foreign_tables: list[str]) -> str:
