@@ -137,7 +137,7 @@ CREATE TABLE organization_t (
     saml_metadata_idp text,
     saml_metadata_sp text,
     saml_private_key text,
-    theme_id integer NOT NULL,
+    theme_id integer NOT NULL UNIQUE,
     users_email_sender varchar(256) DEFAULT 'OpenSlides',
     users_email_replyto varchar(256),
     users_email_subject varchar(256) DEFAULT 'OpenSlides access data',
@@ -296,7 +296,7 @@ CREATE TABLE committee_t (
     name varchar(256) NOT NULL,
     description text,
     external_id varchar(256),
-    default_meeting_id integer,
+    default_meeting_id integer UNIQUE,
     parent_id integer,
     organization_id integer GENERATED ALWAYS AS (1) STORED NOT NULL
 );
@@ -382,8 +382,8 @@ CREATE TABLE meeting_t (
     list_of_speakers_default_structure_level_time integer CONSTRAINT minimum_list_of_speakers_default_structure_level_time CHECK (list_of_speakers_default_structure_level_time >= 0),
     list_of_speakers_enable_interposed_question boolean,
     list_of_speakers_intervention_time integer,
-    motions_default_workflow_id integer NOT NULL,
-    motions_default_amendment_workflow_id integer NOT NULL,
+    motions_default_workflow_id integer NOT NULL UNIQUE,
+    motions_default_amendment_workflow_id integer NOT NULL UNIQUE,
     motions_preamble text DEFAULT 'The assembly may decide:',
     motions_default_line_numbering varchar(256) CONSTRAINT enum_meeting_motions_default_line_numbering CHECK (motions_default_line_numbering IN ('outside', 'inline', 'none')) DEFAULT 'outside',
     motions_line_length integer CONSTRAINT minimum_motions_line_length CHECK (motions_line_length >= 40) DEFAULT 85,
@@ -471,30 +471,30 @@ This email was generated automatically.',
     poll_default_onehundred_percent_base varchar(256) CONSTRAINT enum_meeting_poll_default_onehundred_percent_base CHECK (poll_default_onehundred_percent_base IN ('Y', 'YN', 'YNA', 'N', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled')) DEFAULT 'YNA',
     poll_default_backend varchar(256) CONSTRAINT enum_meeting_poll_default_backend CHECK (poll_default_backend IN ('long', 'fast')) DEFAULT 'fast',
     poll_couple_countdown boolean DEFAULT True,
-    logo_projector_main_id integer,
-    logo_projector_header_id integer,
-    logo_web_header_id integer,
-    logo_pdf_header_l_id integer,
-    logo_pdf_header_r_id integer,
-    logo_pdf_footer_l_id integer,
-    logo_pdf_footer_r_id integer,
-    logo_pdf_ballot_paper_id integer,
-    font_regular_id integer,
-    font_italic_id integer,
-    font_bold_id integer,
-    font_bold_italic_id integer,
-    font_monospace_id integer,
-    font_chyron_speaker_name_id integer,
-    font_projector_h1_id integer,
-    font_projector_h2_id integer,
+    logo_projector_main_id integer UNIQUE,
+    logo_projector_header_id integer UNIQUE,
+    logo_web_header_id integer UNIQUE,
+    logo_pdf_header_l_id integer UNIQUE,
+    logo_pdf_header_r_id integer UNIQUE,
+    logo_pdf_footer_l_id integer UNIQUE,
+    logo_pdf_footer_r_id integer UNIQUE,
+    logo_pdf_ballot_paper_id integer UNIQUE,
+    font_regular_id integer UNIQUE,
+    font_italic_id integer UNIQUE,
+    font_bold_id integer UNIQUE,
+    font_bold_italic_id integer UNIQUE,
+    font_monospace_id integer UNIQUE,
+    font_chyron_speaker_name_id integer UNIQUE,
+    font_projector_h1_id integer UNIQUE,
+    font_projector_h2_id integer UNIQUE,
     committee_id integer NOT NULL,
     user_ids integer[],
-    reference_projector_id integer NOT NULL,
-    list_of_speakers_countdown_id integer,
-    poll_countdown_id integer,
-    default_group_id integer NOT NULL,
-    admin_group_id integer,
-    anonymous_group_id integer
+    reference_projector_id integer NOT NULL UNIQUE,
+    list_of_speakers_countdown_id integer UNIQUE,
+    poll_countdown_id integer UNIQUE,
+    default_group_id integer NOT NULL UNIQUE,
+    admin_group_id integer UNIQUE,
+    anonymous_group_id integer UNIQUE
 );
 
 
@@ -571,10 +571,10 @@ CREATE TABLE agenda_item_t (
     level integer,
     weight integer,
     content_object_id varchar(100) NOT NULL,
-    content_object_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_motion_block_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_block_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_assignment_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_topic_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','motion_block','assignment','topic')),
     parent_id integer,
     meeting_id integer NOT NULL
@@ -594,11 +594,11 @@ CREATE TABLE list_of_speakers_t (
     sequential_number integer NOT NULL,
     moderator_notes text,
     content_object_id varchar(100) NOT NULL,
-    content_object_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_motion_block_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_meeting_mediafile_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'meeting_mediafile' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_block_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_assignment_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_topic_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_meeting_mediafile_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'meeting_mediafile' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','motion_block','assignment','topic','meeting_mediafile')),
     meeting_id integer NOT NULL
 );
@@ -846,7 +846,7 @@ CREATE TABLE motion_workflow_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
     name varchar(256) NOT NULL,
     sequential_number integer NOT NULL,
-    first_state_id integer NOT NULL,
+    first_state_id integer NOT NULL UNIQUE,
     meeting_id integer NOT NULL
 );
 
@@ -885,7 +885,7 @@ CREATE TABLE poll_t (
     content_object_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     content_object_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','assignment','topic')),
-    global_option_id integer,
+    global_option_id integer UNIQUE,
     meeting_id integer NOT NULL
 );
 
@@ -915,7 +915,7 @@ CREATE TABLE option_t (
     content_object_id varchar(100),
     content_object_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     content_object_id_user_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'user' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_poll_candidate_list_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'poll_candidate_list' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_poll_candidate_list_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'poll_candidate_list' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','user','poll_candidate_list')),
     meeting_id integer NOT NULL
 );
@@ -2480,20 +2480,20 @@ FIELD 1r:nt => group/used_as_poll_default_id:-> meeting/poll_default_group_ids
 FIELD 1rR:nt => group/meeting_id:-> meeting/group_ids
 
 FIELD 1rR:nt => personal_note/meeting_user_id:-> meeting_user/personal_note_ids
-FIELD 1Gr: => personal_note/content_object_id:-> motion/
+FIELD 1Gr:nt => personal_note/content_object_id:-> motion/personal_note_ids
 FIELD 1rR:nt => personal_note/meeting_id:-> meeting/personal_note_ids
 
 SQL nGt:nt,nt,nt => tag/tagged_ids:-> agenda_item/tag_ids,assignment/tag_ids,motion/tag_ids
 FIELD 1rR:nt => tag/meeting_id:-> meeting/tag_ids
 
-FIELD 1GrR:,,, => agenda_item/content_object_id:-> motion/,motion_block/,assignment/,topic/
+FIELD 1GrR:1t,1t,1t,1tR => agenda_item/content_object_id:-> motion/agenda_item_id,motion_block/agenda_item_id,assignment/agenda_item_id,topic/agenda_item_id
 FIELD 1r:nt => agenda_item/parent_id:-> agenda_item/child_ids
 SQL nt:1r => agenda_item/child_ids:-> agenda_item/parent_id
 SQL nt:nGt => agenda_item/tag_ids:-> tag/tagged_ids
 SQL nt:1GrR => agenda_item/projection_ids:-> projection/content_object_id
 FIELD 1rR:nt => agenda_item/meeting_id:-> meeting/agenda_item_ids
 
-FIELD 1GrR:,,,, => list_of_speakers/content_object_id:-> motion/,motion_block/,assignment/,topic/,meeting_mediafile/
+FIELD 1GrR:1tR,1tR,1tR,1tR,1t => list_of_speakers/content_object_id:-> motion/list_of_speakers_id,motion_block/list_of_speakers_id,assignment/list_of_speakers_id,topic/list_of_speakers_id,meeting_mediafile/list_of_speakers_id
 SQL nt:1rR => list_of_speakers/speaker_ids:-> speaker/list_of_speakers_id
 SQL nt:1rR => list_of_speakers/structure_level_list_of_speakers_ids:-> structure_level_list_of_speakers/list_of_speakers_id
 SQL nt:1GrR => list_of_speakers/projection_ids:-> projection/content_object_id
@@ -2605,7 +2605,7 @@ SQL 1t:1rR => motion_workflow/default_workflow_meeting_id:-> meeting/motions_def
 SQL 1t:1rR => motion_workflow/default_amendment_workflow_meeting_id:-> meeting/motions_default_amendment_workflow_id
 FIELD 1rR:nt => motion_workflow/meeting_id:-> meeting/motion_workflow_ids
 
-FIELD 1GrR:,, => poll/content_object_id:-> motion/,assignment/,topic/
+FIELD 1GrR:nt,nt,nt => poll/content_object_id:-> motion/poll_ids,assignment/poll_ids,topic/poll_ids
 SQL nt:1r => poll/option_ids:-> option/poll_id
 FIELD 1r:1t => poll/global_option_id:-> option/used_as_global_option_in_poll_id
 SQL nt:nt => poll/voted_ids:-> user/poll_voted_ids
@@ -2616,7 +2616,7 @@ FIELD 1rR:nt => poll/meeting_id:-> meeting/poll_ids
 FIELD 1r:nt => option/poll_id:-> poll/option_ids
 SQL 1t:1r => option/used_as_global_option_in_poll_id:-> poll/global_option_id
 SQL nt:1rR => option/vote_ids:-> vote/option_id
-FIELD 1Gr:,, => option/content_object_id:-> motion/,user/,poll_candidate_list/
+FIELD 1Gr:nt,nt,1tR => option/content_object_id:-> motion/option_ids,user/option_ids,poll_candidate_list/option_id
 FIELD 1rR:nt => option/meeting_id:-> meeting/option_ids
 
 FIELD 1rR:nt => vote/option_id:-> option/vote_ids
@@ -2648,7 +2648,7 @@ FIELD 1rR:nt => poll_candidate/meeting_id:-> meeting/poll_candidate_ids
 FIELD 1r:nt => mediafile/published_to_meetings_in_organization_id:-> organization/published_mediafile_ids
 FIELD 1r:nt => mediafile/parent_id:-> mediafile/child_ids
 SQL nt:1r => mediafile/child_ids:-> mediafile/parent_id
-FIELD 1GrR:, => mediafile/owner_id:-> meeting/,organization/
+FIELD 1GrR:nt,nt => mediafile/owner_id:-> meeting/mediafile_ids,organization/mediafile_ids
 SQL nt:1rR => mediafile/meeting_mediafile_ids:-> meeting_mediafile/mediafile_id
 
 FIELD 1rR:nt => meeting_mediafile/mediafile_id:-> mediafile/meeting_mediafile_ids
@@ -2698,7 +2698,7 @@ FIELD 1rR:nt => projector/meeting_id:-> meeting/projector_ids
 FIELD 1r:nt => projection/current_projector_id:-> projector/current_projection_ids
 FIELD 1r:nt => projection/preview_projector_id:-> projector/preview_projection_ids
 FIELD 1r:nt => projection/history_projector_id:-> projector/history_projection_ids
-FIELD 1GrR:,,,,,,,,,, => projection/content_object_id:-> meeting/,motion/,meeting_mediafile/,list_of_speakers/,motion_block/,assignment/,agenda_item/,topic/,poll/,projector_message/,projector_countdown/
+FIELD 1GrR:nt,nt,nt,nt,nt,nt,nt,nt,nt,nt,nt => projection/content_object_id:-> meeting/projection_ids,motion/projection_ids,meeting_mediafile/projection_ids,list_of_speakers/projection_ids,motion_block/projection_ids,assignment/projection_ids,agenda_item/projection_ids,topic/projection_ids,poll/projection_ids,projector_message/projection_ids,projector_countdown/projection_ids
 FIELD 1rR:nt => projection/meeting_id:-> meeting/all_projection_ids
 
 SQL nt:1GrR => projector_message/projection_ids:-> projection/content_object_id
