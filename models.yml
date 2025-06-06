@@ -315,6 +315,22 @@ user:
     type: relation
     to: gender/user_ids
     restriction_mode: A
+  public_key:
+    type: string
+    restriction_mode: A
+    description: Public key of the user to sign data.
+  public_key_certificate:
+    type: text
+    restriction_mode: A
+    description: Certificate for the public key of the user.
+  default_poll_worker_in_meeting_ids:
+    type: relation-list
+    to: meeting/poll_worker_default_user_ids
+    restriction_mode: A
+  poll_worker_poll_ids:
+    type: relation
+    to: poll/poll_worker_user_ids
+    restriction_mode: A
 
   # Organization, meeting and committee
   organization_management_level:
@@ -470,22 +486,6 @@ meeting_user:
     to: meeting_user/vote_delegated_to_id
     equal_fields: meeting_id
     restriction_mode: A
-  crypt_default_secretary_in_meeting_id:
-    type: relation
-    to: meeting/crypt_default_secretary_id
-    restriction_mode: X
-  crypt_default_auditor_in_meeting_id:
-    type: relation
-    to: meeting/crypt_default_auditor_id
-    restriction_mode: X
-  crypt_secretary_for_poll_ids:
-    type: relation-list
-    to: poll/crypt_secretary_id
-    restriction_mode: X
-  crypt_auditor_for_poll_ids:
-    type: relation-list
-    to: poll/crypt_auditor_id
-    restriction_mode: X
   chat_message_ids:
     type: relation-list
     to: chat_message/meeting_user_id
@@ -1309,14 +1309,10 @@ meeting:
     type: relation-list
     to: poll_candidate/meeting_id
     restriction_mode: B
-  crypt_default_secretary_id:
-    type: relation
-    to: meeting_user/crypt_default_secretary_in_meeting_id
-    restriction_mode: X
-  crypt_default_auditor_id:
-    type: relation
-    to: meeting_user/crypt_default_auditor_in_meeting_id
-    restriction_mode: X
+  poll_worker_default_user_ids:
+    type: relation-list
+    to: user/default_poll_worker_in_meeting_id
+    restriction_mode: B
 
   # Users
   meeting_user_ids:
@@ -3255,29 +3251,14 @@ poll:
     required: true
     restriction_mode: A
     constant: true
-  crypt_key_secretary:
-    type: string
-    description: base64 public key of the secretary.
-    read_only: true
+  poll_worker_user_ids:
+    type: relation-list
+    to: user/poll_worker_poll_ids
+    description: IDs of the users, that are the poll worker for this poll.
     restriction_mode: A
-  crypt_key_auditor:
-    type: string
-    description: base64 public key of the auditor.
-    read_only: true
-    restriction_mode: A
-  crypt_secretary_id:
-    type: relation
-    to: meeting_user/crypt_secretary_for_poll_ids
-    description: ID of the secretary for this poll.
-    restriction_mode: A
-  crypt_auditor_id:
-    type: relation
-    to: meeting_user/crypt_auditor_for_poll_ids
-    description: ID of the auditor for this poll.
-    restriction_mode: A
-  crypt_documents:
+  bulletin_board_archive:
     type: text
-    description: original form of decrypted votes.
+    description: The full bulletin board after the poll is finished.
     read_only: true
     restriction_mode: B
   content_object_id:
