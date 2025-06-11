@@ -712,8 +712,8 @@ class Helper:
         dedent(
             """
             CREATE TABLE ${table_name} (
-                ${field1} integer NOT NULL REFERENCES ${table1} (id) INITIALLY DEFERRED,
-                ${field2} integer NOT NULL REFERENCES ${table2} (id) INITIALLY DEFERRED,
+                ${field1} integer NOT NULL REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field2} integer NOT NULL REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
                 PRIMARY KEY (${list_of_keys})
             );
         """
@@ -724,7 +724,7 @@ class Helper:
             """
             CREATE TABLE ${table_name} (
                 id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) INITIALLY DEFERRED,
+                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
@@ -734,7 +734,7 @@ class Helper:
         )
     )
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) INITIALLY DEFERRED,"
+        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
     )
 
     RELATION_LIST_AGENDA = dedent(

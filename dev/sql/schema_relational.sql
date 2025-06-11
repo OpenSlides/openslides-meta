@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '4e5ae1fdf08fa7cefceb58d0dff6b957'
+-- MODELS_YML_CHECKSUM = '849102a66a0fdb700779571c3d949b36'
 
 
 -- Database parameters
@@ -185,8 +185,10 @@ CREATE TABLE user_t (
     last_email_sent timestamptz,
     is_demo_user boolean,
     last_login timestamptz,
+    guest boolean,
     gender_id integer,
     organization_management_level varchar(256) CONSTRAINT enum_user_organization_management_level CHECK (organization_management_level IN ('superadmin', 'can_manage_organization', 'can_manage_users')),
+    home_committee_id integer,
     meeting_ids integer[],
     organization_id integer GENERATED ALWAYS AS (1) STORED NOT NULL
 );
@@ -295,6 +297,7 @@ CREATE TABLE committee_t (
     description text,
     external_id varchar(256),
     default_meeting_id integer,
+    parent_id integer,
     organization_id integer GENERATED ALWAYS AS (1) STORED NOT NULL
 );
 
@@ -689,6 +692,7 @@ CREATE TABLE motion_t (
     start_line_number integer CONSTRAINT minimum_start_line_number CHECK (start_line_number >= 1) DEFAULT 1,
     forwarded timestamptz,
     additional_submitter varchar(256),
+    marked_forwarded boolean,
     lead_motion_id integer,
     sort_parent_id integer,
     origin_id integer,
@@ -704,6 +708,7 @@ CREATE TABLE motion_t (
 
 comment on column motion_t.number_value is 'The number value of this motion. This number is auto-generated and read-only.';
 comment on column motion_t.sequential_number is 'The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.';
+comment on column motion_t.marked_forwarded is 'Forwarded amendments can be marked as such. This is just optional, however. Forwarded amendments can also have this field set to false.';
 
 
 CREATE TABLE motion_submitter_t (
@@ -827,6 +832,7 @@ CREATE TABLE motion_state_t (
     show_recommendation_extension_field boolean DEFAULT False,
     merge_amendment_into_final varchar(256) CONSTRAINT enum_motion_state_merge_amendment_into_final CHECK (merge_amendment_into_final IN ('do_not_merge', 'undefined', 'do_merge')) DEFAULT 'undefined',
     allow_motion_forwarding boolean DEFAULT False,
+    allow_amendment_forwarding boolean,
     set_workflow_timestamp boolean DEFAULT False,
     submitter_withdraw_state_id integer,
     workflow_id integer NOT NULL,
@@ -1168,160 +1174,166 @@ CREATE TABLE import_preview_t (
 -- Intermediate table definitions
 
 CREATE TABLE nm_meeting_user_supported_motion_ids_motion (
-    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) INITIALLY DEFERRED,
-    motion_id integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
+    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    motion_id integer NOT NULL REFERENCES motion_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (meeting_user_id, motion_id)
 );
 
 CREATE TABLE nm_meeting_user_structure_level_ids_structure_level (
-    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) INITIALLY DEFERRED,
-    structure_level_id integer NOT NULL REFERENCES structure_level_t (id) INITIALLY DEFERRED,
+    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    structure_level_id integer NOT NULL REFERENCES structure_level_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (meeting_user_id, structure_level_id)
 );
 
 CREATE TABLE gm_organization_tag_tagged_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    organization_tag_id integer NOT NULL REFERENCES organization_tag_t(id) INITIALLY DEFERRED,
+    organization_tag_id integer NOT NULL REFERENCES organization_tag_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     tagged_id varchar(100) NOT NULL,
-    tagged_id_committee_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'committee' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES committee_t(id) INITIALLY DEFERRED,
-    tagged_id_meeting_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'meeting' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES meeting_t(id) INITIALLY DEFERRED,
+    tagged_id_committee_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'committee' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES committee_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    tagged_id_meeting_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'meeting' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES meeting_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_tagged_id_part1 CHECK (split_part(tagged_id, '/', 1) IN ('committee', 'meeting')),
     CONSTRAINT unique_$organization_tag_id_$tagged_id UNIQUE (organization_tag_id, tagged_id)
 );
 
 CREATE TABLE nm_committee_user_ids_user (
-    committee_id integer NOT NULL REFERENCES committee_t (id) INITIALLY DEFERRED,
-    user_id integer NOT NULL REFERENCES user_t (id) INITIALLY DEFERRED,
+    committee_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    user_id integer NOT NULL REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (committee_id, user_id)
 );
 
 CREATE TABLE nm_committee_manager_ids_user (
-    committee_id integer NOT NULL REFERENCES committee_t (id) INITIALLY DEFERRED,
-    user_id integer NOT NULL REFERENCES user_t (id) INITIALLY DEFERRED,
+    committee_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    user_id integer NOT NULL REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (committee_id, user_id)
 );
 
+CREATE TABLE nm_committee_all_child_ids_committee (
+    all_child_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    all_parent_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    PRIMARY KEY (all_child_id, all_parent_id)
+);
+
 CREATE TABLE nm_committee_forward_to_committee_ids_committee (
-    forward_to_committee_id integer NOT NULL REFERENCES committee_t (id) INITIALLY DEFERRED,
-    receive_forwardings_from_committee_id integer NOT NULL REFERENCES committee_t (id) INITIALLY DEFERRED,
+    forward_to_committee_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    receive_forwardings_from_committee_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (forward_to_committee_id, receive_forwardings_from_committee_id)
 );
 
 CREATE TABLE nm_meeting_present_user_ids_user (
-    meeting_id integer NOT NULL REFERENCES meeting_t (id) INITIALLY DEFERRED,
-    user_id integer NOT NULL REFERENCES user_t (id) INITIALLY DEFERRED,
+    meeting_id integer NOT NULL REFERENCES meeting_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    user_id integer NOT NULL REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (meeting_id, user_id)
 );
 
 CREATE TABLE nm_group_meeting_user_ids_meeting_user (
-    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
-    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (group_id, meeting_user_id)
 );
 
 CREATE TABLE nm_group_mmagi_meeting_mediafile (
-    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
-    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t (id) INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (group_id, meeting_mediafile_id)
 );
 
 CREATE TABLE nm_group_mmiagi_meeting_mediafile (
-    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
-    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t (id) INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (group_id, meeting_mediafile_id)
 );
 
 CREATE TABLE nm_group_read_comment_section_ids_motion_comment_section (
-    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
-    motion_comment_section_id integer NOT NULL REFERENCES motion_comment_section_t (id) INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    motion_comment_section_id integer NOT NULL REFERENCES motion_comment_section_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (group_id, motion_comment_section_id)
 );
 
 CREATE TABLE nm_group_write_comment_section_ids_motion_comment_section (
-    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
-    motion_comment_section_id integer NOT NULL REFERENCES motion_comment_section_t (id) INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    motion_comment_section_id integer NOT NULL REFERENCES motion_comment_section_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (group_id, motion_comment_section_id)
 );
 
 CREATE TABLE nm_group_poll_ids_poll (
-    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
-    poll_id integer NOT NULL REFERENCES poll_t (id) INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    poll_id integer NOT NULL REFERENCES poll_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (group_id, poll_id)
 );
 
 CREATE TABLE gm_tag_tagged_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    tag_id integer NOT NULL REFERENCES tag_t(id) INITIALLY DEFERRED,
+    tag_id integer NOT NULL REFERENCES tag_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     tagged_id varchar(100) NOT NULL,
-    tagged_id_agenda_item_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'agenda_item' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES agenda_item_t(id) INITIALLY DEFERRED,
-    tagged_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'assignment' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES assignment_t(id) INITIALLY DEFERRED,
-    tagged_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'motion' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) INITIALLY DEFERRED,
+    tagged_id_agenda_item_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'agenda_item' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES agenda_item_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    tagged_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'assignment' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES assignment_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    tagged_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'motion' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_tagged_id_part1 CHECK (split_part(tagged_id, '/', 1) IN ('agenda_item', 'assignment', 'motion')),
     CONSTRAINT unique_$tag_id_$tagged_id UNIQUE (tag_id, tagged_id)
 );
 
 CREATE TABLE nm_motion_all_derived_motion_ids_motion (
-    all_derived_motion_id integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
-    all_origin_id integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
+    all_derived_motion_id integer NOT NULL REFERENCES motion_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    all_origin_id integer NOT NULL REFERENCES motion_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (all_derived_motion_id, all_origin_id)
 );
 
 CREATE TABLE nm_motion_identical_motion_ids_motion (
-    identical_motion_id_1 integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
-    identical_motion_id_2 integer NOT NULL REFERENCES motion_t (id) INITIALLY DEFERRED,
+    identical_motion_id_1 integer NOT NULL REFERENCES motion_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    identical_motion_id_2 integer NOT NULL REFERENCES motion_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (identical_motion_id_1, identical_motion_id_2)
 );
 
 CREATE TABLE gm_motion_state_extension_reference_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    motion_id integer NOT NULL REFERENCES motion_t(id) INITIALLY DEFERRED,
+    motion_id integer NOT NULL REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     state_extension_reference_id varchar(100) NOT NULL,
-    state_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(state_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(state_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) INITIALLY DEFERRED,
+    state_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(state_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(state_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_state_extension_reference_id_part1 CHECK (split_part(state_extension_reference_id, '/', 1) IN ('motion')),
     CONSTRAINT unique_$motion_id_$state_extension_reference_id UNIQUE (motion_id, state_extension_reference_id)
 );
 
 CREATE TABLE gm_motion_recommendation_extension_reference_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    motion_id integer NOT NULL REFERENCES motion_t(id) INITIALLY DEFERRED,
+    motion_id integer NOT NULL REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     recommendation_extension_reference_id varchar(100) NOT NULL,
-    recommendation_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(recommendation_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(recommendation_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) INITIALLY DEFERRED,
+    recommendation_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(recommendation_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(recommendation_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_recommendation_extension_reference_id_part1 CHECK (split_part(recommendation_extension_reference_id, '/', 1) IN ('motion')),
     CONSTRAINT unique_$motion_id_$recommendation_extension_reference_id UNIQUE (motion_id, recommendation_extension_reference_id)
 );
 
 CREATE TABLE nm_motion_state_next_state_ids_motion_state (
-    next_state_id integer NOT NULL REFERENCES motion_state_t (id) INITIALLY DEFERRED,
-    previous_state_id integer NOT NULL REFERENCES motion_state_t (id) INITIALLY DEFERRED,
+    next_state_id integer NOT NULL REFERENCES motion_state_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    previous_state_id integer NOT NULL REFERENCES motion_state_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (next_state_id, previous_state_id)
 );
 
 CREATE TABLE nm_poll_voted_ids_user (
-    poll_id integer NOT NULL REFERENCES poll_t (id) INITIALLY DEFERRED,
-    user_id integer NOT NULL REFERENCES user_t (id) INITIALLY DEFERRED,
+    poll_id integer NOT NULL REFERENCES poll_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    user_id integer NOT NULL REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (poll_id, user_id)
 );
 
 CREATE TABLE gm_meeting_mediafile_attachment_ids (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t(id) INITIALLY DEFERRED,
+    meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     attachment_id varchar(100) NOT NULL,
-    attachment_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'motion' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) INITIALLY DEFERRED,
-    attachment_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'topic' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES topic_t(id) INITIALLY DEFERRED,
-    attachment_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'assignment' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES assignment_t(id) INITIALLY DEFERRED,
+    attachment_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'motion' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    attachment_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'topic' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES topic_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    attachment_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'assignment' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES assignment_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_attachment_id_part1 CHECK (split_part(attachment_id, '/', 1) IN ('motion', 'topic', 'assignment')),
     CONSTRAINT unique_$meeting_mediafile_id_$attachment_id UNIQUE (meeting_mediafile_id, attachment_id)
 );
 
 CREATE TABLE nm_chat_group_read_group_ids_group (
-    chat_group_id integer NOT NULL REFERENCES chat_group_t (id) INITIALLY DEFERRED,
-    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
+    chat_group_id integer NOT NULL REFERENCES chat_group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (chat_group_id, group_id)
 );
 
 CREATE TABLE nm_chat_group_write_group_ids_group (
-    chat_group_id integer NOT NULL REFERENCES chat_group_t (id) INITIALLY DEFERRED,
-    group_id integer NOT NULL REFERENCES group_t (id) INITIALLY DEFERRED,
+    chat_group_id integer NOT NULL REFERENCES chat_group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    group_id integer NOT NULL REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     PRIMARY KEY (chat_group_id, group_id)
 );
 
@@ -1390,6 +1402,10 @@ CREATE VIEW "committee" AS SELECT *,
 (select array_agg(m.id) from meeting_t m where m.committee_id = c.id) as meeting_ids,
 (select array_agg(n.user_id) from nm_committee_user_ids_user n where n.committee_id = c.id) as user_ids,
 (select array_agg(n.user_id) from nm_committee_manager_ids_user n where n.committee_id = c.id) as manager_ids,
+(select array_agg(ct.id) from committee_t ct where ct.parent_id = c.id) as child_ids,
+(select array_agg(n.all_parent_id) from nm_committee_all_child_ids_committee n where n.all_child_id = c.id) as all_parent_ids,
+(select array_agg(n.all_child_id) from nm_committee_all_child_ids_committee n where n.all_parent_id = c.id) as all_child_ids,
+(select array_agg(u.id) from user_t u where u.home_committee_id = c.id) as native_user_ids,
 (select array_agg(n.forward_to_committee_id) from nm_committee_forward_to_committee_ids_committee n where n.receive_forwardings_from_committee_id = c.id) as forward_to_committee_ids,
 (select array_agg(n.receive_forwardings_from_committee_id) from nm_committee_forward_to_committee_ids_committee n where n.forward_to_committee_id = c.id) as receive_forwardings_from_committee_ids,
 (select array_agg(g.organization_tag_id) from gm_organization_tag_tagged_ids g where g.tagged_id_committee_id = c.id) as organization_tag_ids
@@ -1724,12 +1740,14 @@ CREATE VIEW "import_preview" AS SELECT * FROM import_preview_t i;
 ALTER TABLE organization_t ADD FOREIGN KEY(theme_id) REFERENCES theme_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE user_t ADD FOREIGN KEY(gender_id) REFERENCES gender_t(id) INITIALLY DEFERRED;
+ALTER TABLE user_t ADD FOREIGN KEY(home_committee_id) REFERENCES committee_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE meeting_user_t ADD FOREIGN KEY(user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
 ALTER TABLE meeting_user_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 ALTER TABLE meeting_user_t ADD FOREIGN KEY(vote_delegated_to_id) REFERENCES meeting_user_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE committee_t ADD FOREIGN KEY(default_meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
+ALTER TABLE committee_t ADD FOREIGN KEY(parent_id) REFERENCES committee_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE meeting_t ADD FOREIGN KEY(is_active_in_organization_id) REFERENCES organization_t(id) INITIALLY DEFERRED;
 ALTER TABLE meeting_t ADD FOREIGN KEY(is_archived_in_organization_id) REFERENCES organization_t(id) INITIALLY DEFERRED;
@@ -2315,6 +2333,7 @@ SQL nt:1Gr => user/option_ids:-> option/content_object_id
 SQL nt:1r => user/vote_ids:-> vote/user_id
 SQL nt:1r => user/delegated_vote_ids:-> vote/delegated_user_id
 SQL nt:1r => user/poll_candidate_ids:-> poll_candidate/user_id
+FIELD 1r:nt => user/home_committee_id:-> committee/native_user_ids
 
 FIELD 1rR:nt => meeting_user/user_id:-> user/meeting_user_ids
 FIELD 1rR:nt => meeting_user/meeting_id:-> meeting/meeting_user_ids
@@ -2341,6 +2360,11 @@ SQL nt:1rR => committee/meeting_ids:-> meeting/committee_id
 FIELD 1r:1t => committee/default_meeting_id:-> meeting/default_meeting_for_committee_id
 SQL nt:nt => committee/user_ids:-> user/committee_ids
 SQL nt:nt => committee/manager_ids:-> user/committee_management_ids
+FIELD 1r:nt => committee/parent_id:-> committee/child_ids
+SQL nt:1r => committee/child_ids:-> committee/parent_id
+SQL nt:nt => committee/all_parent_ids:-> committee/all_child_ids
+SQL nt:nt => committee/all_child_ids:-> committee/all_parent_ids
+SQL nt:1r => committee/native_user_ids:-> user/home_committee_id
 SQL nt:nt => committee/forward_to_committee_ids:-> committee/receive_forwardings_from_committee_ids
 SQL nt:nt => committee/receive_forwardings_from_committee_ids:-> committee/forward_to_committee_ids
 SQL nt:nGt => committee/organization_tag_ids:-> organization_tag/tagged_ids
