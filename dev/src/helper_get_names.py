@@ -20,6 +20,7 @@ class TableFieldType:
         ref_column: str = "id",
     ):
         self.table = table
+        self.view = table.rstrip("_t")
         self.column = column
         self.intermediate_column = column[:-1]
         self.field_def: dict[str, Any] = field_def or {}
@@ -91,7 +92,10 @@ class HelperGetNames:
     @max_length
     def get_table_name(table_name: str) -> str:
         """get's the table name as old collection name with appendix '_t'"""
-        return table_name + "_t"
+        if not table_name.endswith("_t"):
+            return table_name + "_t"
+        else:
+            return table_name
 
     @staticmethod
     @max_length
@@ -104,15 +108,15 @@ class HelperGetNames:
     def get_nm_table_name(own: TableFieldType, foreign: TableFieldType) -> str:
         """get's the table name n:m-relations intermediate table"""
         if (f"{own.table}_{own.column}") < (f"{foreign.table}_{foreign.column}"):
-            return f"nm_{own.table}_{HelperGetNames.get_initial_letters(own.column)}_{foreign.table}"
+            return f"nm_{own.table}_{HelperGetNames.get_initial_letters(own.column)}_{foreign.table}_t"
         else:
-            return f"nm_{foreign.table}_{HelperGetNames.get_initial_letters(foreign.column)}_{own.table}"
+            return f"nm_{foreign.table}_{HelperGetNames.get_initial_letters(foreign.column)}_{own.table}_t"
 
     @staticmethod
     @max_length
     def get_gm_table_name(table_field: TableFieldType) -> str:
         """get's th table name for generic-list:many-relations intermediate table"""
-        return f"gm_{table_field.table}_{table_field.column}"
+        return f"gm_{table_field.table}_{table_field.column}_t"
 
     @staticmethod
     @max_length
