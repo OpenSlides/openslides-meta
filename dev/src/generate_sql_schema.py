@@ -58,6 +58,7 @@ class SubstDict(TypedDict, total=False):
     minLength: str
     deferred: str
     check_enum: str
+    unique: str
 
 
 class GenerateCodeBlocks:
@@ -225,6 +226,23 @@ class GenerateCodeBlocks:
     def get_schema_simple_types(
         cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
     ) -> tuple[SchemaZoneTexts, str]:
+        text, subst = cls.get_text_for_simple_types(table_name, fname, fdata, type_)
+        text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
+        return text, ""
+
+    @classmethod
+    def get_schema_relation_1_1(
+        cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
+    ) -> tuple[SchemaZoneTexts, str]:
+        text, subst = cls.get_text_for_simple_types(table_name, fname, fdata, type_)
+        subst["unique"] = " UNIQUE"
+        text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
+        return text, ""
+
+    @classmethod
+    def get_text_for_simple_types(
+        cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
+    ) -> tuple[SchemaZoneTexts, SubstDict]:
         text = cast(SchemaZoneTexts, defaultdict(str))
         subst, szt = Helper.get_initials(table_name, fname, type_, fdata)
         text.update(szt)
@@ -236,8 +254,7 @@ class GenerateCodeBlocks:
             elif isinstance(type_, str):  # string
                 tmp = tmp.substitute({"maxLength": 256})
             subst["type"] = tmp
-        text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
-        return text, ""
+        return text, subst
 
     @classmethod
     def get_schema_color(
@@ -288,45 +305,30 @@ class GenerateCodeBlocks:
             own_table_field, [foreign_table_field]
         )
 
+        foreign_table = foreign_table_field.table
         if state == FieldSqlErrorType.FIELD:
-            text, error = cls.get_schema_simple_types(
-                table_name, fname, fdata, "number"
-            )
+            foreign_card, error = InternalHelper.get_cardinality(foreign_table_field)
+            if foreign_card.startswith("1"):
+                text, error = cls.get_schema_relation_1_1(
+                    table_name, fname, fdata, "number"
+                )
+            else:
+                text, error = cls.get_schema_simple_types(
+                    table_name, fname, fdata, "number"
+                )
             initially_deferred = fdata.get(
                 "deferred"
-            ) or ModelsHelper.is_fk_initially_deferred(
-                table_name, foreign_table_field.table
-            )
+            ) or ModelsHelper.is_fk_initially_deferred(table_name, foreign_table)
             text["alter_table_final"] = (
                 Helper.get_foreign_key_table_constraint_as_alter_table(
                     table_name,
-                    foreign_table_field.table,
+                    foreign_table,
                     fname,
                     foreign_table_field.ref_column,
                     initially_deferred,
                 )
             )
             table_name = HelperGetNames.get_table_name(table_name)
-            print(
-                table_name,
-                foreign_table_field.table,
-                fname,
-                "--",
-                foreign_table_field.ref_column,
-                initially_deferred,
-            )  ##TODO: cleanup
-            ##if table_name.startswith("nm_committee"):
-            ##import ipdb
-
-            ##                ipdb.set_trace
-            ##                text["create_trigger_notify"] = Helper.get_foreign_key_notify_trigger(
-            ##                    table_name,
-            ##                    foreign_table_field.table,
-            ##                    fname,
-            ##                    foreign_table_field.ref_column,
-            ##            initially_deferred,
-            ## )
-            ##else:
             text["create_trigger_notify"] = Helper.get_foreign_key_notify_trigger(
                 table_name,
                 foreign_table_field.table,
@@ -338,25 +340,19 @@ class GenerateCodeBlocks:
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
             elif foreign_table_field.field_def["type"] == "generic-relation":
-                # import ipdb
-
-                # ipdb.set_trace()
-                print(
-                    f"-----{foreign_table_field.column}_{own_table_field.view}_{own_table_field.ref_column}"
-                )
                 text["view"] = cls.get_sql_for_relation_1_1(
                     table_name,
                     fname,
                     foreign_table_field.ref_column,
-                    foreign_table_field.view,
-                    f"{foreign_table_field.column}_{own_table_field.table}_{own_table_field.ref_column}",  ##TODO:?
+                    foreign_table,
+                    f"{foreign_table_field.column}_{own_table_field.table}_{own_table_field.ref_column}",
                 )
             else:
                 text["view"] = cls.get_sql_for_relation_1_1(
                     table_name,
                     fname,
                     foreign_table_field.ref_column,
-                    foreign_table_field.view,
+                    foreign_table,
                     cast(str, foreign_table_field.column),
                 )
         text["final_info"] = final_info
@@ -401,31 +397,16 @@ class GenerateCodeBlocks:
                     )
                     if nm_table_name not in cls.intermediate_tables:
                         cls.intermediate_tables[nm_table_name] = value
-                        print(
-                            "table:" + nm_table_name,
-                            ":" + foreign_table_field.table,
-                            "fname:" + fname,
-                            "xxx",
-                            foreign_table_field.ref_column,
-                        )
-                        ##ipdb.set_trace()  ##einen Trigger für alle felder von nm und gm tabellen
                         text["create_trigger_notify"] = (
                             Helper.get_trigger_for_intermediate_table(
                                 own_table_field,
                                 foreign_table_field,
-                                #    nm_table_name,
-                                #    foreign_table_field.table,
-                                #    f"{foreign_table_field.table}_{foreign_table_field.ref_column}",  # foreign_table_field.field_def.get("equal_fields"),
-                                #    foreign_table_field.ref_column,
-                                #    ##TODO: initially deferred?
                             )
                         )
-                        ##ipdb.set_trace()
                     else:
                         raise Exception(
                             f"Tried to create im_table '{nm_table_name}' twice"
                         )
-
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
             else:
@@ -483,23 +464,13 @@ class GenerateCodeBlocks:
                         raise Exception(
                             f"Still not implemented for foreign_table type '{type_}' in False case"
                         )
-                print(
-                    "n zu 1 ",
-                    table_name,
-                    fname,
-                    own_ref_column,
-                    foreign_table_name,
-                    foreign_table_column,
-                    foreign_table_ref_column,
-                    own_table_field.field_def == foreign_table_field.field_def,
-                )
                 text["view"] = cls.get_sql_for_relation_n_1(
                     table_name,
                     fname,
                     own_ref_column,
                     foreign_table_name,
                     foreign_table_column,
-                    foreign_table_column,
+                    foreign_table_ref_column,
                     own_table_field.field_def == foreign_table_field.field_def,
                 )
                 if comment := fdata.get("description"):
@@ -531,22 +502,24 @@ class GenerateCodeBlocks:
     ) -> str:
         table_letter = Helper.get_table_letter(table_name)
         foreign_letter = Helper.get_table_letter(foreign_table_name, [table_letter])
-        if not foreign_table_name.endswith("_t"):  ##del TODO: schöner lösen?
-            foreign_table_name += "_t"
-        AGG_TEMPLATE = f"select array_agg({foreign_letter}.{{}}) from {foreign_table_name} {foreign_letter}"
+        AGG_TEMPLATE = f"select array_agg({foreign_letter}.{{}} ORDER BY {foreign_letter}.{{}}) from {foreign_table_name} {foreign_letter}"
         COND_TEMPLATE = (
             f" where {foreign_letter}.{{}} = {table_letter}.{own_ref_column}"
         )
         if not foreign_table_column or not self_reference:
-            query = AGG_TEMPLATE.format(foreign_table_ref_column)
+            query = AGG_TEMPLATE.format(
+                foreign_table_ref_column, foreign_table_ref_column
+            )
             if foreign_table_column:
                 query += COND_TEMPLATE.format(foreign_table_column)
         else:
-            # print(f"foreign_table_ref_column: {foreign_table_ref_column!r}")  ##del
-            # print(f"foreign_table_column: {foreign_table_column!r}")  ##del
             assert foreign_table_ref_column == (col := foreign_table_column)
-            arr1 = AGG_TEMPLATE.format(f"{col}_1") + COND_TEMPLATE.format(f"{col}_2")
-            arr2 = AGG_TEMPLATE.format(f"{col}_2") + COND_TEMPLATE.format(f"{col}_1")
+            arr1 = AGG_TEMPLATE.format(f"{col}_1", f"{col}_1") + COND_TEMPLATE.format(
+                f"{col}_2"
+            )
+            arr2 = AGG_TEMPLATE.format(f"{col}_2", f"{col}_2") + COND_TEMPLATE.format(
+                f"{col}_1"
+            )
             query = f"select array_cat(({arr1}), ({arr2}))"
         return f"({query}) as {fname},\n"
 
@@ -600,7 +573,7 @@ class GenerateCodeBlocks:
                 text["table"] += Helper.get_generic_combined_fields(
                     generic_plain_field_name,
                     own_table_field.column,
-                    foreign_table_field.table,
+                    foreign_table_field,
                 )
                 text[
                     "create_trigger_notify"
@@ -610,7 +583,6 @@ class GenerateCodeBlocks:
                     own_table_field.column,
                     foreign_table_field.table,
                 )
-
                 text[
                     "alter_table_final"
                 ] += Helper.get_foreign_key_table_constraint_as_alter_table(
@@ -821,26 +793,25 @@ class Helper:
         """
     )
     FIELD_TEMPLATE = string.Template(
-        "    ${field_name} ${type}${primary_key}${required}${check_enum}${minimum}${minLength}${default},\n"
+        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${minimum}${minLength}${default},\n"
     )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(
         dedent(
             """
             CREATE TABLE ${table_name} (
-                ${field1} integer NOT NULL REFERENCES ${table1} (id) INITIALLY DEFERRED,
-                ${field2} integer NOT NULL REFERENCES ${table2} (id) INITIALLY DEFERRED,
+                ${field1} integer NOT NULL REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field2} integer NOT NULL REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
                 PRIMARY KEY (${list_of_keys})
             );
         """
         )
     )
-
     INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE = string.Template(
         dedent(
             """
             CREATE TABLE ${table_name} (
                 id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) INITIALLY DEFERRED,
+                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
@@ -850,7 +821,7 @@ class Helper:
         )
     )
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) INITIALLY DEFERRED,"
+        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
     )
     FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE = string.Template(
         "CREATE TRIGGER ${trigger_name} AFTER INSERT OR UPDATE OF ${ref_column} OR DELETE ON ${own_table}\n"
@@ -1027,7 +998,7 @@ class Helper:
         own_table = HelperGetNames.get_table_name(table_name)
         return Helper.FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE.substitute(
             {
-                "trigger_name": trigger_name + "_t",  ##TODO: nice trigger name
+                "trigger_name": trigger_name,
                 "own_table": own_table,
                 "ref_column": ref_column,
                 "foreign_table": foreign_table,
@@ -1053,7 +1024,7 @@ class Helper:
         table_name = HelperGetNames.get_table_name(nm_table_name)
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
             {
-                "table_name": nm_table_name,  # + "_t",  # with tailing _t ##del TODO:
+                "table_name": nm_table_name,
                 "field1": field1,
                 "table1": HelperGetNames.get_table_name(own_table_field.table),
                 "field2": field2,
@@ -1096,7 +1067,7 @@ class Helper:
 
         text = Helper.INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE.substitute(
             {
-                "table_name": gm_table_name,  # with trailing _t
+                "table_name": gm_table_name,
                 "own_table_name": HelperGetNames.get_table_name(own_table_field.table),
                 "own_table_name_with_ref_column": (
                     own_table_name_with_ref_column := f"{own_table_field.table}_{own_table_field.ref_column}"
@@ -1115,12 +1086,11 @@ class Helper:
         )
         return gm_table_name, text
 
-    @staticmethod  # TODO:cleanup
+    @staticmethod
     def get_trigger_for_intermediate_table(
         own_table_field: TableFieldType, foreign_table_field: TableFieldType
     ) -> str:
 
-        ##ipdb.set_trace()
         field1 = HelperGetNames.get_field_in_n_m_relation_list(
             own_table_field, foreign_table_field.table
         )
@@ -1211,9 +1181,17 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{ge
 
     @staticmethod
     def get_generic_combined_fields(
-        generic_plain_field_name: str, own_column: str, foreign_table: str
+        generic_plain_field_name: str, own_column: str, foreign_field: TableFieldType
     ) -> str:
-        return f"    {generic_plain_field_name} integer GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
+        foreign_table = foreign_field.table
+        foreign_card, error = InternalHelper.get_cardinality(foreign_field)
+        if error:
+            raise Exception(error)
+        if foreign_card.startswith("1"):
+            unique = " UNIQUE"
+        else:
+            unique = ""
+        return f"    {generic_plain_field_name} integer{unique} GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
 
     @staticmethod
     def get_generic_field_constraint(own_column: str, foreign_tables: list[str]) -> str:

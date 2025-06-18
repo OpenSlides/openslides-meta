@@ -509,7 +509,21 @@ class InternalHelper:
         # precedence for reference
         if reference:
             for ref in reference:
-                results.append(TableFieldType.get_definitions_from_foreign(None, ref))
+                if isinstance(to, dict):
+                    to_field = f"{ref}/{to['field']}"
+                elif isinstance(to, list):
+                    for collectionfield in to:
+                        if collectionfield.startswith(ref):
+                            to_field = collectionfield
+                elif isinstance(to, str):
+                    to_field = to
+                else:
+                    raise Exception("No valid type for 'to:' provided.")
+                if not to_field:
+                    raise Exception("Couldn't find foreign field.")
+                results.append(
+                    TableFieldType.get_definitions_from_foreign(to_field, ref)
+                )
         elif isinstance(to, dict):
             fname = "/" + to["field"]
             for table in to["collections"]:
