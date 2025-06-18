@@ -8,7 +8,6 @@ from pathlib import Path
 from string import Formatter
 from textwrap import dedent
 from typing import Any, TypedDict, cast
-import ipdb
 
 from helper_get_names import FieldSqlErrorType  # type: ignore
 from helper_get_names import (
