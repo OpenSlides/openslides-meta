@@ -126,7 +126,7 @@ BEGIN
 
         IF foreign_id IS NOT NULL THEN
             fqid := foreign_table || '/' || foreign_id;
-            INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), now()); 
+            INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), now());
         END IF;
 
         i := i + 2;
