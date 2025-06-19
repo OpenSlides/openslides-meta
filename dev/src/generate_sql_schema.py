@@ -747,7 +747,7 @@ class Helper:
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $notify_trigger$ LANGUAGE plpgsql;
-        
+
         CREATE OR REPLACE FUNCTION log_modified_related_models()
         RETURNS trigger AS $log_modified_related_trigger$
         DECLARE
@@ -772,7 +772,7 @@ class Helper:
 
                 IF foreign_id IS NOT NULL THEN
                     fqid := foreign_table || '/' || foreign_id;
-                    INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), now()); 
+                    INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), now());
                 END IF;
 
                 i := i + 2;
@@ -1023,7 +1023,7 @@ class Helper:
         table_name = HelperGetNames.get_table_name(nm_table_name)
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
             {
-                "table_name": nm_table_name,
+                "table_name": table_name,
                 "field1": field1,
                 "table1": HelperGetNames.get_table_name(own_table_field.table),
                 "field2": field2,
