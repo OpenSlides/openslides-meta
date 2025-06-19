@@ -822,10 +822,6 @@ class Helper:
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
         "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
     )
-    FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE = string.Template(
-        "CREATE TRIGGER ${trigger_name} AFTER INSERT OR UPDATE OF ${ref_column} OR DELETE ON ${own_table}\n"
-        + "FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('${foreign_table}', '${ref_column}');\n"
-    )
 
     RELATION_LIST_AGENDA = dedent(
         """
@@ -995,14 +991,8 @@ class Helper:
             table_name, ref_column
         )
         own_table = HelperGetNames.get_table_name(table_name)
-        return Helper.FOREIGN_KEY_NOTIFY_TRIGGER_TEMPLATE.substitute(
-            {
-                "trigger_name": trigger_name,
-                "own_table": own_table,
-                "ref_column": ref_column,
-                "foreign_table": foreign_table,
-            }
-        )
+        return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}');\n"""
 
     @staticmethod
     def get_nm_table_for_n_m_relation_lists(
