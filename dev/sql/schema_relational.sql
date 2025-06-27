@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '849102a66a0fdb700779571c3d949b36'
+-- MODELS_YML_CHECKSUM = '0fb7c194db5c11eca64e4fef8ee1f60d'
 
 
 -- Database parameters
@@ -189,7 +189,6 @@ CREATE TABLE user_t (
     gender_id integer,
     organization_management_level varchar(256) CONSTRAINT enum_user_organization_management_level CHECK (organization_management_level IN ('superadmin', 'can_manage_organization', 'can_manage_users')),
     home_committee_id integer,
-    meeting_ids integer[],
     organization_id integer GENERATED ALWAYS AS (1) STORED NOT NULL
 );
 
@@ -197,7 +196,6 @@ CREATE TABLE user_t (
 
 comment on column user_t.saml_id is 'unique-key from IdP for SAML login';
 comment on column user_t.organization_management_level is 'Hierarchical permission level for the whole organization.';
-comment on column user_t.meeting_ids is 'Calculated. All ids from meetings calculated via meeting_user and group_ids as integers.';
 
 
 CREATE TABLE meeting_user_t (
@@ -488,7 +486,6 @@ This email was generated automatically.',
     font_projector_h1_id integer UNIQUE,
     font_projector_h2_id integer UNIQUE,
     committee_id integer NOT NULL,
-    user_ids integer[],
     reference_projector_id integer NOT NULL UNIQUE,
     list_of_speakers_countdown_id integer UNIQUE,
     poll_countdown_id integer UNIQUE,
@@ -504,7 +501,6 @@ comment on column meeting_t.is_active_in_organization_id is 'Backrelation and bo
 comment on column meeting_t.is_archived_in_organization_id is 'Backrelation and boolean flag at once';
 comment on column meeting_t.list_of_speakers_default_structure_level_time is '0 disables structure level countdowns.';
 comment on column meeting_t.list_of_speakers_intervention_time is '0 disables intervention speakers.';
-comment on column meeting_t.user_ids is 'Calculated. All user ids from all users assigned to groups of this meeting.';
 
 
 CREATE TABLE structure_level_t (
@@ -1195,12 +1191,6 @@ CREATE TABLE gm_organization_tag_tagged_ids (
     CONSTRAINT unique_$organization_tag_id_$tagged_id UNIQUE (organization_tag_id, tagged_id)
 );
 
-CREATE TABLE nm_committee_user_ids_user (
-    committee_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    user_id integer NOT NULL REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (committee_id, user_id)
-);
-
 CREATE TABLE nm_committee_manager_ids_user (
     committee_id integer NOT NULL REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     user_id integer NOT NULL REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
@@ -1356,17 +1346,27 @@ FROM organization_t o;
 
 CREATE VIEW "user" AS SELECT *,
 (select array_agg(n.meeting_id ORDER BY n.meeting_id) from nm_meeting_present_user_ids_user n where n.user_id = u.id) as is_present_in_meeting_ids,
-(select array_agg(n.committee_id ORDER BY n.committee_id) from nm_committee_user_ids_user n where n.user_id = u.id) as committee_ids,
+( SELECT array_agg(DISTINCT committee_id ORDER BY committee_id) FROM (
+-- Select committee_ids from meetings the user is part of
+SELECT m.committee_id FROM meeting_user_t AS mu INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id INNER JOIN meeting_t AS m ON m.id = mu.meeting_id WHERE mu.user_id = u.id
+UNION
+-- Select committee_ids from committee managers
+SELECT cmu.committee_id FROM nm_committee_manager_ids_user cmu WHERE cmu.user_id = u.id
+UNION
+-- Select home_committee_id from user
+SELECT u.home_committee_id WHERE u.home_committee_id IS NOT NULL ) _ ) AS committee_ids,
 (select array_agg(n.committee_id ORDER BY n.committee_id) from nm_committee_manager_ids_user n where n.user_id = u.id) as committee_management_ids,
 (select array_agg(m.id ORDER BY m.id) from meeting_user_t m where m.user_id = u.id) as meeting_user_ids,
 (select array_agg(n.poll_id ORDER BY n.poll_id) from nm_poll_voted_ids_user n where n.user_id = u.id) as poll_voted_ids,
 (select array_agg(o.id ORDER BY o.id) from option_t o where o.content_object_id_user_id = u.id) as option_ids,
 (select array_agg(v.id ORDER BY v.id) from vote_t v where v.user_id = u.id) as vote_ids,
 (select array_agg(v.id ORDER BY v.id) from vote_t v where v.delegated_user_id = u.id) as delegated_vote_ids,
-(select array_agg(p.id ORDER BY p.id) from poll_candidate_t p where p.user_id = u.id) as poll_candidate_ids
+(select array_agg(p.id ORDER BY p.id) from poll_candidate_t p where p.user_id = u.id) as poll_candidate_ids,
+( SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id) FROM meeting_user_t mu INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id WHERE mu.user_id = u.id ) AS meeting_ids
 FROM user_t u;
 
 comment on column "user".committee_ids is 'Calculated field: Returns committee_ids, where the user is manager or member in a meeting';
+comment on column "user".meeting_ids is 'Calculated. All ids from meetings calculated via meeting_user and group_ids as integers.';
 
 CREATE VIEW "meeting_user" AS SELECT *,
 (select array_agg(p.id ORDER BY p.id) from personal_note_t p where p.meeting_user_id = m.id) as personal_note_ids,
@@ -1400,7 +1400,15 @@ FROM theme_t t;
 
 CREATE VIEW "committee" AS SELECT *,
 (select array_agg(m.id ORDER BY m.id) from meeting_t m where m.committee_id = c.id) as meeting_ids,
-(select array_agg(n.user_id ORDER BY n.user_id) from nm_committee_user_ids_user n where n.committee_id = c.id) as user_ids,
+( SELECT array_agg(DISTINCT user_id ORDER BY user_id) FROM (
+-- Select user_ids from committees meetings
+SELECT mu.user_id FROM meeting_t AS m INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id WHERE m.committee_id = c.id
+UNION
+-- Select user_ids from committee managers
+SELECT cmu.user_id FROM nm_committee_manager_ids_user cmu WHERE cmu.committee_id = c.id
+UNION
+-- Select user_id from home committees
+SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id ) _ ) AS user_ids,
 (select array_agg(n.user_id ORDER BY n.user_id) from nm_committee_manager_ids_user n where n.committee_id = c.id) as manager_ids,
 (select array_agg(ct.id ORDER BY ct.id) from committee_t ct where ct.parent_id = c.id) as child_ids,
 (select array_agg(n.all_parent_id ORDER BY n.all_parent_id) from nm_committee_all_child_ids_committee n where n.all_child_id = c.id) as all_parent_ids,
@@ -1459,6 +1467,7 @@ CREATE VIEW "meeting" AS SELECT *,
 (select c.id from committee_t c where c.default_meeting_id = m.id) as default_meeting_for_committee_id,
 (select array_agg(g.organization_tag_id ORDER BY g.organization_tag_id) from gm_organization_tag_tagged_ids g where g.tagged_id_meeting_id = m.id) as organization_tag_ids,
 (select array_agg(n.user_id ORDER BY n.user_id) from nm_meeting_present_user_ids_user n where n.meeting_id = m.id) as present_user_ids,
+( SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id) FROM meeting_user_t mu INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id WHERE mu.meeting_id = m.id ) AS user_ids,
 (select array_agg(p.id ORDER BY p.id) from projection_t p where p.content_object_id_meeting_id = m.id) as projection_ids,
 (select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_agenda_item_list_in_meeting_id = m.id) as default_projector_agenda_item_list_ids,
 (select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_topic_in_meeting_id = m.id) as default_projector_topic_ids,
@@ -1476,6 +1485,9 @@ CREATE VIEW "meeting" AS SELECT *,
 (select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_poll_in_meeting_id = m.id) as default_projector_poll_ids
 FROM meeting_t m;
 
+comment on column "meeting".is_active_in_organization_id is 'Backrelation and boolean flag at once';
+comment on column "meeting".is_archived_in_organization_id is 'Backrelation and boolean flag at once';
+comment on column "meeting".user_ids is 'Calculated. All user ids from all users assigned to groups of this meeting.';
 
 CREATE VIEW "structure_level" AS SELECT *,
 (select array_agg(n.meeting_user_id ORDER BY n.meeting_user_id) from nm_meeting_user_structure_level_ids_structure_level n where n.structure_level_id = s.id) as meeting_user_ids,
@@ -2325,7 +2337,7 @@ SQL nr:1rR => organization/user_ids:-> user/organization_id
 
 FIELD 1r:nr => user/gender_id:-> gender/user_ids
 SQL nt:nt => user/is_present_in_meeting_ids:-> meeting/present_user_ids
-SQL nt:nt => user/committee_ids:-> committee/user_ids
+SQL nts:nts => user/committee_ids:-> committee/user_ids
 SQL nt:nt => user/committee_management_ids:-> committee/manager_ids
 SQL nt:1rR => user/meeting_user_ids:-> meeting_user/user_id
 SQL nt:nt => user/poll_voted_ids:-> poll/voted_ids
@@ -2334,6 +2346,7 @@ SQL nt:1r => user/vote_ids:-> vote/user_id
 SQL nt:1r => user/delegated_vote_ids:-> vote/delegated_user_id
 SQL nt:1r => user/poll_candidate_ids:-> poll_candidate/user_id
 FIELD 1r:nt => user/home_committee_id:-> committee/native_user_ids
+SQL nts:nts => user/meeting_ids:-> meeting/user_ids
 
 FIELD 1rR:nt => meeting_user/user_id:-> user/meeting_user_ids
 FIELD 1rR:nt => meeting_user/meeting_id:-> meeting/meeting_user_ids
@@ -2358,7 +2371,7 @@ SQL 1t:1rR => theme/theme_for_organization_id:-> organization/theme_id
 
 SQL nt:1rR => committee/meeting_ids:-> meeting/committee_id
 FIELD 1r:1t => committee/default_meeting_id:-> meeting/default_meeting_for_committee_id
-SQL nt:nt => committee/user_ids:-> user/committee_ids
+SQL nts:nts => committee/user_ids:-> user/committee_ids
 SQL nt:nt => committee/manager_ids:-> user/committee_management_ids
 FIELD 1r:nt => committee/parent_id:-> committee/child_ids
 SQL nt:1r => committee/child_ids:-> committee/parent_id
@@ -2436,6 +2449,7 @@ FIELD 1rR:nt => meeting/committee_id:-> committee/meeting_ids
 SQL 1t:1r => meeting/default_meeting_for_committee_id:-> committee/default_meeting_id
 SQL nt:nGt => meeting/organization_tag_ids:-> organization_tag/tagged_ids
 SQL nt:nt => meeting/present_user_ids:-> user/is_present_in_meeting_ids
+SQL nts:nts => meeting/user_ids:-> user/meeting_ids
 FIELD 1rR:1t => meeting/reference_projector_id:-> projector/used_as_reference_projector_meeting_id
 FIELD 1r:1t => meeting/list_of_speakers_countdown_id:-> projector_countdown/used_as_list_of_speakers_countdown_meeting_id
 FIELD 1r:1t => meeting/poll_countdown_id:-> projector_countdown/used_as_poll_countdown_meeting_id

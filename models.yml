@@ -391,23 +391,43 @@ user:
 
   # Calculates all committee's where the user is
   # - committee-manager (= committees in committee_management_ids)
-  # - is member (= has group-rights) of a meeting in the committee
-  # TODO: fix sql, not correct for the current design and naming
+  # - is member (= is in a group) of a meeting in the committee
+  # - or has his home committee
   committee_ids:
     type: relation-list
     to: committee/user_ids
     restriction_mode: E
     read_only: true
     description: "Calculated field: Returns committee_ids, where the user is manager or member in a meeting"
-    # sql: >-  # TODO
-    #   (select array_agg(committee_id) from
-    #       select m.committee_id as committee_id from group_to_user gtu
-    #         join groupT g on g.id = gtu.group_id
-    #         join meetingT m on m.id = g.meeting_id
-    #         where gtu.user_id = u.id
-    #       union
-    #       select ctu.committee_id as committee_id from committee_manager_to_user ctu where ctu.user_id = u.id
-    #     ) as committee_ids
+    sql:
+      (
+        SELECT array_agg(DISTINCT committee_id ORDER BY committee_id)
+        FROM (
+
+          -- Select committee_ids from meetings the user is part of
+
+          SELECT m.committee_id
+          FROM meeting_user_t AS mu
+          INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
+          INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
+          WHERE mu.user_id = u.id
+
+          UNION
+
+          -- Select committee_ids from committee managers
+
+          SELECT cmu.committee_id
+          FROM nm_committee_manager_ids_user cmu
+          WHERE cmu.user_id = u.id
+
+          UNION 
+
+          -- Select home_committee_id from user
+
+          SELECT u.home_committee_id
+          WHERE u.home_committee_id IS NOT NULL
+        ) _
+      ) AS committee_ids
 
   # committee specific permissions
   committee_management_ids:
@@ -447,10 +467,17 @@ user:
     reference: committee
 
   meeting_ids:
-    type: number[]
+    type: relation-list
     description: Calculated. All ids from meetings calculated via meeting_user and group_ids as integers.
     read_only: true
-    # sql: todo
+    sql: 
+      (
+        SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id) 
+        FROM meeting_user_t mu 
+        INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id 
+        WHERE mu.user_id = u.id
+      ) AS meeting_ids
+    to: meeting/user_ids
     restriction_mode: E
   organization_id:
     type: relation
@@ -793,15 +820,34 @@ committee:
     restriction_mode: A
     read_only: true
     description: "Calculated field: All users which are in a group of a meeting, belonging to the committee or beeing manager of the committee"
-    # sql: >-  # TODO
-    #   (select array_agg(user_id) from
-    #     select gtu.user_id as user_id from meetingT m
-    #       join groupT g on g.meeting_id = m.id
-    #       join group_to_user gtu on gtu.group_id = g.id
-    #       where m.committee_id = c.id
-    #     union
-    #     select ctu.user_id as user_id from committee_manager_to_user ctu where ctu.committee_id = c.id
-    #   ) as user_ids
+    sql: 
+      "(
+        SELECT array_agg(DISTINCT user_id ORDER BY user_id)
+        FROM (
+
+          -- Select user_ids from committees meetings
+
+          SELECT mu.user_id
+          FROM meeting_t AS m
+          INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id
+          INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
+          WHERE m.committee_id = c.id
+          
+          UNION
+
+          -- Select user_ids from committee managers
+
+          SELECT cmu.user_id
+          FROM nm_committee_manager_ids_user cmu
+          WHERE cmu.committee_id = c.id
+          
+          UNION 
+
+          -- Select user_id from home committees
+
+          SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
+        ) _
+      ) AS user_ids"
   manager_ids:
     type: relation-list
     to: user/committee_management_ids
@@ -1889,10 +1935,17 @@ meeting:
     to: user/is_present_in_meeting_ids
     restriction_mode: B
   user_ids:
-    type: number[]
+    type: relation-list
     description: Calculated. All user ids from all users assigned to groups of this meeting.
     read_only: true
-    # sql: todo
+    sql: 
+      (
+        SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id) 
+        FROM meeting_user_t mu 
+        INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id 
+        WHERE mu.meeting_id = m.id
+      ) AS user_ids
+    to: user/meeting_ids
     restriction_mode: A
   reference_projector_id:
     type: relation
