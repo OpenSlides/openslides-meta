@@ -385,6 +385,15 @@ user:
     to: committee/native_user_ids
     restriction_mode: E
 
+  history_position_ids:
+    type: relation-list
+    to: history_position/user_id
+    restriction_mode: A
+  history_entry_ids:
+    type: relation-list
+    to: history_entry/model_id
+    restriction_mode: A
+
   meeting_ids:
     type: number[]
     description: Calculated. All ids from meetings calculated via meeting_user and group_ids as integers.
@@ -2710,6 +2719,11 @@ motion:
     restriction_mode: A
     constant: true
 
+  history_entry_ids:
+    type: relation-list
+    to: history_entry/model_id
+    restriction_mode: A
+
 motion_submitter:
   id: *id_field
   weight:
@@ -3526,6 +3540,11 @@ assignment:
     restriction_mode: A
     constant: true
 
+  history_entry_ids:
+    type: relation-list
+    to: history_entry/model_id
+    restriction_mode: A
+
 assignment_candidate:
   id: *id_field
   weight:
@@ -4199,4 +4218,40 @@ import_preview:
     restriction_mode: A
   result:
     type: JSON
+    restriction_mode: A
+
+history_position:
+  id: *id_field
+  timestamp:
+    type: timestamp
+    restriction_mode: A
+    read_only: true
+  user_id:
+    type: relation
+    to: user/history_position_ids
+    restriction_mode: A
+  entry_ids:
+    type: relation-list
+    to: history_entry/position_id
+    restriction_mode: A
+  
+history_entry:
+  id: *id_field
+  entries:
+    type: string[]
+    restriction_mode: A
+  position_id:
+    type: relation
+    to: history_position/entry_ids
+    required: true
+    restriction_mode: A
+    constant: true
+  model_id:
+    type: generic-relation
+    to:
+      collections:
+        - user
+        - motion
+        - assignment
+      field: history_entry_ids
     restriction_mode: A
