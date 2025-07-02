@@ -4226,6 +4226,10 @@ history_position:
     type: timestamp
     restriction_mode: A
     read_only: true
+  original_user_id:
+    type: number
+    restriction_mode: A
+    constant: true
   user_id:
     type: relation
     to: user/history_position_ids
@@ -4234,16 +4238,15 @@ history_position:
     type: relation-list
     to: history_entry/position_id
     restriction_mode: A
+    on_delete: CASCADE
   
 history_entry:
   id: *id_field
   entries:
     type: string[]
     restriction_mode: A
-  position_id:
-    type: relation
-    to: history_position/entry_ids
-    required: true
+  original_model_id:
+    type: string
     restriction_mode: A
     constant: true
   model_id:
@@ -4255,3 +4258,9 @@ history_entry:
         - assignment
       field: history_entry_ids
     restriction_mode: A
+  position_id:
+    type: relation
+    to: history_position/entry_ids
+    required: true
+    restriction_mode: A
+    constant: true
