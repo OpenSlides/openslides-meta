@@ -368,13 +368,13 @@ user:
     type: relation-list
     to: option/content_object_id
     restriction_mode: A
-  vote_ids:
+  acting_vote_ids:
     type: relation-list
-    to: vote/user_id
+    to: vote/acting_user_id
     restriction_mode: A
-  delegated_vote_ids:
+  represented_vote_ids:
     type: relation-list
-    to: vote/delegated_user_id
+    to: vote/represented_user_id
     restriction_mode: A
   poll_candidate_ids:
     type: relation-list
@@ -3190,32 +3190,23 @@ poll:
     type: string
     required: true
     restriction_mode: A
-  type:
+  visibility:
     type: string
     required: true
     enum:
       - analog
       - named
-      - pseudoanonymous
-      - cryptographic
+      - open
+      - secret
     restriction_mode: A
-  backend:
-    type: string
-    required: True
-    enum: *poll_backends
-    default: fast
-    restriction_mode: A
-  is_pseudoanonymized:
-    type: boolean
-    restriction_mode: A
-  pollmethod:
+  method:
     type: string
     required: true
     enum:
-      - "Y"
-      - "YN"
-      - "YNA"
-      - "N"
+      - motion
+      - selection
+      - rating
+      - single_transferable_vote
     restriction_mode: A
   state:
     type: string
@@ -3226,56 +3217,16 @@ poll:
       - published
     default: created
     restriction_mode: A
-  min_votes_amount:
-    type: number
-    default: 1
-    minimum: 1
-    restriction_mode: A
-  max_votes_amount:
-    type: number
-    default: 1
-    minimum: 1
-    restriction_mode: A
-  max_votes_per_option:
-    type: number
-    default: 1
-    minimum: 1
-    restriction_mode: A
-  global_yes:
-    type: boolean
-    default: false
-    restriction_mode: A
-  global_no:
-    type: boolean
-    default: false
-    restriction_mode: A
-  global_abstain:
-    type: boolean
-    default: false
-    restriction_mode: A
-  onehundred_percent_base:
-    type: string
-    required: true
-    enum: *onehundred_percent_bases
-    default: disabled
-    restriction_mode: A
-  votesvalid:
-    type: decimal(6)
-    restriction_mode: B
-  votesinvalid:
-    type: decimal(6)
-    restriction_mode: B
-  votescast:
-    type: decimal(6)
-    restriction_mode: D
-  entitled_users_at_stop:
+  config:
     type: JSON
+    description: Values to configure the poll. Depends on the value in poll/method. TODO does this contain information about 100%-base, or is it a different field?
+    required: true
     restriction_mode: A
-  has_voted_user_ids:
-    type: number[]
-    calculated: true
-    description: user_ids of the users, that have voted, while a poll is running.
-    restriction_mode: C
+  result:
+    type: JSON
+    description: Calculated result. The format depends on the value in poll/method
+    required: true
+    restriction_mode: A
   sequential_number:
     type: number
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
@@ -3283,26 +3234,6 @@ poll:
     required: true
     restriction_mode: A
     constant: true
-  crypt_key:
-    type: string
-    description: base64 public key to cryptographic votes.
-    read_only: true
-    restriction_mode: A
-  crypt_signature:
-    type: string
-    description: base64 signature of cryptographic_key.
-    read_only: true
-    restriction_mode: A
-  votes_raw:
-    type: text
-    description: original form of decrypted votes.
-    read_only: true
-    restriction_mode: B
-  votes_signature:
-    type: string
-    description: base64 signature of votes_raw field.
-    read_only: true
-    restriction_mode: B
   content_object_id:
     type: generic-relation
     to:
@@ -3315,19 +3246,12 @@ poll:
     restriction_mode: A
     required: true
     constant: true
-  option_ids:
+  vote_ids:
     type: relation-list
-    to: option/poll_id
+    to: vote/poll_id
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
-  global_option_id:
-    type: relation
-    to: option/used_as_global_option_in_poll_id
-    on_delete: CASCADE
-    equal_fields: meeting_id
-    restriction_mode: A
-    constant: true
   voted_ids:
     type: relation-list
     to: user/poll_voted_ids
@@ -3336,6 +3260,9 @@ poll:
     type: relation-list
     to: group/poll_ids
     equal_fields: meeting_id
+    restriction_mode: A
+  entitled_users_at_stop:
+    type: JSON
     restriction_mode: A
   projection_ids:
     type: relation-list
@@ -3350,59 +3277,6 @@ poll:
     required: true
     constant: true
 
-option:
-  id: *id_field
-  weight:
-    type: number
-    default: 10000
-    restriction_mode: A
-  text:
-    type: HTMLStrict
-    restriction_mode: A
-  "yes":
-    type: decimal(6)
-    restriction_mode: B
-  "no":
-    type: decimal(6)
-    restriction_mode: B
-  abstain:
-    type: decimal(6)
-    restriction_mode: B
-
-  poll_id:
-    type: relation
-    to: poll/option_ids
-    equal_fields: meeting_id
-    restriction_mode: A
-    constant: true
-  used_as_global_option_in_poll_id:
-    type: relation
-    to: poll/global_option_id
-    equal_fields: meeting_id
-    restriction_mode: A
-    constant: true
-  vote_ids:
-    type: relation-list
-    to: vote/option_id
-    on_delete: CASCADE
-    equal_fields: meeting_id
-    restriction_mode: A
-  content_object_id:
-    type: generic-relation
-    to:
-      - motion/option_ids
-      - user/option_ids
-      - poll_candidate_list/option_id
-    equal_fields: meeting_id
-    restriction_mode: A
-    constant: true
-  meeting_id:
-    type: relation
-    to: meeting/option_ids
-    required: true
-    restriction_mode: A
-    constant: true
-
 vote:
   id: *id_field
   weight:
@@ -3410,27 +3284,21 @@ vote:
     restriction_mode: A
     constant: true
   value:
-    type: string
+    type: JSON
     restriction_mode: A
     constant: true
-  user_token:
-    type: string
-    required: true
-    restriction_mode: B
-    constant: true
-
-  option_id:
+  poll_id:
     type: relation
-    to: option/vote_ids
+    to: poll/vote_ids
     equal_fields: meeting_id
     required: true
     restriction_mode: A
     constant: true
-  user_id:
+  acting_user_id:
     type: relation
     to: user/vote_ids
     restriction_mode: A
-  delegated_user_id:
+  represented_user_id:
     type: relation
     to: user/delegated_vote_ids
     restriction_mode: A
@@ -3950,11 +3818,11 @@ projector:
     required: true
     constant: true
 
-# A projection is an M2M model between a projector and an element which is assigned to it. 
-# It can either be the current projection, a preview or a history projection (i.e. previously 
-# projected, with reference retained for protocolling purposes). The projection can only be 
-# connected to the projector once in one of these contexts. Projections are projector- and 
-# element-specific, meaning that, while the type of projector reference may change, neither 
+# A projection is an M2M model between a projector and an element which is assigned to it.
+# It can either be the current projection, a preview or a history projection (i.e. previously
+# projected, with reference retained for protocolling purposes). The projection can only be
+# connected to the projector once in one of these contexts. Projections are projector- and
+# element-specific, meaning that, while the type of projector reference may change, neither
 # the referenced projector, nor the content_object of the projection may be changed.
 projection:
   id: *id_field
