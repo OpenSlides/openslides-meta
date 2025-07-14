@@ -3,7 +3,7 @@
 #     - field name: Their length is limited to 25 characters. There are still some
 #       fields with longer names, that has to be shortened
 # Types:
-#     - Nativ datatypes: text, string (text with maxLength=256), number, boolean, JSON
+#     - Native data types: text, string (text with maxLength=256), number, boolean, JSON
 #     - HTMLStrict: A string with HTML content.
 #     - HTMLPermissive: A string with HTML content (with video tags).
 #     - float: Numbers that are expected to be non-integer. Formatted as in rfc7159.
@@ -97,7 +97,7 @@
 #       fields the value as to be an id of an existing object.
 #     - The property `equal_fields` describes fields that must have the same value in
 #       the instance and the related instance.
-#     - The property `unique` will guarantee the uniqueness of fields or field combinations by databae constraint..
+#     - The property `unique` will guarantee the uniqueness of fields or field combinations by database constraint..
 #       Example: `unique: meeting_id, sequential_number`
 # Restriction Mode:
 #   The field `restriction_mode` is required for every field. It puts the field into a
@@ -366,7 +366,7 @@ user:
     type: timestamp
     restriction_mode: A
     read_only: true
-  guest:
+  external:
     type: boolean
     restriction_mode: E
   gender_id:
