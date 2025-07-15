@@ -3279,7 +3279,7 @@ poll:
   live_votes:
     type: JSON
     calculated: true
-    description: dict from user to there vote. The value is nil, when live voting is disabled.
+    description: dict from user to their vote. The value is null, when live voting is disabled.
     restriction_mode: C
   sequential_number:
     type: number
