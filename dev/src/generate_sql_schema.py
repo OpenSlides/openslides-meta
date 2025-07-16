@@ -1140,7 +1140,10 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "pg_type": "text",
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
-    "float": {"pg_type": "double precision", "method": GenerateCodeBlocks.get_schema_simple_types},
+    "float": {
+        "pg_type": "double precision",
+        "method": GenerateCodeBlocks.get_schema_simple_types,
+    },
     "decimal(6)": {
         "pg_type": "decimal(16,6)",
         "method": GenerateCodeBlocks.get_schema_simple_types,
