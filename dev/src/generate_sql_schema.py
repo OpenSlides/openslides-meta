@@ -1,5 +1,6 @@
 import string
 import sys
+import ipdb
 from collections import defaultdict
 from collections.abc import Callable
 from decimal import Decimal
@@ -120,7 +121,6 @@ class GenerateCodeBlocks:
         for table_name, fields in MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
                 continue
-            # table_name = HelperGetNames.get_table_name(table_name) #TODO:cleanup
 
             schema_zone_texts = cast(SchemaZoneTexts, defaultdict(str))
             cls.intermediate_tables = {}
@@ -618,6 +618,11 @@ class GenerateCodeBlocks:
                 gm_foreign_table, value = Helper.get_gm_table_for_gm_nm_relation_lists(
                     own_table_field, foreign_table_fields
                 )
+                text[
+                    "create_trigger_notify"
+                ] += Helper.get_trigger_for_generic_intermediate_table(
+                    own_table_field, foreign_table_fields
+                )
                 if gm_foreign_table not in cls.intermediate_tables:
                     cls.intermediate_tables[gm_foreign_table] = value
                 else:
@@ -1099,6 +1104,8 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         return f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{foreign_table_field.table}','{field2}');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 """
 
     @staticmethod
@@ -1110,11 +1117,37 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.tabl
     ) -> str:
         trigger_name = f"tr_log_{foreign_table}_{generic_plain_field_name}"
         own_table_name = HelperGetNames.get_table_name(table_name)
-
         return f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}');
 """
+
+    @staticmethod
+    def get_trigger_for_generic_intermediate_table(
+        own_table_field: TableFieldType, foreign_table_fields: list[TableFieldType]
+    ) -> tuple[str, str]:
+        notify_trigger_text = ""
+
+        gm_table_name = HelperGetNames.get_gm_table_name(own_table_field)
+        own_table_column = own_table_field.intermediate_column
+        trigger_text = ""
+
+        for foreign_table_field in foreign_table_fields:
+            gm_content_field = HelperGetNames.get_gm_content_field(
+                own_table_field.intermediate_column, foreign_table_field.table
+            )
+            trigger_name = f"tr_log_{gm_content_field}_{gm_table_name}"
+            own_table_name_with_ref_column = (
+                f"{own_table_field.table}_{own_table_field.ref_column}"
+            )
+            trigger_text += f"""
+CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{foreign_table_field.table}','{gm_content_field}');
+"""
+        trigger_text += f"""CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {gm_table_name}
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+"""
+        return trigger_text
 
     @staticmethod
     def get_initials(
