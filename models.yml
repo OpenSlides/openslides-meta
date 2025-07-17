@@ -1513,6 +1513,11 @@ meeting:
     enum: *poll_backends
     default: fast
     restriction_mode: B
+  poll_default_live_voting_enabled:
+    type: boolean
+    default: false
+    description: Defines default 'poll.live_voting_enabled' option suggested to user. Is not used in the validations.
+    restriction_mode: B
   poll_couple_countdown:
     type: boolean
     default: True
