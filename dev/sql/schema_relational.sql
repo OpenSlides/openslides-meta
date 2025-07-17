@@ -347,7 +347,7 @@ CREATE TABLE meeting_t (
     export_csv_separator varchar(256) DEFAULT ';',
     export_pdf_pagenumber_alignment varchar(256) CONSTRAINT enum_meeting_export_pdf_pagenumber_alignment CHECK (export_pdf_pagenumber_alignment IN ('left', 'right', 'center')) DEFAULT 'center',
     export_pdf_fontsize integer CONSTRAINT enum_meeting_export_pdf_fontsize CHECK (export_pdf_fontsize IN (10, 11, 12)) DEFAULT 10,
-    export_pdf_line_height real CONSTRAINT minimum_export_pdf_line_height CHECK (export_pdf_line_height >= 1.0) DEFAULT 1.25,
+    export_pdf_line_height double precision CONSTRAINT minimum_export_pdf_line_height CHECK (export_pdf_line_height >= 1.0) DEFAULT 1.25,
     export_pdf_page_margin_left integer CONSTRAINT minimum_export_pdf_page_margin_left CHECK (export_pdf_page_margin_left >= 0) DEFAULT 20,
     export_pdf_page_margin_top integer CONSTRAINT minimum_export_pdf_page_margin_top CHECK (export_pdf_page_margin_top >= 0) DEFAULT 25,
     export_pdf_page_margin_right integer CONSTRAINT minimum_export_pdf_page_margin_right CHECK (export_pdf_page_margin_right >= 0) DEFAULT 20,
@@ -609,8 +609,8 @@ CREATE TABLE structure_level_list_of_speakers_t (
     structure_level_id integer NOT NULL,
     list_of_speakers_id integer NOT NULL,
     initial_time integer NOT NULL CONSTRAINT minimum_initial_time CHECK (initial_time >= 1),
-    additional_time real,
-    remaining_time real NOT NULL,
+    additional_time double precision,
+    remaining_time double precision NOT NULL,
     current_start_time timestamptz,
     meeting_id integer NOT NULL
 );
@@ -1110,7 +1110,7 @@ CREATE TABLE projector_countdown_t (
     title varchar(256) NOT NULL,
     description varchar(256) DEFAULT '',
     default_time integer,
-    countdown_time real DEFAULT 60,
+    countdown_time double precision DEFAULT 60,
     running boolean DEFAULT False,
     meeting_id integer NOT NULL
 );
