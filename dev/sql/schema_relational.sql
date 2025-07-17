@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'b582c21c91fa0895fe2cb1b77a3943be'
+-- MODELS_YML_CHECKSUM = '37c00fd09a72c83f2fbea74f023a6ec5'
 
 
 -- Database parameters
@@ -1346,15 +1346,31 @@ FROM organization_t o;
 
 CREATE VIEW "user" AS SELECT *,
 (select array_agg(n.meeting_id ORDER BY n.meeting_id) from nm_meeting_present_user_ids_user n where n.user_id = u.id) as is_present_in_meeting_ids,
-( SELECT array_agg(DISTINCT committee_id ORDER BY committee_id) FROM (
--- Select committee_ids from meetings the user is part of
-SELECT m.committee_id FROM meeting_user_t AS mu INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id INNER JOIN meeting_t AS m ON m.id = mu.meeting_id WHERE mu.user_id = u.id
-UNION
--- Select committee_ids from committee managers
-SELECT cmu.committee_id FROM nm_committee_manager_ids_user cmu WHERE cmu.user_id = u.id
-UNION
--- Select home_committee_id from user
-SELECT u.home_committee_id WHERE u.home_committee_id IS NOT NULL ) _ ) AS committee_ids,
+(
+  SELECT array_agg(DISTINCT committee_id ORDER BY committee_id)
+  FROM (
+    -- Select committee_ids from meetings the user is part of
+    SELECT m.committee_id
+    FROM meeting_user_t AS mu
+    INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
+    INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
+    WHERE mu.user_id = u.id
+
+    UNION
+
+    -- Select committee_ids from committee managers
+    SELECT cmu.committee_id
+    FROM nm_committee_manager_ids_user cmu
+    WHERE cmu.user_id = u.id
+
+    UNION
+
+    -- Select home_committee_id from user
+    SELECT u.home_committee_id
+    WHERE u.home_committee_id IS NOT NULL
+  ) _
+) AS committee_ids
+,
 (select array_agg(n.committee_id ORDER BY n.committee_id) from nm_committee_manager_ids_user n where n.user_id = u.id) as committee_management_ids,
 (select array_agg(m.id ORDER BY m.id) from meeting_user_t m where m.user_id = u.id) as meeting_user_ids,
 (select array_agg(n.poll_id ORDER BY n.poll_id) from nm_poll_voted_ids_user n where n.user_id = u.id) as poll_voted_ids,
@@ -1362,7 +1378,13 @@ SELECT u.home_committee_id WHERE u.home_committee_id IS NOT NULL ) _ ) AS commit
 (select array_agg(v.id ORDER BY v.id) from vote_t v where v.user_id = u.id) as vote_ids,
 (select array_agg(v.id ORDER BY v.id) from vote_t v where v.delegated_user_id = u.id) as delegated_vote_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_candidate_t p where p.user_id = u.id) as poll_candidate_ids,
-( SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id) FROM meeting_user_t mu INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id WHERE mu.user_id = u.id ) AS meeting_ids
+(
+  SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id)
+  FROM meeting_user_t mu
+  INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
+  WHERE mu.user_id = u.id
+) AS meeting_ids
+
 FROM user_t u;
 
 comment on column "user".committee_ids is 'Calculated field: Returns committee_ids, where the user is manager or member in a meeting';
@@ -1400,15 +1422,30 @@ FROM theme_t t;
 
 CREATE VIEW "committee" AS SELECT *,
 (select array_agg(m.id ORDER BY m.id) from meeting_t m where m.committee_id = c.id) as meeting_ids,
-( SELECT array_agg(DISTINCT user_id ORDER BY user_id) FROM (
--- Select user_ids from committees meetings
-SELECT mu.user_id FROM meeting_t AS m INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id WHERE m.committee_id = c.id
-UNION
--- Select user_ids from committee managers
-SELECT cmu.user_id FROM nm_committee_manager_ids_user cmu WHERE cmu.committee_id = c.id
-UNION
--- Select user_id from home committees
-SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id ) _ ) AS user_ids,
+(
+  SELECT array_agg(DISTINCT user_id ORDER BY user_id)
+  FROM (
+    -- Select user_ids from committees meetings
+    SELECT mu.user_id
+    FROM meeting_t AS m
+    INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id
+    INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
+    WHERE m.committee_id = c.id
+
+    UNION
+
+    -- Select user_ids from committee managers
+    SELECT cmu.user_id
+    FROM nm_committee_manager_ids_user cmu
+    WHERE cmu.committee_id = c.id
+
+    UNION
+
+    -- Select user_id from home committees
+    SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
+  ) _
+) AS user_ids
+,
 (select array_agg(n.user_id ORDER BY n.user_id) from nm_committee_manager_ids_user n where n.committee_id = c.id) as manager_ids,
 (select array_agg(ct.id ORDER BY ct.id) from committee_t ct where ct.parent_id = c.id) as child_ids,
 (select array_agg(n.all_parent_id ORDER BY n.all_parent_id) from nm_committee_all_child_ids_committee n where n.all_child_id = c.id) as all_parent_ids,
@@ -1467,7 +1504,13 @@ CREATE VIEW "meeting" AS SELECT *,
 (select c.id from committee_t c where c.default_meeting_id = m.id) as default_meeting_for_committee_id,
 (select array_agg(g.organization_tag_id ORDER BY g.organization_tag_id) from gm_organization_tag_tagged_ids g where g.tagged_id_meeting_id = m.id) as organization_tag_ids,
 (select array_agg(n.user_id ORDER BY n.user_id) from nm_meeting_present_user_ids_user n where n.meeting_id = m.id) as present_user_ids,
-( SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id) FROM meeting_user_t mu INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id WHERE mu.meeting_id = m.id ) AS user_ids,
+(
+  SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id)
+  FROM meeting_user_t mu
+  INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
+  WHERE mu.meeting_id = m.id
+) AS user_ids
+,
 (select array_agg(p.id ORDER BY p.id) from projection_t p where p.content_object_id_meeting_id = m.id) as projection_ids,
 (select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_agenda_item_list_in_meeting_id = m.id) as default_projector_agenda_item_list_ids,
 (select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_topic_in_meeting_id = m.id) as default_projector_topic_ids,
