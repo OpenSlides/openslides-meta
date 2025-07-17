@@ -214,13 +214,6 @@ organization:
   saml_private_key:
     type: text
     restriction_mode: D
-
-  vote_decrypt_public_main_key:
-    type: string
-    description: Public key from vote decrypt to validate cryptographic votes.
-    calculated: true
-    restriction_mode: A
-
   committee_ids:
     type: relation-list
     to: committee/organization_id
@@ -443,10 +436,6 @@ user:
   poll_voted_ids:
     type: relation-list
     to: poll/voted_ids
-    restriction_mode: A
-  option_ids:
-    type: relation-list
-    to: option/content_object_id
     restriction_mode: A
   acting_vote_ids:
     type: relation-list
@@ -1792,11 +1781,6 @@ meeting:
     to: poll/meeting_id
     on_delete: CASCADE
     restriction_mode: B
-  option_ids:
-    type: relation-list
-    to: option/meeting_id
-    on_delete: CASCADE
-    restriction_mode: B
   vote_ids:
     type: relation-list
     to: vote/meeting_id
@@ -2855,12 +2839,6 @@ motion:
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: C
-  option_ids:
-    type: relation-list
-    to: option/content_object_id
-    on_delete: CASCADE
-    equal_fields: meeting_id
-    restriction_mode: C
   change_recommendation_ids:
     type: relation-list
     to: motion_change_recommendation/motion_id
@@ -3531,12 +3509,12 @@ vote:
   acting_user_id:
     type: relation
     reference: user
-    to: user/acting_user_id
+    to: user/acting_vote_ids
     restriction_mode: A
   represented_user_id:
     type: relation
     reference: user
-    to: user/represented_user_id
+    to: user/represented_vote_ids
     restriction_mode: A
   meeting_id:
     type: relation
@@ -3674,13 +3652,6 @@ poll_candidate_list:
     type: relation
     reference: meeting
     to: meeting/poll_candidate_list_ids
-    required: true
-    restriction_mode: A
-    constant: true
-  option_id:
-    type: relation
-    to: option/content_object_id
-    equal_fields: meeting_id
     required: true
     restriction_mode: A
     constant: true
