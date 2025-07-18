@@ -3403,7 +3403,6 @@ poll:
     type: string
     required: true
     enum:
-      - analog
       - named
       - open
       - secret
@@ -3412,6 +3411,7 @@ poll:
     type: string
     required: true
     enum:
+      - analog
       - motion
       - selection
       - rating
