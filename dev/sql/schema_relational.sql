@@ -62,17 +62,19 @@ $not_null_trigger$ language plpgsql;
 CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_modified_trigger$
 DECLARE
     escaped_table_name varchar;
-    operation TEXT;
-    fqid TEXT;
+    operation_var TEXT;
+    fqid_var TEXT;
 BEGIN
     escaped_table_name := TG_ARGV[0];
-    operation := LOWER(TG_OP);
-    fqid :=  escaped_table_name || '/' || NEW.id;
+    operation_var := LOWER(TG_OP);
+    fqid_var :=  escaped_table_name || '/' || NEW.id;
     IF (TG_OP = 'DELETE') THEN
-        fqid = escaped_table_name || '/' || OLD.id;
+        fqid_var = escaped_table_name || '/' || OLD.id;
     END IF;
 
-    INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
+    INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp)
+    VALUES (operation_var, fqid_var, pg_current_xact_id(), 'now')
+    ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
     RETURN NULL;  -- AFTER TRIGGER needs no return
 END;
 $log_modified_trigger$ LANGUAGE plpgsql;
@@ -105,14 +107,14 @@ $notify_trigger$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION log_modified_related_models()
 RETURNS trigger AS $log_modified_related_trigger$
 DECLARE
-    operation TEXT;
-    fqid TEXT;
+    operation_var TEXT;
+    fqid_var TEXT;
     ref_column TEXT;
     foreign_table TEXT;
     foreign_id TEXT;
     i INTEGER := 0;
 BEGIN
-    operation := LOWER(TG_OP);
+    operation_var := LOWER(TG_OP);
 
     WHILE i < TG_NARGS LOOP
         foreign_table := TG_ARGV[i];
@@ -125,8 +127,10 @@ BEGIN
         END IF;
 
         IF foreign_id IS NOT NULL THEN
-            fqid := foreign_table || '/' || foreign_id;
-            INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), now());
+            fqid_var := foreign_table || '/' || foreign_id;
+            INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp)
+            VALUES (operation_var, fqid_var, pg_current_xact_id(), now())
+            ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
         END IF;
 
         i := i + 2;
@@ -141,7 +145,8 @@ CREATE TABLE os_notify_log_t (
     operation varchar(32),
     fqid varchar(256) NOT NULL,
     xact_id xid8,
-    timestamp timestamptz
+    timestamp timestamptz,
+    CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
 );
 
 
