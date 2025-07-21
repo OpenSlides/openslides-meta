@@ -1,6 +1,5 @@
 import string
 import sys
-import ipdb
 from collections import defaultdict
 from collections.abc import Callable
 from decimal import Decimal
@@ -1129,11 +1128,9 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{ge
     @staticmethod
     def get_trigger_for_generic_intermediate_table(
         own_table_field: TableFieldType, foreign_table_fields: list[TableFieldType]
-    ) -> tuple[str, str]:
-        notify_trigger_text = ""
+    ) -> str:
 
         gm_table_name = HelperGetNames.get_gm_table_name(own_table_field)
-        own_table_column = own_table_field.intermediate_column
         trigger_text = ""
 
         for foreign_table_field in foreign_table_fields:
