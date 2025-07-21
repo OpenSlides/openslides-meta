@@ -103,7 +103,7 @@ class GenerateCodeBlocks:
             "to",
             "reference",
             # "on_delete", # must have other name then the key-value-store one
-            # "sql"
+            "sql",
             # "equal_fields", # Seems we need, see example_transactional.sql between meeting and groups?
             # "unique",  # TODO: still to design
         }
@@ -354,6 +354,10 @@ class GenerateCodeBlocks:
                     foreign_table,
                     cast(str, foreign_table_field.column),
                 )
+        if comment := fdata.get("description"):
+            text["post_view"] += Helper.get_post_view_comment(
+                HelperGetNames.get_view_name(table_name), fname, comment
+            )
         text["final_info"] = final_info
         return text, error
 
@@ -472,10 +476,6 @@ class GenerateCodeBlocks:
                     foreign_table_ref_column,
                     own_table_field.field_def == foreign_table_field.field_def,
                 )
-                if comment := fdata.get("description"):
-                    text["post_view"] = Helper.get_post_view_comment(
-                        HelperGetNames.get_view_name(table_name), fname, comment
-                    )
                 if own_table_field.field_def.get("required"):
                     text["create_trigger_relationlistnotnull"] = (
                         cls.get_trigger_check_not_null_for_relation_lists(
@@ -485,6 +485,10 @@ class GenerateCodeBlocks:
                             foreign_table_field.column,
                         )
                     )
+        if comment := fdata.get("description"):
+            text["post_view"] += Helper.get_post_view_comment(
+                HelperGetNames.get_view_name(table_name), fname, comment
+            )
         text["final_info"] = final_info
         return text, error
 
@@ -1287,7 +1291,10 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "pg_type": "text",
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
-    "float": {"pg_type": "real", "method": GenerateCodeBlocks.get_schema_simple_types},
+    "float": {
+        "pg_type": "double precision",
+        "method": GenerateCodeBlocks.get_schema_simple_types,
+    },
     "decimal(6)": {
         "pg_type": "decimal(16,6)",
         "method": GenerateCodeBlocks.get_schema_simple_types,
