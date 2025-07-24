@@ -1637,6 +1637,11 @@ meeting:
     enum: *poll_backends
     default: fast
     restriction_mode: B
+  poll_default_live_voting_enabled:
+    type: boolean
+    default: false
+    description: Defines default 'poll.live_voting_enabled' option suggested to user. Is not used in the validations.
+    restriction_mode: B
   poll_couple_countdown:
     type: boolean
     default: True
@@ -3494,10 +3499,15 @@ poll:
   entitled_users_at_stop:
     type: JSON
     restriction_mode: A
-  has_voted_user_ids:
-    type: number[]
+  live_voting_enabled:
+    type: boolean
+    default: false
+    description: If true, the vote service sends the votes of the users to the autoupdate service.
+    restriction_mode: A
+  live_votes:
+    type: JSON
     calculated: true
-    description: user_ids of the users, that have voted, while a poll is running.
+    description: dict from user to their vote. The value is null, when live voting is disabled.
     restriction_mode: C
   sequential_number:
     type: number
