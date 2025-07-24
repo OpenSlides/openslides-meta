@@ -4267,7 +4267,6 @@ history_entry:
         - motion
         - assignment
       field: history_entry_ids
-    required: true
     restriction_mode: A
   position_id:
     type: relation
