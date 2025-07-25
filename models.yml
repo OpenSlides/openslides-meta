@@ -1905,6 +1905,10 @@ meeting:
     type: relation
     to: group/anonymous_group_for_meeting_id
     restriction_mode: B
+  relevant_history_entry_ids:
+    type: relation-list
+    to: history_entry/meeting_id
+    restriction_mode: G
 
 structure_level:
   id: *id_field
@@ -4274,3 +4278,7 @@ history_entry:
     required: true
     restriction_mode: A
     constant: true
+  meeting_id:
+    type: relation
+    to: meeting/relevant_history_entry_ids
+    restriction_mode: A
