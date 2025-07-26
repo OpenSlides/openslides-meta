@@ -3392,20 +3392,12 @@ motion_workflow:
 
 poll:
   id: *id_field
-  description:
-    type: text
-    restriction_mode: A
   title:
     type: string
     required: true
     restriction_mode: A
-  visibility:
-    type: string
-    required: true
-    enum:
-      - named
-      - open
-      - secret
+  description:
+    type: text
     restriction_mode: A
   method:
     type: string
@@ -3417,6 +3409,17 @@ poll:
       - rating
       - single_transferable_vote
     restriction_mode: A
+  config:
+    type: JSON
+    description: Values to configure the poll. Depends on the value in poll/method.
+    restriction_mode: A
+  visibility:
+    type: string
+    enum:
+      - named
+      - open
+      - secret
+    restriction_mode: A
   state:
     type: string
     enum:
@@ -3425,10 +3428,6 @@ poll:
       - finished
       - published
     default: created
-    restriction_mode: A
-  config:
-    type: JSON
-    description: Values to configure the poll. Depends on the value in poll/method.
     restriction_mode: A
   result:
     type: JSON
