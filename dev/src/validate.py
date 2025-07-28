@@ -53,6 +53,7 @@ OPTIONAL_ATTRIBUTES = (
     "required",
     "read_only",
     "constant",
+    "unique",
 )
 
 
@@ -208,6 +209,7 @@ class Checker:
             valid_attributes.append("equal_fields")
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
+            valid_attributes.extend(("reference", "deferred", "sql"))
 
         for attr in field.keys():
             if attr not in valid_attributes:
