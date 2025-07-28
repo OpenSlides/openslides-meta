@@ -29,7 +29,8 @@ jobs:
           apt-get install --yes --no-install-recommends postgresql-client
 
       - name: apply schema
-        run: sh dev/scripts/apply_db_schema.sh
+        shell: bash
+        run: bash dev/scripts/apply_db_schema.sh
         env:
           DATABASE_HOST: postgres
           DATABASE_PORT: 5432
@@ -38,7 +39,8 @@ jobs:
           PGPASSWORD: password
 
       - name: insert init data
-        run: sh dev/scripts/apply_base_data.sh
+        shell: bash
+        run: bash dev/scripts/apply_base_data.sh
         env:
           DATABASE_HOST: postgres
           DATABASE_PORT: 5432

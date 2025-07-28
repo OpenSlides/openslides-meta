@@ -1052,6 +1052,7 @@ class Helper:
 
     @staticmethod
     def get_post_view_comment(entity_name: str, fname: str, comment: str) -> str:
+        comment = comment.replace("'", "''")
         return f"comment on column {entity_name}.{fname} is '{comment}';\n"
 
     @staticmethod
