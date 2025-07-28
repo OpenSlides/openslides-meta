@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'b7699ab67c248821ddc8a885f9041d0d'
+-- MODELS_YML_CHECKSUM = '8f69f7d0541bd14d340ae817ba75b1e3'
 
 
 -- Database parameters
@@ -502,7 +502,7 @@ comment on column meeting_t.is_active_in_organization_id is 'Backrelation and bo
 comment on column meeting_t.is_archived_in_organization_id is 'Backrelation and boolean flag at once';
 comment on column meeting_t.list_of_speakers_default_structure_level_time is '0 disables structure level countdowns.';
 comment on column meeting_t.list_of_speakers_intervention_time is '0 disables intervention speakers.';
-comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default 'poll.live_voting_enabled' option suggested to user. Is not used in the validations.';
+comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default ''poll.live_voting_enabled'' option suggested to user. Is not used in the validations.';
 
 
 CREATE TABLE structure_level_t (

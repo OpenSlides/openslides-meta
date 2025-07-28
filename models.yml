@@ -90,7 +90,7 @@
 #     - You can add JSON Schema properties to the fields like `enum`, `description`,
 #       `items`, `maxLength` and `minimum`
 # Additional properties:
-#     - The property `read_only` describes a field that can not be changed by an action.
+#     - The property `read_only` describes a field that can not directly be changed by an action.
 #     - The property `default` describes the default value that is used for new objects.
 #     - The property `required` describes that this field can not be null or an empty
 #       string. If this field is given it must have some content. On relation and generic-relation
