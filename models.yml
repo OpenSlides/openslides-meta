@@ -1908,7 +1908,7 @@ meeting:
   relevant_history_entry_ids:
     type: relation-list
     to: history_entry/meeting_id
-    restriction_mode: G
+    restriction_mode: A
 
 structure_level:
   id: *id_field
