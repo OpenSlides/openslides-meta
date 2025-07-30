@@ -77,6 +77,30 @@ BEGIN
 END;
 $log_modified_trigger$ LANGUAGE plpgsql;
 
+CREATE FUNCTION check_unique_ids_pair()
+RETURNS trigger
+AS $unique_ids_pair_trigger$
+-- usage with 1 parameter IN TRIGGER DEFINITION:
+-- base_column_name: name of write fields before adding numeric suffixes
+-- Guards against mirrored duplicates by skipping one of the pairs.
+DECLARE
+    base_column_name text;
+    value_1 integer;
+    value_2 integer;
+BEGIN
+    base_column_name = TG_ARGV[0];
+    value_1 := hstore(NEW) -> (base_column_name || '_1');
+    value_2 := hstore(NEW) -> (base_column_name || '_2');
+
+    IF (value_1 > value_2) THEN
+        RETURN NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$unique_ids_pair_trigger$
+LANGUAGE plpgsql;
+
 CREATE FUNCTION notify_transaction_end() RETURNS trigger AS $notify_trigger$
 DECLARE
     payload TEXT;
@@ -2115,6 +2139,15 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('meeting', 'defa
 
 CREATE CONSTRAINT TRIGGER tr_ud_meeting_default_projector_poll_ids AFTER UPDATE OF used_as_default_projector_for_poll_in_meeting_id OR DELETE ON projector_t
 FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('meeting', 'default_projector_poll_ids', 'used_as_default_projector_for_poll_in_meeting_id');
+
+
+
+
+-- Create triggers preventing mirrored duplicates in fields referencing themselves
+
+-- definition trigger unique ids pair for motion.identical_motion_ids
+CREATE TRIGGER restrict_motion_identical_motion_ids BEFORE INSERT OR UPDATE ON nm_motion_identical_motion_ids_motion
+FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('identical_motion_id');
 
 
 

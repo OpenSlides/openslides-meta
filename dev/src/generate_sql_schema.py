@@ -83,6 +83,7 @@ class GenerateCodeBlocks:
               n:m-relations name schema: f"nm_{smaller-table-name}_{it's-fieldname}_{greater-table_name}" uses one per relation
               g:m-relations name schema: f"gm_{table_field.table}_{table_field.column}" of table with generic-list-field
           create_trigger_relationlistnotnull_code: Definitions of triggers calling check_not_null_for_relation_lists
+          create_trigger_unique_ids_pair_code: Definitions of triggers calling check_unique_ids_pair
           create_trigger_notify_code: Definitions of triggers calling notify_modified_models
           errors: to show
         """
@@ -111,6 +112,7 @@ class GenerateCodeBlocks:
         view_name_code: str = ""
         alter_table_final_code: str = ""
         create_trigger_relationlistnotnull_code: str = ""
+        create_trigger_unique_ids_pair_code: str = ""
         create_trigger_notify_code: str = ""
         final_info_code: str = ""
         missing_handled_attributes = []
@@ -159,6 +161,8 @@ class GenerateCodeBlocks:
                 alter_table_final_code += code + "\n"
             if code := schema_zone_texts["create_trigger_relationlistnotnull"]:
                 create_trigger_relationlistnotnull_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
+                create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
             for im_table in cls.intermediate_tables.values():
@@ -184,6 +188,7 @@ class GenerateCodeBlocks:
             missing_handled_attributes,
             im_table_code,
             create_trigger_relationlistnotnull_code,
+            create_trigger_unique_ids_pair_code,
             create_trigger_notify_code,
             errors,
         )
@@ -469,6 +474,19 @@ class GenerateCodeBlocks:
                             foreign_table_field.column,
                         )
                     )
+                if (
+                    own_table_field.table == foreign_table_field.table
+                    and own_table_field.column == foreign_table_field.column
+                ):
+                    text["create_trigger_unique_ids_pair_code"] = (
+                        cls.get_trigger_check_unique_ids_pair(
+                            own_table_field.table,
+                            own_table_field.column,
+                            HelperGetNames.get_nm_table_name(
+                                own_table_field, foreign_table_field
+                            ),
+                        )
+                    )
         if comment := fdata.get("description"):
             text["post_view"] += Helper.get_post_view_comment(
                 HelperGetNames.get_view_name(table_name), fname, comment
@@ -523,6 +541,23 @@ class GenerateCodeBlocks:
 
             CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t}
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '{foreign_column}');
+
+            """
+        )
+
+    @classmethod
+    def get_trigger_check_unique_ids_pair(
+        cls,
+        collection: str,
+        collection_field: str,
+        table_name: str,
+    ) -> str:
+        base_column_name = collection_field[:-1]
+        return dedent(
+            f"""
+            -- definition trigger unique ids pair for {collection}.{collection_field}
+            CREATE TRIGGER restrict_{collection}_{collection_field} BEFORE INSERT OR UPDATE ON {table_name}
+            FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('{base_column_name}');
 
             """
         )
@@ -702,6 +737,30 @@ class Helper:
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
+
+        CREATE FUNCTION check_unique_ids_pair()
+        RETURNS trigger
+        AS $unique_ids_pair_trigger$
+        -- usage with 1 parameter IN TRIGGER DEFINITION:
+        -- base_column_name: name of write fields before adding numeric suffixes
+        -- Guards against mirrored duplicates by skipping one of the pairs.
+        DECLARE
+            base_column_name text;
+            value_1 integer;
+            value_2 integer;
+        BEGIN
+            base_column_name = TG_ARGV[0];
+            value_1 := hstore(NEW) -> (base_column_name || '_1');
+            value_2 := hstore(NEW) -> (base_column_name || '_2');
+
+            IF (value_1 > value_2) THEN
+                RETURN NULL;
+            END IF;
+
+            RETURN NEW;
+        END;
+        $unique_ids_pair_trigger$
+        LANGUAGE plpgsql;
 
         CREATE FUNCTION notify_transaction_end() RETURNS trigger AS $notify_trigger$
         DECLARE
@@ -1217,6 +1276,7 @@ def main() -> None:
         missing_handled_attributes,
         im_table_code,
         create_trigger_relationlistnotnull_code,
+        create_trigger_unique_ids_pair_code,
         create_trigger_notify_code,
         errors,
     ) = GenerateCodeBlocks.generate_the_code()
@@ -1241,6 +1301,10 @@ def main() -> None:
             "\n\n-- Create triggers checking foreign_id not null for relation-lists\n"
         )
         dest.write(create_trigger_relationlistnotnull_code)
+        dest.write(
+            "\n\n-- Create triggers preventing mirrored duplicates in fields referencing themselves\n"
+        )
+        dest.write(create_trigger_unique_ids_pair_code)
         dest.write("\n\n-- Create triggers for notify\n")
         dest.write(create_trigger_notify_code)
         dest.write(Helper.RELATION_LIST_AGENDA)
