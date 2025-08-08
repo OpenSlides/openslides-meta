@@ -31,6 +31,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     alter_table: str
     alter_table_final: str
     create_trigger_relationlistnotnull: str
+    create_trigger_unique_ids_pair_code: str
     create_trigger_notify: str
     undecided: str
     final_info: str
@@ -70,7 +71,7 @@ class GenerateCodeBlocks:
     @classmethod
     def generate_the_code(
         cls,
-    ) -> tuple[str, str, str, str, str, list[str], str, str, str, list[str]]:
+    ) -> tuple[str, str, str, str, str, list[str], str, str, str, str, list[str]]:
         """
         Return values:
           pre_code: Type definitions etc., which should all appear before first table definitions
