@@ -2358,6 +2358,7 @@ speaker:
       - pro
       - contra
       - intervention
+      - intervention_answer
       - interposed_question
     restriction_mode: A
   note:
