@@ -549,15 +549,15 @@ class GenerateCodeBlocks:
     @classmethod
     def get_trigger_check_unique_ids_pair(
         cls,
-        collection: str,
-        collection_field: str,
+        view: str,
+        column: str,
         table_name: str,
     ) -> str:
-        base_column_name = collection_field[:-1]
+        base_column_name = column[:-1]
         return dedent(
             f"""
-            -- definition trigger unique ids pair for {collection}.{collection_field}
-            CREATE TRIGGER restrict_{collection}_{collection_field} BEFORE INSERT OR UPDATE ON {table_name}
+            -- definition trigger unique ids pair for {view}.{column}
+            CREATE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('{base_column_name}');
 
             """
