@@ -65,7 +65,6 @@ BEGIN;
         (2, 2, 2, 2, 2, 1, 2, 'meeting');
 
     INSERT INTO
-        -- TODO Replace it with "group" after this is fixed: https://github.com/OpenSlides/openslides-meta/issues/243
         group_t (id, name, meeting_id, permissions)
     VALUES
         (
