@@ -1,6 +1,6 @@
 -- This script can only be used for an empty database without used sequences.
-insert into gender_t (name) values('female');
-insert into user_t (username,gender_id) values('tom',1); --relation --relation-list gender_ids
+INSERT INTO gender_t (name) VALUES('female');
+INSERT INTO user_t (username,gender_id) VALUES('tom',1); --relation --relation-list gender_ids
 BEGIN;
     INSERT INTO motion_state_t (id,name,weight,workflow_id,meeting_id)
         VALUES (1,'motionState1',1,1,1);
@@ -8,7 +8,7 @@ BEGIN;
         VALUES (1,'workflow1',1,1,1);
     INSERT INTO meeting_t (id,name,motions_default_workflow_id,motions_default_amendment_workflow_id,committee_id,reference_projector_id,default_group_id)
         VALUES (1,'name',1,1,1,1,1);
-    Insert into organization_tag_t(id,name,color)
+    INSERT INTO organization_tag_t(id,name,color)
         VALUES(1,'tagA','#cc3b03'); --generic-relation-list tagged_ids
     Insert Into committee(id, name, default_meeting_id)
         Values(1,'plenum',1); --relation-list organization_tag_ids --relation 1:1 default_meeting_id
@@ -20,7 +20,7 @@ COMMIT;
 
 INSERT INTO organization_tag_t (id,name,color)
     VALUES (2,'bunt','#ffffff');
-Insert into gm_organization_tag_tagged_ids_t(organization_tag_id,tagged_id)
+INSERT INTO gm_organization_tag_tagged_ids_t(organization_tag_id,tagged_id)
     VALUES(2,'meeting/1'); 
 
 INSERT INTO topic_t (id,title, sequential_number, meeting_id)
@@ -31,7 +31,7 @@ INSERT INTO agenda_item_t (content_object_id, meeting_id)
 INSERT INTO option_t (id,content_object_id,meeting_id)
     VALUES (1, 'user/1', 1);--rl:gr user.option_id:option.content_object_id
 
-Insert into nm_committee_user_ids_user_t
+INSERT INTO nm_committee_manager_ids_user_t
     VALUES (1,1); --rl:rl committee_ids:user_ids
 
 INSERT INTO

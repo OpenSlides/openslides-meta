@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'd8665738e18a4475fcb6be7f7744fe30'
+-- MODELS_YML_CHECKSUM = 'f7b30c2a399c24e787a7d4864c19c03f'
 
 
 -- Database parameters
@@ -507,6 +507,7 @@ This email was generated automatically.',
     poll_default_method varchar(256),
     poll_default_onehundred_percent_base varchar(256) CONSTRAINT enum_meeting_poll_default_onehundred_percent_base CHECK (poll_default_onehundred_percent_base IN ('Y', 'YN', 'YNA', 'N', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled')) DEFAULT 'YNA',
     poll_default_backend varchar(256) CONSTRAINT enum_meeting_poll_default_backend CHECK (poll_default_backend IN ('long', 'fast')) DEFAULT 'fast',
+    poll_default_live_voting_enabled boolean DEFAULT False,
     poll_couple_countdown boolean DEFAULT True,
     logo_projector_main_id integer UNIQUE,
     logo_projector_header_id integer UNIQUE,
@@ -540,6 +541,7 @@ comment on column meeting_t.is_active_in_organization_id is 'Backrelation and bo
 comment on column meeting_t.is_archived_in_organization_id is 'Backrelation and boolean flag at once';
 comment on column meeting_t.list_of_speakers_default_structure_level_time is '0 disables structure level countdowns.';
 comment on column meeting_t.list_of_speakers_intervention_time is '0 disables intervention speakers.';
+comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default ''poll.live_voting_enabled'' option suggested to user. Is not used in the validations.';
 
 
 CREATE TABLE structure_level_t (
@@ -910,6 +912,7 @@ CREATE TABLE poll_t (
     votesinvalid decimal(16,6),
     votescast decimal(16,6),
     entitled_users_at_stop jsonb,
+    live_voting_enabled boolean DEFAULT False,
     sequential_number integer NOT NULL,
     crypt_key varchar(256),
     crypt_signature varchar(256),
@@ -926,6 +929,7 @@ CREATE TABLE poll_t (
 
 
 
+comment on column poll_t.live_voting_enabled is 'If true, the vote service sends the votes of the users to the autoupdate service.';
 comment on column poll_t.sequential_number is 'The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.';
 comment on column poll_t.crypt_key is 'base64 public key to cryptographic votes.';
 comment on column poll_t.crypt_signature is 'base64 signature of cryptographic_key.';
@@ -935,7 +939,7 @@ comment on column poll_t.votes_signature is 'base64 signature of votes_raw field
 /*
  Fields without SQL definition for table poll
 
-    poll/has_voted_user_ids: type:number[] is marked as a calculated field and not generated in schema
+    poll/live_votes: type:JSON is marked as a calculated field and not generated in schema
 
 */
 
@@ -3347,7 +3351,7 @@ FIELD 1rR:nt => chat_message/meeting_id:-> meeting/chat_message_ids
 /*
 There are 3 errors/warnings
     organization/vote_decrypt_public_main_key: type:string is marked as a calculated field and not generated in schema
-    poll/has_voted_user_ids: type:number[] is marked as a calculated field and not generated in schema
+    poll/live_votes: type:JSON is marked as a calculated field and not generated in schema
     projection/content: type:JSON is marked as a calculated field and not generated in schema
 */
 
