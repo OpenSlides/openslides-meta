@@ -1,6 +1,6 @@
 -- This script can only be used for an empty database without used sequences.
-insert into gender_t (name) values('female');
-insert into user_t (username,gender_id) values('tom',1); --relation --relation-list gender_ids
+INSERT INTO gender_t (name) VALUES('female');
+INSERT INTO user_t (username,gender_id) VALUES('tom',1); --relation --relation-list gender_ids
 BEGIN;
     INSERT INTO motion_state_t (id,name,weight,workflow_id,meeting_id)
         VALUES (1,'motionState1',1,1,1);
@@ -20,7 +20,7 @@ COMMIT;
 
 INSERT INTO organization_tag_t (id,name,color)
     VALUES (2,'bunt','#ffffff');
-INSERT INTO gm_organization_tag_tagged_ids(organization_tag_id,tagged_id)
+INSERT INTO gm_organization_tag_tagged_ids_t(organization_tag_id,tagged_id)
     VALUES(2,'meeting/1'); 
 
 INSERT INTO topic_t (id,title, sequential_number, meeting_id)
@@ -31,7 +31,7 @@ INSERT INTO agenda_item_t (content_object_id, meeting_id)
 INSERT INTO option_t (id,content_object_id,meeting_id)
     VALUES (1, 'user/1', 1);--rl:gr user.option_id:option.content_object_id
 
-INSERT INTO nm_committee_manager_ids_user
+INSERT INTO nm_committee_manager_ids_user_t
     VALUES (1,1); --rl:rl committee_ids:user_ids
 
 INSERT INTO
@@ -65,7 +65,6 @@ BEGIN;
         (2, 2, 2, 2, 2, 1, 2, 'meeting');
 
     INSERT INTO
-        -- TODO Replace it with "group" after this is fixed: https://github.com/OpenSlides/openslides-meta/issues/243
         group_t (id, name, meeting_id, permissions)
     VALUES
         (
