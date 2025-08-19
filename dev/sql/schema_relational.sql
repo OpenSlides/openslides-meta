@@ -2185,7 +2185,7 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('meeting', 'defa
 -- Create triggers preventing mirrored duplicates in fields referencing themselves
 
 -- definition trigger unique ids pair for motion.identical_motion_ids
-CREATE TRIGGER restrict_motion_identical_motion_ids BEFORE INSERT OR UPDATE ON nm_motion_identical_motion_ids_motion
+CREATE TRIGGER restrict_motion_identical_motion_ids BEFORE INSERT OR UPDATE ON nm_motion_identical_motion_ids_motion_t
 FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('identical_motion_id');
 
 
