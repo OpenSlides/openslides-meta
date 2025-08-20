@@ -2358,8 +2358,10 @@ speaker:
       - pro
       - contra
       - intervention
-      - intervention_answer
       - interposed_question
+    restriction_mode: A
+  answer:
+    type: boolean
     restriction_mode: A
   note:
     type: string
