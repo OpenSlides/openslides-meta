@@ -1,4 +1,5 @@
 # Commands inside the container
+paths = src/ tests/
 
 all: pyupgrade black autoflake isort flake8 mypy
 
@@ -9,28 +10,45 @@ check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
 
 black:
-	black src/
+	black $(paths)
 
 check-black:
-	black --check --diff src/
+	black --check --diff $(paths)
 
 autoflake:
-	autoflake src/
+	autoflake $(paths)
 
 isort:
-	isort src/
+	isort $(paths)
 
 check-isort:
-	isort --check-only --diff src/
+	isort --check-only --diff $(paths)
 
 flake8:
-	flake8 src/
+	flake8 $(paths)
 
 mypy:
 	mypy src/
 
 validate-models:
 	python src/validate.py
+
+generate-relational-schema:
+	python src/generate_sql_schema.py
+
+drop-database:
+	dropdb -f -e --if-exists -h ${DATABASE_HOST} -p ${DATABASE_PORT} -U ${DATABASE_USER} ${DATABASE_NAME}
+
+create-database:
+	createdb -e -h ${DATABASE_HOST} -p ${DATABASE_PORT} -U ${DATABASE_USER} ${DATABASE_NAME}
+
+apply-db-schema:
+	scripts/apply_db_schema.sh
+
+create-database-with-schema: drop-database create-database apply-db-schema
+
+run-psql:
+	psql -h ${DATABASE_HOST} -p ${DATABASE_PORT} -U ${DATABASE_USER} -d ${DATABASE_NAME}
 
 # Docker manage commands
 

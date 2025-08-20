@@ -7,7 +7,12 @@ pytest==8.4.1
 pyupgrade==3.20.0
 pyyaml==6.0.2
 simplejson==3.20.1
+debugpy==1.8.0
+requests==2.31.0
+psycopg[binary]==3.2.6
+python-sql==1.5.1
 
 # typing
 types-PyYAML==6.0.12.20250809
 types-simplejson==3.20.0.20250326
+types-requests==2.31.0.20240125
