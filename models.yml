@@ -2360,6 +2360,9 @@ speaker:
       - intervention
       - interposed_question
     restriction_mode: A
+  answer:
+    type: boolean
+    restriction_mode: A
   note:
     type: string
     maxLength: 250
