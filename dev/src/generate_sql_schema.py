@@ -31,6 +31,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     alter_table: str
     alter_table_final: str
     create_trigger_relationlistnotnull: str
+    create_trigger_unique_ids_pair_code: str
     create_trigger_notify: str
     undecided: str
     final_info: str
@@ -70,7 +71,7 @@ class GenerateCodeBlocks:
     @classmethod
     def generate_the_code(
         cls,
-    ) -> tuple[str, str, str, str, str, list[str], str, str, str, list[str]]:
+    ) -> tuple[str, str, str, str, str, list[str], str, str, str, str, list[str]]:
         """
         Return values:
           pre_code: Type definitions etc., which should all appear before first table definitions
@@ -83,6 +84,7 @@ class GenerateCodeBlocks:
               n:m-relations name schema: f"nm_{smaller-table-name}_{it's-fieldname}_{greater-table_name}" uses one per relation
               g:m-relations name schema: f"gm_{table_field.table}_{table_field.column}" of table with generic-list-field
           create_trigger_relationlistnotnull_code: Definitions of triggers calling check_not_null_for_relation_lists
+          create_trigger_unique_ids_pair_code: Definitions of triggers calling check_unique_ids_pair
           create_trigger_notify_code: Definitions of triggers calling notify_modified_models
           errors: to show
         """
@@ -111,6 +113,7 @@ class GenerateCodeBlocks:
         view_name_code: str = ""
         alter_table_final_code: str = ""
         create_trigger_relationlistnotnull_code: str = ""
+        create_trigger_unique_ids_pair_code: str = ""
         create_trigger_notify_code: str = ""
         final_info_code: str = ""
         missing_handled_attributes = []
@@ -120,6 +123,7 @@ class GenerateCodeBlocks:
         for table_name, fields in MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
                 continue
+
             schema_zone_texts = cast(SchemaZoneTexts, defaultdict(str))
             cls.intermediate_tables = {}
 
@@ -159,6 +163,8 @@ class GenerateCodeBlocks:
                 alter_table_final_code += code + "\n"
             if code := schema_zone_texts["create_trigger_relationlistnotnull"]:
                 create_trigger_relationlistnotnull_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
+                create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
             for im_table in cls.intermediate_tables.values():
@@ -184,6 +190,7 @@ class GenerateCodeBlocks:
             missing_handled_attributes,
             im_table_code,
             create_trigger_relationlistnotnull_code,
+            create_trigger_unique_ids_pair_code,
             create_trigger_notify_code,
             errors,
         )
@@ -325,6 +332,14 @@ class GenerateCodeBlocks:
                     initially_deferred,
                 )
             )
+            table_name = HelperGetNames.get_table_name(table_name)
+            text["create_trigger_notify"] = Helper.get_foreign_key_notify_trigger(
+                table_name,
+                foreign_table_field.table,
+                fname,
+                foreign_table_field.ref_column,
+                initially_deferred,
+            )
         elif state == FieldSqlErrorType.SQL:
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
@@ -390,6 +405,12 @@ class GenerateCodeBlocks:
                     )
                     if nm_table_name not in cls.intermediate_tables:
                         cls.intermediate_tables[nm_table_name] = value
+                        text["create_trigger_notify"] = (
+                            Helper.get_trigger_for_intermediate_table(
+                                own_table_field,
+                                foreign_table_field,
+                            )
+                        )
                     else:
                         raise Exception(
                             f"Tried to create im_table '{nm_table_name}' twice"
@@ -424,16 +445,16 @@ class GenerateCodeBlocks:
                             )
                         else:
                             own_ref_column = own_table_field.ref_column
-                            foreign_table_ref_column = f"{foreign_table_field.table}_{foreign_table_field.ref_column}"
+                            foreign_table_ref_column = f"{foreign_table_field.view}_{foreign_table_field.ref_column}"
                             foreign_table_name = HelperGetNames.get_nm_table_name(
                                 own_table_field, foreign_table_field
                             )
                             foreign_table_column = (
-                                f"{own_table_field.table}_{own_table_field.ref_column}"
+                                f"{own_table_field.view}_{own_table_field.ref_column}"
                             )
                     elif type_ == "generic-relation-list":
                         own_ref_column = own_table_field.ref_column
-                        foreign_table_ref_column = f"{foreign_table_field.table}_{foreign_table_field.ref_column}"
+                        foreign_table_ref_column = f"{foreign_table_field.view}_{foreign_table_field.ref_column}"
                         foreign_table_name = HelperGetNames.get_gm_table_name(
                             foreign_table_field
                         )
@@ -467,6 +488,19 @@ class GenerateCodeBlocks:
                             own_table_field.column,
                             foreign_table_field.table,
                             foreign_table_field.column,
+                        )
+                    )
+                if (
+                    own_table_field.table == foreign_table_field.table
+                    and own_table_field.column == foreign_table_field.column
+                ):
+                    text["create_trigger_unique_ids_pair_code"] = (
+                        cls.get_trigger_check_unique_ids_pair(
+                            own_table_field.table,
+                            own_table_field.column,
+                            HelperGetNames.get_nm_table_name(
+                                own_table_field, foreign_table_field
+                            ),
                         )
                     )
         if comment := fdata.get("description"):
@@ -528,6 +562,23 @@ class GenerateCodeBlocks:
         )
 
     @classmethod
+    def get_trigger_check_unique_ids_pair(
+        cls,
+        view: str,
+        column: str,
+        table_name: str,
+    ) -> str:
+        base_column_name = column[:-1]
+        return dedent(
+            f"""
+            -- definition trigger unique ids pair for {view}.{column}
+            CREATE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
+            FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('{base_column_name}');
+
+            """
+        )
+
+    @classmethod
     def get_generic_relation_type(
         cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
     ) -> tuple[SchemaZoneTexts, str]:
@@ -563,6 +614,14 @@ class GenerateCodeBlocks:
                     foreign_table_field,
                 )
                 text[
+                    "create_trigger_notify"
+                ] += Helper.get_trigger_for_generic_relation(
+                    table_name,
+                    generic_plain_field_name,
+                    own_table_field.column,
+                    foreign_table_field.table,
+                )
+                text[
                     "alter_table_final"
                 ] += Helper.get_foreign_key_table_constraint_as_alter_table(
                     own_table_field.table,
@@ -596,6 +655,11 @@ class GenerateCodeBlocks:
             # create gm-intermediate table
             if primary:
                 gm_foreign_table, value = Helper.get_gm_table_for_gm_nm_relation_lists(
+                    own_table_field, foreign_table_fields
+                )
+                text[
+                    "create_trigger_notify"
+                ] += Helper.get_trigger_for_generic_intermediate_table(
                     own_table_field, foreign_table_fields
                 )
                 if gm_foreign_table not in cls.intermediate_tables:
@@ -688,20 +752,46 @@ class Helper:
         CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_modified_trigger$
         DECLARE
             escaped_table_name varchar;
-            operation TEXT;
-            fqid TEXT;
+            operation_var TEXT;
+            fqid_var TEXT;
         BEGIN
             escaped_table_name := TG_ARGV[0];
-            operation := LOWER(TG_OP);
-            fqid :=  escaped_table_name || '/' || NEW.id;
+            operation_var := LOWER(TG_OP);
+            fqid_var :=  escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                fqid = escaped_table_name || '/' || OLD.id;
+                fqid_var = escaped_table_name || '/' || OLD.id;
             END IF;
 
-            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp) VALUES (operation, fqid, pg_current_xact_id(), 'now');
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp)
+            VALUES (operation_var, fqid_var, pg_current_xact_id(), 'now')
+            ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
+
+        CREATE FUNCTION check_unique_ids_pair()
+        RETURNS trigger
+        AS $unique_ids_pair_trigger$
+        -- usage with 1 parameter IN TRIGGER DEFINITION:
+        -- base_column_name: name of write fields before adding numeric suffixes
+        -- Guards against mirrored duplicates by skipping one of the pairs.
+        DECLARE
+            base_column_name text;
+            value_1 integer;
+            value_2 integer;
+        BEGIN
+            base_column_name = TG_ARGV[0];
+            value_1 := hstore(NEW) -> (base_column_name || '_1');
+            value_2 := hstore(NEW) -> (base_column_name || '_2');
+
+            IF (value_1 > value_2) THEN
+                RETURN NULL;
+            END IF;
+
+            RETURN NEW;
+        END;
+        $unique_ids_pair_trigger$
+        LANGUAGE plpgsql;
 
         CREATE FUNCTION notify_transaction_end() RETURNS trigger AS $notify_trigger$
         DECLARE
@@ -728,12 +818,49 @@ class Helper:
         END;
         $notify_trigger$ LANGUAGE plpgsql;
 
+        CREATE OR REPLACE FUNCTION log_modified_related_models()
+        RETURNS trigger AS $log_modified_related_trigger$
+        DECLARE
+            operation_var TEXT;
+            fqid_var TEXT;
+            ref_column TEXT;
+            foreign_table TEXT;
+            foreign_id TEXT;
+            i INTEGER := 0;
+        BEGIN
+            operation_var := LOWER(TG_OP);
+
+            WHILE i < TG_NARGS LOOP
+                foreign_table := TG_ARGV[i];
+                ref_column := TG_ARGV[i+1];
+
+                IF (TG_OP = 'DELETE') THEN
+                    EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING OLD;
+                ELSE
+                    EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
+                END IF;
+
+                IF foreign_id IS NOT NULL THEN
+                    fqid_var := foreign_table || '/' || foreign_id;
+                    INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp)
+                    VALUES (operation_var, fqid_var, pg_current_xact_id(), now())
+                    ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
+                END IF;
+
+                i := i + 2;
+            END LOOP;
+
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $log_modified_related_trigger$ LANGUAGE plpgsql;
+
         CREATE TABLE os_notify_log_t (
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             operation varchar(32),
-            fqid varchar(256),
+            fqid varchar(256) NOT NULL,
             xact_id xid8,
-            timestamp timestamptz
+            timestamp timestamptz,
+            CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
         );
         """
     )
@@ -838,9 +965,10 @@ class Helper:
 
     @staticmethod
     def get_notify_trigger(table_name: str) -> str:
+        trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
         own_table = HelperGetNames.get_table_name(table_name)
         escaped_table_name = "'" + table_name + "'"
-        code = f"CREATE TRIGGER log_modified_model AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
+        code = f"CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
         code += f"CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();\n"
@@ -923,6 +1051,23 @@ class Helper:
         return ""
 
     @staticmethod
+    def get_foreign_key_notify_trigger(
+        table_name: str,
+        foreign_table: str,
+        ref_column: str,
+        fk_columns: list[str] | str,
+        initially_deferred: bool = False,
+        delete_action: str = "",
+        update_action: str = "",
+    ) -> str:
+        trigger_name = HelperGetNames.get_notify_related_trigger_name(
+            table_name, ref_column
+        )
+        own_table = HelperGetNames.get_table_name(table_name)
+        return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}');\n"""
+
+    @staticmethod
     def get_nm_table_for_n_m_relation_lists(
         own_table_field: TableFieldType, foreign_table_field: TableFieldType
     ) -> tuple[str, str]:
@@ -938,9 +1083,10 @@ class Helper:
         if field1 == field2:
             field1 += "_1"
             field2 += "_2"
+        table_name = HelperGetNames.get_table_name(nm_table_name)
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
             {
-                "table_name": nm_table_name,  # without tailing _t
+                "table_name": table_name,
                 "field1": field1,
                 "table1": HelperGetNames.get_table_name(own_table_field.table),
                 "field2": field2,
@@ -983,7 +1129,7 @@ class Helper:
 
         text = Helper.INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE.substitute(
             {
-                "table_name": gm_table_name,  # without trailing _t
+                "table_name": gm_table_name,
                 "own_table_name": HelperGetNames.get_table_name(own_table_field.table),
                 "own_table_name_with_ref_column": (
                     own_table_name_with_ref_column := f"{own_table_field.table}_{own_table_field.ref_column}"
@@ -1001,6 +1147,73 @@ class Helper:
             }
         )
         return gm_table_name, text
+
+    @staticmethod
+    def get_trigger_for_intermediate_table(
+        own_table_field: TableFieldType, foreign_table_field: TableFieldType
+    ) -> str:
+
+        field1 = HelperGetNames.get_field_in_n_m_relation_list(
+            own_table_field, foreign_table_field.table
+        )
+        field2 = HelperGetNames.get_field_in_n_m_relation_list(
+            foreign_table_field, own_table_field.table
+        )
+        if field1 == field2:
+            field1 += "_1"
+            field2 += "_2"
+        nm_table_name = HelperGetNames.get_nm_table_name(
+            own_table_field, foreign_table_field
+        )
+
+        table_name = HelperGetNames.get_table_name(nm_table_name)
+        trigger_name = f"tr_log_{table_name}"
+
+        return f"""
+CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{foreign_table_field.table}','{field2}');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+"""
+
+    @staticmethod
+    def get_trigger_for_generic_relation(
+        table_name: str,
+        generic_plain_field_name: str,
+        own_column: str,
+        foreign_table: str,
+    ) -> str:
+        trigger_name = f"tr_log_{foreign_table}_{generic_plain_field_name}"
+        own_table_name = HelperGetNames.get_table_name(table_name)
+        return f"""
+CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}');
+"""
+
+    @staticmethod
+    def get_trigger_for_generic_intermediate_table(
+        own_table_field: TableFieldType, foreign_table_fields: list[TableFieldType]
+    ) -> str:
+
+        gm_table_name = HelperGetNames.get_gm_table_name(own_table_field)
+        trigger_text = ""
+
+        for foreign_table_field in foreign_table_fields:
+            gm_content_field = HelperGetNames.get_gm_content_field(
+                own_table_field.intermediate_column, foreign_table_field.table
+            )
+            trigger_name = f"tr_log_{gm_content_field}_{gm_table_name}"
+            own_table_name_with_ref_column = (
+                f"{own_table_field.table}_{own_table_field.ref_column}"
+            )
+            trigger_text += f"""
+CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{foreign_table_field.table}','{gm_content_field}');
+"""
+        trigger_text += f"""CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {gm_table_name}
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+"""
+        return trigger_text
 
     @staticmethod
     def get_initials(
@@ -1052,6 +1265,7 @@ class Helper:
 
     @staticmethod
     def get_post_view_comment(entity_name: str, fname: str, comment: str) -> str:
+        comment = comment.replace("'", "''")
         return f"comment on column {entity_name}.{fname} is '{comment}';\n"
 
     @staticmethod
@@ -1140,7 +1354,10 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "pg_type": "text",
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
-    "float": {"pg_type": "real", "method": GenerateCodeBlocks.get_schema_simple_types},
+    "float": {
+        "pg_type": "double precision",
+        "method": GenerateCodeBlocks.get_schema_simple_types,
+    },
     "decimal(6)": {
         "pg_type": "decimal(16,6)",
         "method": GenerateCodeBlocks.get_schema_simple_types,
@@ -1213,6 +1430,7 @@ def main() -> None:
         missing_handled_attributes,
         im_table_code,
         create_trigger_relationlistnotnull_code,
+        create_trigger_unique_ids_pair_code,
         create_trigger_notify_code,
         errors,
     ) = GenerateCodeBlocks.generate_the_code()
@@ -1237,6 +1455,10 @@ def main() -> None:
             "\n\n-- Create triggers checking foreign_id not null for relation-lists\n"
         )
         dest.write(create_trigger_relationlistnotnull_code)
+        dest.write(
+            "\n\n-- Create triggers preventing mirrored duplicates in fields referencing themselves\n"
+        )
+        dest.write(create_trigger_unique_ids_pair_code)
         dest.write("\n\n-- Create triggers for notify\n")
         dest.write(create_trigger_notify_code)
         dest.write(Helper.RELATION_LIST_AGENDA)

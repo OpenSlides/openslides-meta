@@ -90,7 +90,7 @@
 #     - You can add JSON Schema properties to the fields like `enum`, `description`,
 #       `items`, `maxLength` and `minimum`
 # Additional properties:
-#     - The property `read_only` describes a field that can not be changed by an action.
+#     - The property `read_only` describes a field that can not directly be changed by an action.
 #     - The property `default` describes the default value that is used for new objects.
 #     - The property `required` describes that this field can not be null or an empty
 #       string. If this field is given it must have some content. On relation and generic-relation
@@ -396,27 +396,23 @@ user:
       (
         SELECT array_agg(DISTINCT committee_id ORDER BY committee_id)
         FROM (
-
           -- Select committee_ids from meetings the user is part of
-
           SELECT m.committee_id
           FROM meeting_user_t AS mu
-          INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
+          INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
           INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
           WHERE mu.user_id = u.id
 
           UNION
 
           -- Select committee_ids from committee managers
-
           SELECT cmu.committee_id
-          FROM nm_committee_manager_ids_user cmu
+          FROM nm_committee_manager_ids_user_t cmu
           WHERE cmu.user_id = u.id
 
           UNION
 
           -- Select home_committee_id from user
-
           SELECT u.home_committee_id
           WHERE u.home_committee_id IS NOT NULL
         ) _
@@ -461,10 +457,10 @@ user:
     read_only: true
     sql: |
       (
-      SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id)
-      FROM meeting_user_t mu
-      INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
-      WHERE mu.user_id = u.id
+        SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id)
+        FROM meeting_user_t mu
+        INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
+        WHERE mu.user_id = u.id
       ) AS meeting_ids
     to: meeting/user_ids
     restriction_mode: E
@@ -811,31 +807,27 @@ committee:
     description: "Calculated field: All users which are in a group of a meeting, belonging to the committee or beeing manager of the committee"
     sql: |
       (
-      SELECT array_agg(DISTINCT user_id ORDER BY user_id)
-      FROM (
+        SELECT array_agg(DISTINCT user_id ORDER BY user_id)
+        FROM (
+          -- Select user_ids from committees meetings
+          SELECT mu.user_id
+          FROM meeting_t AS m
+          INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id
+          INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
+          WHERE m.committee_id = c.id
 
-      -- Select user_ids from committees meetings
+          UNION
 
-      SELECT mu.user_id
-      FROM meeting_t AS m
-      INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id
-      INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
-      WHERE m.committee_id = c.id
+          -- Select user_ids from committee managers
+          SELECT cmu.user_id
+          FROM nm_committee_manager_ids_user_t cmu
+          WHERE cmu.committee_id = c.id
 
-      UNION
+          UNION
 
-      -- Select user_ids from committee managers
-
-      SELECT cmu.user_id
-      FROM nm_committee_manager_ids_user cmu
-      WHERE cmu.committee_id = c.id
-
-      UNION
-
-      -- Select user_id from home committees
-
-      SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
-      ) _
+          -- Select user_id from home committees
+          SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
+        ) _
       ) AS user_ids
   manager_ids:
     type: relation-list
@@ -1634,6 +1626,11 @@ meeting:
     enum: *poll_backends
     default: fast
     restriction_mode: B
+  poll_default_live_voting_enabled:
+    type: boolean
+    default: false
+    description: Defines default 'poll.live_voting_enabled' option suggested to user. Is not used in the validations.
+    restriction_mode: B
   poll_couple_countdown:
     type: boolean
     default: True
@@ -1924,10 +1921,10 @@ meeting:
     read_only: true
     sql: |
       (
-      SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id)
-      FROM meeting_user_t mu
-      INNER JOIN nm_group_meeting_user_ids_meeting_user AS gmu ON mu.id = gmu.meeting_user_id
-      WHERE mu.meeting_id = m.id
+        SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id)
+        FROM meeting_user_t mu
+        INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
+        WHERE mu.meeting_id = m.id
       ) AS user_ids
     to: user/meeting_ids
     restriction_mode: A
