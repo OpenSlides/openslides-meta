@@ -14,6 +14,8 @@ assignment:
     can_manage:
         can_nominate_other:
             can_see:
+    can_manage_polls:
+        can_see:
     can_nominate_self:
         can_see:
 chat:
@@ -38,8 +40,6 @@ motion:
     can_manage:
         can_manage_metadata:
             can_see:
-        can_manage_polls:
-            can_see:
         can_see_internal:
             can_see:
         can_create:
@@ -48,6 +48,8 @@ motion:
             can_see:
         can_forward:
             can_see:
+    can_manage_polls:
+        can_see:
     can_support:
         can_see:
     can_see_origin:
