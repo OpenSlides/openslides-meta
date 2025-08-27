@@ -394,6 +394,8 @@ class InternalHelper:
             ("1t", "1rR"): (FieldSqlErrorType.SQL, False),
             ("1tR", "1Gr"): (FieldSqlErrorType.SQL, False),
             ("1tR", "1GrR"): (FieldSqlErrorType.SQL, False),
+            ("1tR", "1r"): (FieldSqlErrorType.SQL, False),
+            ("1tR", "1rR"): (FieldSqlErrorType.SQL, False),
             ("nGt", "nt"): (FieldSqlErrorType.SQL, True),
             ("nr", ""): (FieldSqlErrorType.SQL, True),
             ("nt", "1Gr"): (FieldSqlErrorType.SQL, False),

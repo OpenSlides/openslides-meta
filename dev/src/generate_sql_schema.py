@@ -9,9 +9,9 @@ from string import Formatter
 from textwrap import dedent
 from typing import Any, TypedDict, cast
 
-from helper_get_names import FieldSqlErrorType  # type: ignore
-from helper_get_names import (
+from .helper_get_names import (
     KEYSEPARATOR,
+    FieldSqlErrorType,
     HelperGetNames,
     InternalHelper,
     TableFieldType,
@@ -64,6 +64,7 @@ class SubstDict(TypedDict, total=False):
 class GenerateCodeBlocks:
     """Main work is done here by recursing the models and their fields and determine the method to use"""
 
+    models = MODELS
     intermediate_tables: dict[str, str] = (
         {}
     )  # Key=Name, data: collected content of table
@@ -120,7 +121,7 @@ class GenerateCodeBlocks:
         im_table_code = ""
         errors: list[str] = []
 
-        for table_name, fields in MODELS.items():
+        for table_name, fields in cls.models.items():
             if table_name in ["_migration_index", "_meta"]:
                 continue
 
@@ -534,7 +535,9 @@ class GenerateCodeBlocks:
             if foreign_table_column:
                 query += COND_TEMPLATE.format(foreign_table_column)
         else:
-            assert foreign_table_ref_column == (col := foreign_table_column)
+            assert foreign_table_ref_column == (
+                col := foreign_table_column
+            ), f"own {col} and foreign {foreign_table_ref_column} should be equal"
             arr1 = AGG_TEMPLATE.format(f"{col}_1", f"{col}_1") + COND_TEMPLATE.format(
                 f"{col}_2"
             )
