@@ -40,7 +40,7 @@ jobs:
 
       - name: insert init data
         shell: bash
-        run: bash dev/scripts/apply_base_data.sh
+        run: bash dev/scripts/apply_data.sh test_data.sql
         env:
           DATABASE_HOST: postgres
           DATABASE_PORT: 5432
