@@ -3490,7 +3490,7 @@ vote:
     constant: true
     default: "1.000000"
   value:
-    type: JSON
+    type: text
     restriction_mode: A
     constant: true
   poll_id:
