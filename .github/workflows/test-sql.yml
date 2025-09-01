@@ -46,7 +46,7 @@ jobs:
           DATABASE_PORT: 5432
           DATABASE_USER: openslides
           DATABASE_NAME: openslides
-          PGPASSWORD: Password
+          PGPASSWORD: password
 
       - name: insert test data
         shell: bash
