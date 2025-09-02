@@ -548,14 +548,15 @@ class GenerateCodeBlocks:
     def get_trigger_check_not_null_for_relation_lists(
         cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
     ) -> str:
+        own_table_t = HelperGetNames.get_table_name(own_table)
         foreign_table_t = HelperGetNames.get_table_name(foreign_table)
         return dedent(
             f"""
             -- definition trigger not null for {own_table}.{own_column} against {foreign_table_t}.{foreign_column}
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {foreign_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '{foreign_column}');
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '');
 
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t}
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '{foreign_column}');
 
             """
@@ -713,7 +714,7 @@ class Helper:
         -- usage with 3 parameters IN TRIGGER DEFINITION:
         -- table_name of field to check, usually a field in a view
         -- column_name of field to check
-        -- foreign_key field name of triggered table, that will be used to SELECT the values to check the not null.
+        -- foreign_key field name of triggered table, that will be used to SELECT the values to check the not null. Can be empty on INSERT
         DECLARE
             table_name TEXT;
             column_name TEXT;
@@ -726,14 +727,11 @@ class Helper:
             foreign_key = TG_ARGV[2];
 
             IF (TG_OP = 'INSERT') THEN
-                foreign_id := hstore(NEW) -> foreign_key;
-                IF (foreign_id is NOT NULL) THEN
-                    foreign_id = NULL; -- no need to ask DB
-                END IF;
+                foreign_id = NEW.id;
             ELSIF (TG_OP = 'UPDATE') THEN
                 foreign_id := hstore(NEW) -> foreign_key;
                 IF (foreign_id is NULL) THEN
-                    foreign_id = OLD.used_as_default_projector_for_topic_in_meeting_id;
+                    foreign_id := hstore(OLD) -> foreign_key;
                 END IF;
             ELSIF (TG_OP = 'DELETE') THEN
                 foreign_id := hstore(OLD) -> foreign_key;
