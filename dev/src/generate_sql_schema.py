@@ -30,6 +30,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     post_view: str
     alter_table: str
     alter_table_final: str
+    create_trigger_1_1_relation_not_null_code: str
     create_trigger_relationlistnotnull: str
     create_trigger_unique_ids_pair_code: str
     create_trigger_notify: str
@@ -84,6 +85,7 @@ class GenerateCodeBlocks:
           im_table_code: Code for intermediate tables.
               n:m-relations name schema: f"nm_{smaller-table-name}_{it's-fieldname}_{greater-table_name}" uses one per relation
               g:m-relations name schema: f"gm_{table_field.table}_{table_field.column}" of table with generic-list-field
+          create_trigger_1_1_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_1_relation
           create_trigger_relationlistnotnull_code: Definitions of triggers calling check_not_null_for_relation_lists
           create_trigger_unique_ids_pair_code: Definitions of triggers calling check_unique_ids_pair
           create_trigger_notify_code: Definitions of triggers calling notify_modified_models
@@ -113,6 +115,7 @@ class GenerateCodeBlocks:
         table_name_code: str = ""
         view_name_code: str = ""
         alter_table_final_code: str = ""
+        create_trigger_1_1_relation_not_null_code: str = ""
         create_trigger_relationlistnotnull_code: str = ""
         create_trigger_unique_ids_pair_code: str = ""
         create_trigger_notify_code: str = ""
@@ -120,6 +123,8 @@ class GenerateCodeBlocks:
         missing_handled_attributes = []
         im_table_code = ""
         errors: list[str] = []
+        if not cls.models:
+            cls.models = MODELS
 
         for table_name, fields in cls.models.items():
             if table_name in ["_migration_index", "_meta"]:
@@ -162,6 +167,8 @@ class GenerateCodeBlocks:
                 view_name_code += code
             if code := schema_zone_texts["alter_table_final"]:
                 alter_table_final_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_1_1_relation_not_null"]:
+                create_trigger_1_1_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_relationlistnotnull"]:
                 create_trigger_relationlistnotnull_code += code + "\n"
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
@@ -190,6 +197,7 @@ class GenerateCodeBlocks:
             final_info_code,
             missing_handled_attributes,
             im_table_code,
+            create_trigger_1_1_relation_not_null_code,
             create_trigger_relationlistnotnull_code,
             create_trigger_unique_ids_pair_code,
             create_trigger_notify_code,
@@ -344,22 +352,27 @@ class GenerateCodeBlocks:
         elif state == FieldSqlErrorType.SQL:
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
-            elif foreign_table_field.field_def["type"] == "generic-relation":
-                text["view"] = cls.get_sql_for_relation_1_1(
-                    table_name,
-                    fname,
-                    foreign_table_field.ref_column,
-                    foreign_table,
-                    f"{foreign_table_field.column}_{own_table_field.table}_{own_table_field.ref_column}",
-                )
             else:
+                if foreign_table_field.field_def["type"] == "generic-relation":
+                    foreign_column = f"{foreign_table_field.column}_{own_table_field.table}_{own_table_field.ref_column}"
+                else:
+                    foreign_column = foreign_table_field.column
                 text["view"] = cls.get_sql_for_relation_1_1(
                     table_name,
                     fname,
                     foreign_table_field.ref_column,
                     foreign_table,
-                    cast(str, foreign_table_field.column),
+                    foreign_column,
                 )
+                if own_table_field.field_def.get("required"):
+                    text["create_trigger_1_1_relation_not_null"] = (
+                        cls.get_trigger_check_not_null_for_1_1_relation(
+                            own_table_field.table,
+                            own_table_field.column,
+                            foreign_table_field.table,
+                            foreign_column,
+                        )
+                    )
         if comment := fdata.get("description"):
             text["post_view"] += Helper.get_post_view_comment(
                 HelperGetNames.get_view_name(table_name), fname, comment
@@ -548,6 +561,23 @@ class GenerateCodeBlocks:
         return f"({query}) as {fname},\n"
 
     @classmethod
+    def get_trigger_check_not_null_for_1_1_relation(
+        cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
+    ) -> str:
+        own_table_t = HelperGetNames.get_table_name(own_table)
+        foreign_table_t = HelperGetNames.get_table_name(foreign_table)
+        return dedent(
+            f"""
+            -- definition trigger not null for {own_table}.{own_column} against {foreign_table}.{foreign_column}
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_table}', '{own_column}', '');
+
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_table}', '{own_column}', '{foreign_column}');
+            """
+        )
+
+    @classmethod
     def get_trigger_check_not_null_for_relation_lists(
         cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
     ) -> str:
@@ -711,6 +741,42 @@ class Helper:
     FILE_TEMPLATE_CONSTANT_DEFINITIONS = dedent(
         """
         CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
+
+        CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger as $not_null_trigger$
+        -- Used for UPDATE and DELETE
+        -- Will also check no duplicate relationship in case of UPDATE
+        -- usage with 3 parameters IN TRIGGER DEFINITION:
+        -- table_name of field to check, usually a field in a view
+        -- column_name of field to check
+        -- foreign_key field name of triggered table, that will be used to SELECT the values to check the not null.
+        DECLARE
+            table_name TEXT := TG_ARGV[0];
+            column_name TEXT := TG_ARGV[1];
+            foreign_key TEXT := TG_ARGV[2];
+            foreign_id INTEGER;
+            counted INTEGER;
+        BEGIN
+
+            IF (TG_OP = 'INSERT') THEN
+                foreign_id := NEW.id;
+            ELSEIF (TG_OP = 'UPDATE') OR (TG_OP = 'DELETE') THEN
+                foreign_id := hstore(OLD) -> foreign_key;
+                EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', table_name, foreign_id) INTO counted;
+                IF (counted IS NULL) THEN
+                    -- if the earlier referenced row was deleted we can quit.
+                    RETURN NULL;
+                END IF;
+            END IF;
+
+            IF (foreign_id IS NOT NULL) THEN
+                EXECUTE format('SELECT %I FROM %I WHERE id = %s', column_name, table_name, foreign_id) INTO counted;
+                IF (counted is NULL) THEN
+                    RAISE EXCEPTION 'Trigger % Exception: NOT NULL CONSTRAINT VIOLATED for %/%/% from relationship before %/%', TG_NAME, table_name, foreign_id, column_name, OLD.id, foreign_key;
+                END IF;
+            END IF;
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $not_null_trigger$ language plpgsql;
 
         CREATE FUNCTION check_not_null_for_relation_lists() RETURNS trigger as $not_null_trigger$
         -- usage with 3 parameters IN TRIGGER DEFINITION:
@@ -1432,6 +1498,7 @@ def main() -> None:
         final_info_code,
         missing_handled_attributes,
         im_table_code,
+        create_trigger_1_1_relation_not_null_code,
         create_trigger_relationlistnotnull_code,
         create_trigger_unique_ids_pair_code,
         create_trigger_notify_code,
@@ -1454,6 +1521,10 @@ def main() -> None:
         dest.write(view_name_code)
         dest.write("\n\n-- Alter table relations\n")
         dest.write(alter_table_code)
+        dest.write(
+            "\n\n-- Create triggers checking foreign_id not null for view-relations and no duplicates in 1:1 relationships\n"
+        )
+        dest.write(create_trigger_1_1_relation_not_null_code)
         dest.write(
             "\n\n-- Create triggers checking foreign_id not null for relation-lists\n"
         )
