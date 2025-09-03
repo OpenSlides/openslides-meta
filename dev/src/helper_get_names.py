@@ -216,7 +216,9 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null on 1:1 relations"""
-        return HelperGetNames.get_not_null_rel_list_insert_trigger_name(table_name, column_name)
+        return HelperGetNames.get_not_null_rel_list_insert_trigger_name(
+            table_name, column_name
+        )
 
     @staticmethod
     @max_length
@@ -225,7 +227,9 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null on 1:1 relations"""
-        return HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(table_name, column_name)
+        return HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(
+            table_name, column_name
+        )
 
     @staticmethod
     @max_length
