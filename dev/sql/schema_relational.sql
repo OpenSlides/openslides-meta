@@ -23,7 +23,7 @@ CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger as $not_null_trigger$
 -- usage with 3 parameters IN TRIGGER DEFINITION:
 -- table_name: of field to check, usually a field in a view
 -- column_name: of field to check
--- foreign_key: field name of triggered table, that will be used to SELECT 
+-- foreign_key: field name of triggered table, that will be used to SELECT
 -- the values to check the not null. Can be empty on INSERT
 DECLARE
     table_name TEXT := TG_ARGV[0];
