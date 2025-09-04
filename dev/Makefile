@@ -34,10 +34,10 @@ sqlfluff:
 	sqlfluff fix --dialect postgres --verbose
 
 validate-models:
-	python src/validate.py
+	python -m src.validate
 
 generate-relational-schema:
-	python src/generate_sql_schema.py
+	python -m src.generate_sql_schema
 
 drop-database:
 	dropdb -f -e --if-exists -h ${DATABASE_HOST} -p ${DATABASE_PORT} -U ${DATABASE_USER} ${DATABASE_NAME}
