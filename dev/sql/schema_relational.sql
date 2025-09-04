@@ -20,11 +20,11 @@ SET log_min_messages TO WARNING;
 CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
 
 CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger as $not_null_trigger$
--- Used for UPDATE and DELETE
 -- usage with 3 parameters IN TRIGGER DEFINITION:
--- table_name of field to check, usually a field in a view
--- column_name of field to check
--- foreign_key field name of triggered table, that will be used to SELECT the values to check the not null.
+-- table_name: of field to check, usually a field in a view
+-- column_name: of field to check
+-- foreign_key: field name of triggered table, that will be used to SELECT 
+-- the values to check the not null. Can be empty on INSERT
 DECLARE
     table_name TEXT := TG_ARGV[0];
     column_name TEXT := TG_ARGV[1];
@@ -34,12 +34,13 @@ DECLARE
 BEGIN
 
     IF (TG_OP = 'INSERT') THEN
+        -- in case of INSERT the view is checked on itself so the own id is applicable
         foreign_id := NEW.id;
     ELSEIF (TG_OP = 'UPDATE') OR (TG_OP = 'DELETE') THEN
         foreign_id := hstore(OLD) -> foreign_key;
         EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', table_name, foreign_id) INTO counted;
         IF (counted IS NULL) THEN
-            -- if the earlier referenced row was deleted we can quit.
+            -- if the earlier referenced row was deleted (in the same transaction) we can quit.
             RETURN NULL;
         END IF;
     END IF;
