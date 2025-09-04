@@ -9,6 +9,8 @@ from string import Formatter
 from textwrap import dedent
 from typing import Any, TypedDict, cast
 
+from sqlfluff import fix
+
 from .helper_get_names import (
     KEYSEPARATOR,
     FieldSqlErrorType,
@@ -350,7 +352,7 @@ class GenerateCodeBlocks:
                 initially_deferred,
             )
         elif state == FieldSqlErrorType.SQL:
-            if sql := fdata.get("sql", ""):
+            if sql := fix(fdata.get("sql", "")):
                 text["view"] = sql + ",\n"
             else:
                 if foreign_table_field.field_def["type"] == "generic-relation":
