@@ -21,7 +21,6 @@ CREATE EXTENSION hstore;  -- included in standard postgres-installations, check 
 
 CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger as $not_null_trigger$
 -- Used for UPDATE and DELETE
--- Will also check no duplicate relationship in case of UPDATE
 -- usage with 3 parameters IN TRIGGER DEFINITION:
 -- table_name of field to check, usually a field in a view
 -- column_name of field to check
