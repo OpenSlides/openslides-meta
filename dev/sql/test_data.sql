@@ -53,7 +53,9 @@ INSERT INTO topic_t (id, title, sequential_number, meeting_id)
 VALUES (1, 'Thema1', 1, 2);
 
 --list_of_speakers.content_object_id:topic.list_of_speakers_id gr:r
-INSERT INTO list_of_speakers_t (id, content_object_id, sequential_number, meeting_id)
+INSERT INTO list_of_speakers_t (
+    id, content_object_id, sequential_number, meeting_id
+)
 VALUES (1, 'topic/1', 1, 2);
 
 --agenda_item.content_object_id:topic.agenda_item_id gr:r
