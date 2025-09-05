@@ -218,7 +218,7 @@ organization:
   vote_decrypt_public_main_key:
     type: string
     description: Public key from vote decrypt to validate cryptographic votes.
-    calculated: true
+    #  calculated: true
     restriction_mode: A
 
   committee_ids:
@@ -3528,7 +3528,7 @@ poll:
     restriction_mode: A
   live_votes:
     type: JSON
-    calculated: true
+    # calculated: true
     description: dict from user to their vote. The value is null, when live voting is disabled.
     restriction_mode: C
   sequential_number:
@@ -4280,7 +4280,7 @@ projection:
 
   content:
     type: JSON
-    calculated: true
+    # calculated: true
     restriction_mode: A
 
   current_projector_id:
@@ -4542,6 +4542,7 @@ history_position:
     type: relation
     to: user/history_position_ids
     restriction_mode: A
+    reference: user
   entry_ids:
     type: relation-list
     to: history_entry/position_id
@@ -4566,13 +4567,19 @@ history_entry:
         - assignment
       field: history_entry_ids
     restriction_mode: A
+    reference:
+      - user
+      - motion
+      - assignment
   position_id:
     type: relation
     to: history_position/entry_ids
     required: true
     restriction_mode: A
     constant: true
+    reference: history_position
   meeting_id:
     type: relation
     to: meeting/relevant_history_entry_ids
     restriction_mode: A
+    reference: meeting
