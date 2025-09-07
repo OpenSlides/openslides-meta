@@ -3428,7 +3428,7 @@ poll:
       - single_transferable_vote
     restriction_mode: A
   config:
-    type: JSON
+    type: text
     description: Values to configure the poll. Depends on the value in poll/method.
     restriction_mode: A
   visibility:
@@ -3449,7 +3449,7 @@ poll:
     default: created
     restriction_mode: A
   result:
-    type: JSON
+    type: text
     description: Calculated result. The format depends on the value in poll/method
     restriction_mode: B
   sequential_number:
@@ -4369,7 +4369,7 @@ history_position:
     to: history_entry/position_id
     restriction_mode: A
     on_delete: CASCADE
-  
+
 history_entry:
   id: *id_field
   entries:
