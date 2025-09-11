@@ -29,8 +29,8 @@ VALUES (2, 'name', 2, 2, 2, 2, 3);
 SELECT nextval('meeting_t_id_seq');
 
 
-INSERT INTO organization_tag_t (id, name, color)
 --generic-relation-list tagged_ids
+INSERT INTO organization_tag_t (id, name, color)
 VALUES (1, 'tagA', '#cc3b03');
 SELECT nextval('organization_tag_t_id_seq');
 
