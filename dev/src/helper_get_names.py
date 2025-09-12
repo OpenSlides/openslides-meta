@@ -185,11 +185,11 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_not_null_rel_list_insert_trigger_name(
+    def get_not_null_insert_trigger_name_base(
         table_name: str,
         column_name: str,
     ) -> str:
-        """gets the name of the insert trigger for not null on relation lists"""
+        """gets the name of the insert trigger for not null"""
         name = f"tr_i_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
         if name in HelperGetNames.trigger_unique_list:
             raise Exception(f"trigger {name} is not unique!")
@@ -198,16 +198,60 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_not_null_rel_list_upd_del_trigger_name(
+    def get_not_null_upd_del_trigger_name_base(
         table_name: str,
         column_name: str,
     ) -> str:
-        """gets the name of the update/delete trigger for not null on relation lists"""
+        """gets the name of the update/delete trigger for not null"""
         name = f"tr_ud_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
         if name in HelperGetNames.trigger_unique_list:
             raise Exception(f"trigger {name} is not unique!")
         HelperGetNames.trigger_unique_list.append(name)
         return name
+
+    @staticmethod
+    @max_length
+    def get_not_null_rel_list_insert_trigger_name(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """gets the name of the insert trigger for not null on relation lists"""
+        return HelperGetNames.get_not_null_insert_trigger_name_base(
+            table_name, column_name
+        )
+
+    @staticmethod
+    @max_length
+    def get_not_null_rel_list_upd_del_trigger_name(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """gets the name of the update/delete trigger for not null on relation lists"""
+        return HelperGetNames.get_not_null_upd_del_trigger_name_base(
+            table_name, column_name
+        )
+
+    @staticmethod
+    @max_length
+    def get_not_null_1_1_rel_insert_trigger_name(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """gets the name of the insert trigger for not null on 1:1 relations"""
+        return HelperGetNames.get_not_null_insert_trigger_name_base(
+            table_name, column_name
+        )
+
+    @staticmethod
+    @max_length
+    def get_not_null_1_1_rel_upd_del_trigger_name(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """gets the name of the update/delete trigger for not null on 1:1 relations"""
+        return HelperGetNames.get_not_null_upd_del_trigger_name_base(
+            table_name, column_name
+        )
 
     @staticmethod
     @max_length
@@ -394,6 +438,8 @@ class InternalHelper:
             ("1t", "1rR"): (FieldSqlErrorType.SQL, False),
             ("1tR", "1Gr"): (FieldSqlErrorType.SQL, False),
             ("1tR", "1GrR"): (FieldSqlErrorType.SQL, False),
+            ("1tR", "1r"): (FieldSqlErrorType.SQL, False),
+            ("1tR", "1rR"): (FieldSqlErrorType.SQL, False),
             ("nGt", "nt"): (FieldSqlErrorType.SQL, True),
             ("nr", ""): (FieldSqlErrorType.SQL, True),
             ("nt", "1Gr"): (FieldSqlErrorType.SQL, False),
