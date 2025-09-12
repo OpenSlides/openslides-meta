@@ -10,12 +10,17 @@ agenda_item:
   can_manage:
     can_see_internal:
       can_see:
+  can_manage_polls:
+    can_see_progress:
+      can_see_internal:
+        can_see:
 assignment:
   can_manage:
     can_nominate_other:
       can_see:
   can_manage_polls:
-    can_see:
+    can_see_progress:
+      can_see:
   can_nominate_self:
     can_see:
 chat:
@@ -49,14 +54,12 @@ motion:
     can_forward:
       can_see:
   can_manage_polls:
-    can_see:
+    can_see_progress:
+      can_see:
   can_support:
     can_see:
   can_see_origin:
     can_see:
-poll:
-  can_manage:
-    can_see_progress:
 projector:
   can_manage:
     can_see:
