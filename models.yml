@@ -3445,17 +3445,16 @@ poll:
       - created
       - started
       - finished
-      - published
     default: created
     restriction_mode: A
   result:
     type: text
     description: Calculated result. The format depends on the value in poll/method. Can be manually set when visibility is set to manually.
     restriction_mode: B
-  live_voting_enabled:
+  published:
     type: boolean
     default: false
-    description: If true, the vote service sends the votes of the users to the autoupdate service.
+    description: If true, users can see the result.
     restriction_mode: A
   sequential_number:
     type: number
@@ -3513,12 +3512,12 @@ vote:
   id: *id_field
   weight:
     type: decimal(6)
-    restriction_mode: A
+    restriction_mode: B
     constant: true
     default: "1.000000"
   value:
     type: text
-    restriction_mode: A
+    restriction_mode: B
     constant: true
   poll_id:
     type: relation
@@ -3532,12 +3531,12 @@ vote:
     type: relation
     reference: user
     to: user/acting_vote_ids
-    restriction_mode: A
+    restriction_mode: B
   represented_user_id:
     type: relation
     reference: user
     to: user/represented_vote_ids
-    restriction_mode: A
+    restriction_mode: B
   meeting_id:
     type: relation
     reference: meeting
