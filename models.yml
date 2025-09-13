@@ -3415,9 +3415,6 @@ poll:
     type: string
     required: true
     restriction_mode: A
-  description:
-    type: text
-    restriction_mode: A
   method:
     type: string
     required: true
@@ -3425,7 +3422,7 @@ poll:
       - motion
       - selection
       - rating
-      - single_transferable_vote
+      - rating-motion
     restriction_mode: A
   config:
     type: text
@@ -3433,6 +3430,7 @@ poll:
     restriction_mode: A
   visibility:
     type: string
+    required: true
     enum:
       - manually
       - named
@@ -4106,7 +4104,7 @@ projection:
 
   content:
     type: JSON
-    calculated: true
+    # calculated: true
     restriction_mode: A
 
   current_projector_id:
@@ -4368,6 +4366,7 @@ history_position:
     type: relation
     to: user/history_position_ids
     restriction_mode: A
+    reference: user
   entry_ids:
     type: relation-list
     to: history_entry/position_id
@@ -4392,13 +4391,19 @@ history_entry:
         - assignment
       field: history_entry_ids
     restriction_mode: A
+    reference:
+      - user
+      - motion
+      - assignment
   position_id:
     type: relation
     to: history_position/entry_ids
     required: true
     restriction_mode: A
     constant: true
+    reference: history_position
   meeting_id:
     type: relation
     to: meeting/relevant_history_entry_ids
     restriction_mode: A
+    reference: meeting
