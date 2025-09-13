@@ -218,7 +218,7 @@ organization:
   vote_decrypt_public_main_key:
     type: string
     description: Public key from vote decrypt to validate cryptographic votes.
-    calculated: true
+    #  calculated: true
     restriction_mode: A
 
   committee_ids:
@@ -461,6 +461,15 @@ user:
     to: committee/native_user_ids
     restriction_mode: E
     reference: committee
+
+  history_position_ids:
+    type: relation-list
+    to: history_position/user_id
+    restriction_mode: A
+  history_entry_ids:
+    type: relation-list
+    to: history_entry/model_id
+    restriction_mode: A
 
   meeting_ids:
     type: relation-list
@@ -2051,6 +2060,10 @@ meeting:
     to: group/anonymous_group_for_meeting_id
     reference: group
     restriction_mode: B
+  relevant_history_entry_ids:
+    type: relation-list
+    to: history_entry/meeting_id
+    restriction_mode: A
 
 structure_level:
   id: *id_field
@@ -2100,6 +2113,7 @@ group:
         - agenda_item.can_see
         - agenda_item.can_see_internal
         - assignment.can_manage
+        - assignment.can_manage_polls
         - assignment.can_nominate_other
         - assignment.can_nominate_self
         - assignment.can_see
@@ -2544,6 +2558,9 @@ speaker:
       - intervention
       - interposed_question
     restriction_mode: A
+  answer:
+    type: boolean
+    restriction_mode: A
   note:
     type: string
     maxLength: 250
@@ -2913,6 +2930,11 @@ motion:
     required: true
     restriction_mode: A
     constant: true
+
+  history_entry_ids:
+    type: relation-list
+    to: history_entry/model_id
+    restriction_mode: A
 
 motion_submitter:
   id: *id_field
@@ -3506,7 +3528,7 @@ poll:
     restriction_mode: A
   live_votes:
     type: JSON
-    calculated: true
+    # calculated: true
     description: dict from user to their vote. The value is null, when live voting is disabled.
     restriction_mode: C
   sequential_number:
@@ -3775,6 +3797,11 @@ assignment:
     required: true
     restriction_mode: A
     constant: true
+
+  history_entry_ids:
+    type: relation-list
+    to: history_entry/model_id
+    restriction_mode: A
 
 assignment_candidate:
   id: *id_field
@@ -4253,7 +4280,7 @@ projection:
 
   content:
     type: JSON
-    calculated: true
+    # calculated: true
     restriction_mode: A
 
   current_projector_id:
@@ -4500,3 +4527,59 @@ import_preview:
   result:
     type: JSON
     restriction_mode: A
+
+history_position:
+  id: *id_field
+  timestamp:
+    type: timestamp
+    restriction_mode: A
+    read_only: true
+  original_user_id:
+    type: number
+    restriction_mode: A
+    constant: true
+  user_id:
+    type: relation
+    to: user/history_position_ids
+    restriction_mode: A
+    reference: user
+  entry_ids:
+    type: relation-list
+    to: history_entry/position_id
+    restriction_mode: A
+    on_delete: CASCADE
+  
+history_entry:
+  id: *id_field
+  entries:
+    type: string[]
+    restriction_mode: A
+  original_model_id:
+    type: string
+    restriction_mode: A
+    constant: true
+  model_id:
+    type: generic-relation
+    to:
+      collections:
+        - user
+        - motion
+        - assignment
+      field: history_entry_ids
+    restriction_mode: A
+    reference:
+      - user
+      - motion
+      - assignment
+  position_id:
+    type: relation
+    to: history_position/entry_ids
+    required: true
+    restriction_mode: A
+    constant: true
+    reference: history_position
+  meeting_id:
+    type: relation
+    to: meeting/relevant_history_entry_ids
+    restriction_mode: A
+    reference: meeting

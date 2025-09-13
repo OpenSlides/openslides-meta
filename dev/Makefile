@@ -1,7 +1,7 @@
 # Commands inside the container
 paths = src/ tests/
 
-all: pyupgrade black autoflake isort flake8 mypy
+all: pyupgrade black autoflake isort flake8 mypy sqlfluff
 
 pyupgrade:
 	pyupgrade --py310-plus --exit-zero-even-if-changed $$(find . -name '*.py')
@@ -30,6 +30,9 @@ flake8:
 mypy:
 	mypy src/
 
+sqlfluff:
+	sqlfluff fix --dialect postgres --verbose
+
 validate-models:
 	python src/validate.py
 
@@ -45,7 +48,13 @@ create-database:
 apply-db-schema:
 	scripts/apply_db_schema.sh
 
+apply-test-data:
+	scripts/apply_data.sh base_data.sql
+	scripts/apply_data.sh test_data.sql
+
 create-database-with-schema: drop-database create-database apply-db-schema
+
+create-test-data: create-database-with-schema apply-test-data
 
 run-psql:
 	psql -h ${DATABASE_HOST} -p ${DATABASE_PORT} -U ${DATABASE_USER} -d ${DATABASE_NAME}

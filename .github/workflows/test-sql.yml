@@ -38,9 +38,19 @@ jobs:
           DATABASE_NAME: openslides
           PGPASSWORD: password
 
-      - name: insert init data
+      - name: insert base data
         shell: bash
-        run: bash dev/scripts/apply_base_data.sh
+        run: bash dev/scripts/apply_data.sh base_data.sql
+        env:
+          DATABASE_HOST: postgres
+          DATABASE_PORT: 5432
+          DATABASE_USER: openslides
+          DATABASE_NAME: openslides
+          PGPASSWORD: password
+
+      - name: insert test data
+        shell: bash
+        run: bash dev/scripts/apply_data.sh test_data.sql
         env:
           DATABASE_HOST: postgres
           DATABASE_PORT: 5432
