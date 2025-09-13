@@ -25,25 +25,22 @@ CREATE FUNCTION check_not_null_for_relation_lists() RETURNS trigger as $not_null
 -- column_name of field to check
 -- foreign_key field name of triggered table, that will be used to SELECT the values to check the not null. Can be empty on INSERT
 DECLARE
-    table_name TEXT;
-    column_name TEXT;
-    foreign_key TEXT;
+    table_name TEXT := TG_ARGV[0];
+    column_name TEXT := TG_ARGV[1];
+    foreign_key TEXT := TG_ARGV[2];
     foreign_id INTEGER;
     counted INTEGER;
-begin
-    table_name = TG_ARGV[0];
-    column_name = TG_ARGV[1];
-    foreign_key = TG_ARGV[2];
-
+BEGIN
     IF (TG_OP = 'INSERT') THEN
+        -- in case of INSERT the view is checked on itself so the own id is applicable
         foreign_id = NEW.id;
-    ELSIF (TG_OP = 'UPDATE') THEN
-        foreign_id := hstore(NEW) -> foreign_key;
-        IF (foreign_id is NULL) THEN
-            foreign_id := hstore(OLD) -> foreign_key;
-        END IF;
-    ELSIF (TG_OP = 'DELETE') THEN
+    ELSIF (TG_OP = 'UPDATE') OR (TG_OP = 'DELETE') THEN
         foreign_id := hstore(OLD) -> foreign_key;
+        EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', table_name, foreign_id) INTO counted;
+        IF (counted IS NULL) THEN
+            -- if the earlier referenced row was deleted (in the same transaction) we can quit.
+            RETURN NULL;
+        END IF;
     END IF;
 
     IF (foreign_id IS NOT NULL) THEN
