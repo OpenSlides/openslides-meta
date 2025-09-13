@@ -1630,15 +1630,15 @@ meeting:
     type: relation-list
     to: group/used_as_poll_default_id
     restriction_mode: B
-  poll_default_backend:
-    type: string
-    enum: *poll_backends
-    default: fast
-    restriction_mode: B
   poll_default_live_voting_enabled:
     type: boolean
     default: false
-    description: Defines default 'poll.live_voting_enabled' option suggested to user. Is not used in the validations.
+    description: Defines default 'poll.published' before finished option suggested to user. Is not used in the validations.
+    restriction_mode: B
+  poll_default_allow_invalid:
+    type: boolean
+    default: false
+    description: Defines defaut `poll.allow_invalid` option suggested to user.
     restriction_mode: B
   poll_couple_countdown:
     type: boolean
@@ -3453,6 +3453,11 @@ poll:
     type: boolean
     default: false
     description: If true, users can see the result.
+    restriction_mode: A
+  allow_invalid:
+    type: boolean
+    default: false
+    description: If true, the vote service does not validate. This is always the case for secret polls.
     restriction_mode: A
   sequential_number:
     type: number
