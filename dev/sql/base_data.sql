@@ -12,8 +12,26 @@ BEGIN;
         VALUES(1,'tagA','#cc3b03'); --generic-relation-list tagged_ids
     Insert Into committee(id, name, default_meeting_id)
         Values(1,'plenum',1); --relation-list organization_tag_ids --relation 1:1 default_meeting_id
-    INSERT INTO projector_t (id,sequential_number,meeting_id)
-        VALUES (1,1,1);
+    INSERT INTO projector_t (
+        id,
+        sequential_number,
+        meeting_id,
+        used_as_default_projector_for_agenda_item_list_in_meeting_id,
+        used_as_default_projector_for_topic_in_meeting_id,
+        used_as_default_projector_for_list_of_speakers_in_meeting_id,
+        used_as_default_projector_for_current_los_in_meeting_id,
+        used_as_default_projector_for_motion_in_meeting_id,
+        used_as_default_projector_for_amendment_in_meeting_id,
+        used_as_default_projector_for_motion_block_in_meeting_id,
+        used_as_default_projector_for_assignment_in_meeting_id,
+        used_as_default_projector_for_mediafile_in_meeting_id,
+        used_as_default_projector_for_message_in_meeting_id,
+        used_as_default_projector_for_countdown_in_meeting_id,
+        used_as_default_projector_for_assignment_poll_in_meeting_id,
+        used_as_default_projector_for_motion_poll_in_meeting_id,
+        used_as_default_projector_for_poll_in_meeting_id
+    )
+        VALUES (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1);
     INSERT INTO group_t (id,name,meeting_id)
         VALUES (1,'gruppe1',1);
 COMMIT;
@@ -21,7 +39,7 @@ COMMIT;
 INSERT INTO organization_tag_t (id,name,color)
     VALUES (2,'bunt','#ffffff');
 INSERT INTO gm_organization_tag_tagged_ids_t(organization_tag_id,tagged_id)
-    VALUES(2,'meeting/1'); 
+    VALUES(2,'meeting/1');
 
 INSERT INTO topic_t (id,title, sequential_number, meeting_id)
     VALUES (1, 'Thema3', 1, 1);
@@ -161,7 +179,25 @@ BEGIN;
             'do_not_merge'
         );
 
-    INSERT INTO projector_t (id,sequential_number,meeting_id) 
-        VALUES (2,2,1);
+    INSERT INTO projector_t (
+        id,
+        sequential_number,
+        meeting_id,
+        used_as_default_projector_for_agenda_item_list_in_meeting_id,
+        used_as_default_projector_for_topic_in_meeting_id,
+        used_as_default_projector_for_list_of_speakers_in_meeting_id,
+        used_as_default_projector_for_current_los_in_meeting_id,
+        used_as_default_projector_for_motion_in_meeting_id,
+        used_as_default_projector_for_amendment_in_meeting_id,
+        used_as_default_projector_for_motion_block_in_meeting_id,
+        used_as_default_projector_for_assignment_in_meeting_id,
+        used_as_default_projector_for_mediafile_in_meeting_id,
+        used_as_default_projector_for_message_in_meeting_id,
+        used_as_default_projector_for_countdown_in_meeting_id,
+        used_as_default_projector_for_assignment_poll_in_meeting_id,
+        used_as_default_projector_for_motion_poll_in_meeting_id,
+        used_as_default_projector_for_poll_in_meeting_id
+    )
+        VALUES (2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1);
 
 COMMIT;
