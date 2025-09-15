@@ -901,7 +901,8 @@ class Helper:
     )
 
     for type_, field_check in {"1_1": "%I"}.items():
-        FILE_TEMPLATE_CONSTANT_DEFINITIONS += dedent(f"""
+        FILE_TEMPLATE_CONSTANT_DEFINITIONS += dedent(
+            f"""
         CREATE FUNCTION check_not_null_for_{type_}() RETURNS trigger as $not_null_trigger$
         -- usage with 3 parameters IN TRIGGER DEFINITION:
         -- table_name: relation to check, usually a view
@@ -936,7 +937,8 @@ class Helper:
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $not_null_trigger$ language plpgsql;
-        """)
+        """
+        )
 
     FIELD_TEMPLATE = string.Template(
         "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${minimum}${minLength}${default},\n"
