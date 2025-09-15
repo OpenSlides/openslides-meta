@@ -19,42 +19,6 @@ SET log_min_messages TO WARNING;
 
 CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
 
-CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger as $not_null_trigger$
--- usage with 3 parameters IN TRIGGER DEFINITION:
--- table_name: of field to check, usually a field in a view
--- column_name: of field to check
--- foreign_key: field name of triggered table, that will be used to SELECT
--- the values to check the not null. Can be empty on INSERT
-DECLARE
-    table_name TEXT := TG_ARGV[0];
-    column_name TEXT := TG_ARGV[1];
-    foreign_key TEXT := TG_ARGV[2];
-    foreign_id INTEGER;
-    counted INTEGER;
-BEGIN
-
-    IF (TG_OP = 'INSERT') THEN
-        -- in case of INSERT the view is checked on itself so the own id is applicable
-        foreign_id := NEW.id;
-    ELSEIF (TG_OP = 'UPDATE') OR (TG_OP = 'DELETE') THEN
-        foreign_id := hstore(OLD) -> foreign_key;
-        EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', table_name, foreign_id) INTO counted;
-        IF (counted IS NULL) THEN
-            -- if the earlier referenced row was deleted (in the same transaction) we can quit.
-            RETURN NULL;
-        END IF;
-    END IF;
-
-    IF (foreign_id IS NOT NULL) THEN
-        EXECUTE format('SELECT %I FROM %I WHERE id = %s', column_name, table_name, foreign_id) INTO counted;
-        IF (counted is NULL) THEN
-            RAISE EXCEPTION 'Trigger % Exception: NOT NULL CONSTRAINT VIOLATED for %/%/% from relationship before %/%', TG_NAME, table_name, foreign_id, column_name, OLD.id, foreign_key;
-        END IF;
-    END IF;
-    RETURN NULL;  -- AFTER TRIGGER needs no return
-END;
-$not_null_trigger$ language plpgsql;
-
 CREATE FUNCTION check_not_null_for_relation_lists() RETURNS trigger as $not_null_trigger$
 -- usage with 3 parameters IN TRIGGER DEFINITION:
 -- table_name of field to check, usually a field in a view
@@ -208,6 +172,41 @@ CREATE TABLE os_notify_log_t (
     timestamp timestamptz,
     CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
 );
+
+CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger as $not_null_trigger$
+-- usage with 3 parameters IN TRIGGER DEFINITION:
+-- table_name: relation to check, usually a view
+-- column_name: field to check, usually a field in a view
+-- foreign_key: field name of triggered table, that will be used to SELECT
+-- the values to check the not null. Can be empty on INSERT as then unused.
+DECLARE
+    table_name TEXT := TG_ARGV[0];
+    column_name TEXT := TG_ARGV[1];
+    foreign_key TEXT := TG_ARGV[2];
+    foreign_id INTEGER;
+    counted INTEGER;
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        -- in case of INSERT the view is checked on itself so the own id is applicable
+        foreign_id := NEW.id;
+    ELSIF (TG_OP = 'UPDATE') OR (TG_OP = 'DELETE') THEN
+        foreign_id := hstore(OLD) -> foreign_key;
+        EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', table_name, foreign_id) INTO counted;
+        IF (counted IS NULL) THEN
+            -- if the earlier referenced row was deleted (in the same transaction) we can quit.
+            RETURN NULL;
+        END IF;
+    END IF;
+
+    IF (foreign_id IS NOT NULL) THEN
+        EXECUTE format('SELECT %I FROM %I WHERE id = %s', column_name, table_name, foreign_id) INTO counted;
+        IF (counted is NULL) THEN
+            RAISE EXCEPTION 'Trigger % Exception: NOT NULL CONSTRAINT VIOLATED for %/%/% from relationship before %/%', TG_NAME, table_name, foreign_id, column_name, OLD.id, foreign_key;
+        END IF;
+    END IF;
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$not_null_trigger$ language plpgsql;
 
 
 -- Type definitions
