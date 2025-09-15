@@ -3448,7 +3448,7 @@ vote:
   user_token:
     type: string
     required: true
-    restriction_mode: B
+    restriction_mode: A
     constant: true
 
   option_id:
