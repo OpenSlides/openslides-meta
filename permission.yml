@@ -8,11 +8,9 @@
 
 agenda_item:
     can_manage:
-        can_see_internal:
-            can_see:
-    can_forward:
-        can_see_internal:
-            can_see:
+        can_forward:
+            can_see_internal:
+                can_see:
 assignment:
     can_manage:
         can_nominate_other:
