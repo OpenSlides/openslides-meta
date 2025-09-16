@@ -3,11 +3,14 @@
 # with one of the strings in the lower levels. Permissions are e. g.
 # agenda_item.can_manage or agenda_item.can_see.
 
-# The permissions are hierarchical. Users with agenda_item.can_manage do have
-# implicitly agenda_item.can_see_internal and agenda_item.can_see.
+# The permissions are hierarchical. Users with agenda_item.can_manage implicitly
+# have agenda_item.can_see_internal and agenda_item.can_see.
 
 agenda_item:
     can_manage:
+        can_see_internal:
+            can_see:
+    can_forward:
         can_see_internal:
             can_see:
 assignment:
