@@ -1962,6 +1962,7 @@ group:
     items:
       enum:
         - agenda_item.can_manage
+        - agenda_item.can_forward
         - agenda_item.can_see
         - agenda_item.can_see_internal
         - assignment.can_manage
