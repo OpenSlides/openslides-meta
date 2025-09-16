@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '65aafbd8efddad3a70265441cbf116b1'
+-- MODELS_YML_CHECKSUM = '17b1e932fc8561a1a0b5719693b2d383'
 
 
 -- Database parameters
@@ -18,6 +18,30 @@ SET log_min_messages TO WARNING;
 -- Function and meta table definitions
 
 CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
+
+CREATE FUNCTION generate_sequence()
+RETURNS trigger
+AS $sequences_trigger$
+-- Creates a sequence for the id given by depend_field NEW data if it doesn't exist.
+-- Writes the next value to for this sequence NEW.
+-- Usage with 3 parameters IN TRIGGER DEFINITION:
+-- table_name: table this is treated for
+-- actual_column: column that will be filled with the actual value
+-- depend_field: field that differentiates the sequences. usually meeting_id
+DECLARE
+    table_name TEXT := TG_ARGV[0];
+    actual_column TEXT := TG_ARGV[1];
+    depend_field TEXT := TG_ARGV[2];
+    depend_field_id INTEGER;
+    sequence_name TEXT;
+BEGIN
+    depend_field_id := hstore(NEW) -> (depend_field);
+    sequence_name := table_name || '_' || depend_field || depend_field_id || '_' || actual_column || '_seq';
+    EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I OWNED BY %I.%I', sequence_name, table_name, actual_column);
+    RETURN populate_record(NEW, format('%s=>%s',actual_column, nextval(sequence_name))::hstore);
+END;
+$sequences_trigger$
+LANGUAGE plpgsql;
 
 CREATE FUNCTION check_not_null_for_relation_lists() RETURNS trigger as $not_null_trigger$
 -- usage with 3 parameters IN TRIGGER DEFINITION:
@@ -2098,6 +2122,59 @@ ALTER TABLE history_entry_t ADD FOREIGN KEY(model_id_motion_id) REFERENCES motio
 ALTER TABLE history_entry_t ADD FOREIGN KEY(model_id_assignment_id) REFERENCES assignment_t(id) INITIALLY DEFERRED;
 ALTER TABLE history_entry_t ADD FOREIGN KEY(position_id) REFERENCES history_position_t(id) INITIALLY DEFERRED;
 ALTER TABLE history_entry_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
+
+
+
+-- Create triggers generating partitioned sequences
+
+-- definition trigger generate partitioned sequence number for list_of_speakers_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_list_of_speakers_sequential_number_meeting_id BEFORE INSERT ON list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('list_of_speakers_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for topic_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_topic_sequential_number_meeting_id BEFORE INSERT ON topic_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('topic_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_sequential_number_meeting_id BEFORE INSERT ON motion_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_comment_section_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_comment_section_sequential_number_meeting_id BEFORE INSERT ON motion_comment_section_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_comment_section_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_category_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_category_sequential_number_meeting_id BEFORE INSERT ON motion_category_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_category_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_block_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_block_sequential_number_meeting_id BEFORE INSERT ON motion_block_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_block_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_workflow_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_workflow_sequential_number_meeting_id BEFORE INSERT ON motion_workflow_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_workflow_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for poll_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_poll_sequential_number_meeting_id BEFORE INSERT ON poll_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('poll_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for assignment_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_assignment_sequential_number_meeting_id BEFORE INSERT ON assignment_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('assignment_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for projector_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_projector_sequential_number_meeting_id BEFORE INSERT ON projector_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('projector_t', 'sequential_number', 'meeting_id');
 
 
 
