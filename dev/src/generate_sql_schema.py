@@ -32,7 +32,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     post_view: str
     alter_table: str
     alter_table_final: str
-    create_trigger_paritioned_sequences: str
+    create_trigger_partitioned_sequences: str
     create_trigger_relationlistnotnull: str
     create_trigger_unique_ids_pair_code: str
     create_trigger_notify: str
@@ -107,7 +107,7 @@ class GenerateCodeBlocks:
             "items",
             "to",
             "reference",
-            "sequence_partitioning",
+            "sequence_scope",
             # "on_delete", # must have other name then the key-value-store one
             "sql",
             # "equal_fields", # Seems we need, see example_transactional.sql between meeting and groups?
@@ -167,7 +167,7 @@ class GenerateCodeBlocks:
                 view_name_code += code
             if code := schema_zone_texts["alter_table_final"]:
                 alter_table_final_code += code + "\n"
-            if code := schema_zone_texts["create_trigger_paritioned_sequences"]:
+            if code := schema_zone_texts["create_trigger_partitioned_sequences"]:
                 create_trigger_partitioned_sequences_code += code + "\n"
             if code := schema_zone_texts["create_trigger_relationlistnotnull"]:
                 create_trigger_relationlistnotnull_code += code + "\n"
@@ -241,12 +241,15 @@ class GenerateCodeBlocks:
     ) -> tuple[SchemaZoneTexts, str]:
         text, subst = cls.get_text_for_simple_types(table_name, fname, fdata, type_)
         text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
-        if depend_field := fdata.get("sequence_partitioning"):
+        if depend_field := fdata.get("sequence_scope"):
             text[
-                "create_trigger_paritioned_sequences"
+                "create_trigger_partitioned_sequences"
             ] += cls.get_trigger_generate_partitioned_sequence(
                 table_name, fname, depend_field
             )
+            text[
+                "table"
+            ] += f"    CONSTRAINT unique_{table_name}_{fname} UNIQUE ({fname}, {depend_field}),\n"
         return text, ""
 
     @classmethod
@@ -567,7 +570,7 @@ class GenerateCodeBlocks:
         return dedent(
             f"""
             -- definition trigger generate partitioned sequence number for {table_name}.{actual_field} partitioned by {depend_field}
-            CREATE TRIGGER tr_generate_sequence_{view_name}_{actual_field}_{depend_field} BEFORE INSERT ON {table_name}
+            CREATE TRIGGER tr_generate_sequence_{view_name}_{actual_field} BEFORE INSERT ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION generate_sequence('{table_name}', '{actual_field}', '{depend_field}');
             """
         )

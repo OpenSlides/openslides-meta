@@ -2402,7 +2402,7 @@ list_of_speakers:
     restriction_mode: A
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -2616,7 +2616,7 @@ topic:
     restriction_mode: A
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -2676,7 +2676,7 @@ motion:
     restriction_mode: D
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3062,7 +3062,7 @@ motion_comment_section:
     restriction_mode: A
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3116,7 +3116,7 @@ motion_category:
     restriction_mode: A
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3158,7 +3158,7 @@ motion_block:
     restriction_mode: A
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3402,7 +3402,7 @@ motion_workflow:
     restriction_mode: A
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3540,7 +3540,7 @@ poll:
     restriction_mode: C
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3750,7 +3750,7 @@ assignment:
     restriction_mode: A
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -4159,7 +4159,7 @@ projector:
     restriction_mode: A
   sequential_number:
     type: number
-    sequence_partitioning: meeting_id
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
