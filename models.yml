@@ -811,7 +811,6 @@ meeting:
   description:
     type: string
     maxLength: 100
-    default: Presentation and assembly system
     restriction_mode: B
   location:
     type: string
