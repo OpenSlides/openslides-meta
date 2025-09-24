@@ -114,6 +114,9 @@ organization:
   reset_password_verbose_errors:
     type: boolean
     restriction_mode: B
+  forbid_committee_admins_to_set_agenda_forwarding_relations:
+    type: boolean
+    restriction_mode: A
   gender_ids:
     type: relation-list
     to: gender/organization_id
