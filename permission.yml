@@ -4,7 +4,7 @@
 # agenda_item.can_manage or agenda_item.can_see.
 
 # The permissions are hierarchical. Users with agenda_item.can_manage implicitly
-# have agenda_item.can_see_internal and agenda_item.can_see.
+# have agenda_item.can_forward, agenda_item.can_see_internal and agenda_item.can_see.
 
 agenda_item:
     can_manage:
