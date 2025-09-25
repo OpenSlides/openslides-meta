@@ -161,6 +161,6 @@ projector_t
     used_as_default_projector_for_motion_poll_in_meeting_id,
     used_as_default_projector_for_poll_in_meeting_id
 )
-VALUES (2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1);
+VALUES (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
 COMMIT;
