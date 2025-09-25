@@ -114,6 +114,9 @@ organization:
   reset_password_verbose_errors:
     type: boolean
     restriction_mode: B
+  forbid_committee_admins_to_set_agenda_forwarding_relations:
+    type: boolean
+    restriction_mode: A
   gender_ids:
     type: relation-list
     to: gender/organization_id
@@ -761,10 +764,22 @@ committee:
     type: relation-list
     to: committee/receive_forwardings_from_committee_ids
     restriction_mode: B
+    description: List of committees to which motions can be forwarded from this one.
   receive_forwardings_from_committee_ids:
     type: relation-list
     to: committee/forward_to_committee_ids
     restriction_mode: B
+    description: List of committees from which motions can be forwarded to this one.
+  forward_agenda_to_committee_ids:
+    type: relation-list
+    to: committee/receive_agenda_forwardings_from_committee_ids
+    restriction_mode: B
+    description: List of committees to which agenda items can be forwarded from this one.
+  receive_agenda_forwardings_from_committee_ids:
+    type: relation-list
+    to: committee/forward_agenda_to_committee_ids
+    restriction_mode: B
+    description: List of committees from which agenda items can be forwarded to this one.
   organization_tag_ids:
     type: relation-list
     to: organization_tag/tagged_ids
@@ -1954,6 +1969,7 @@ group:
     items:
       enum:
         - agenda_item.can_manage
+        - agenda_item.can_forward
         - agenda_item.can_see
         - agenda_item.can_see_internal
         - assignment.can_manage
