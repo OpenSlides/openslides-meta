@@ -583,14 +583,15 @@ class GenerateCodeBlocks:
     def get_trigger_check_not_null_for_relation_lists(
         cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
     ) -> str:
+        own_table_t = HelperGetNames.get_table_name(own_table)
         foreign_table_t = HelperGetNames.get_table_name(foreign_table)
         return dedent(
             f"""
             -- definition trigger not null for {own_table}.{own_column} against {foreign_table_t}.{foreign_column}
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {foreign_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '{foreign_column}');
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '');
 
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t}
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '{foreign_column}');
 
             """
@@ -744,46 +745,6 @@ class Helper:
         """
         CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
 
-        CREATE FUNCTION check_not_null_for_relation_lists() RETURNS trigger as $not_null_trigger$
-        -- usage with 3 parameters IN TRIGGER DEFINITION:
-        -- table_name of field to check, usually a field in a view
-        -- column_name of field to check
-        -- foreign_key field name of triggered table, that will be used to SELECT the values to check the not null.
-        DECLARE
-            table_name TEXT;
-            column_name TEXT;
-            foreign_key TEXT;
-            foreign_id INTEGER;
-            counted INTEGER;
-        begin
-            table_name = TG_ARGV[0];
-            column_name = TG_ARGV[1];
-            foreign_key = TG_ARGV[2];
-
-            IF (TG_OP = 'INSERT') THEN
-                foreign_id := hstore(NEW) -> foreign_key;
-                IF (foreign_id is NOT NULL) THEN
-                    foreign_id = NULL; -- no need to ask DB
-                END IF;
-            ELSIF (TG_OP = 'UPDATE') THEN
-                foreign_id := hstore(NEW) -> foreign_key;
-                IF (foreign_id is NULL) THEN
-                    foreign_id = OLD.used_as_default_projector_for_topic_in_meeting_id;
-                END IF;
-            ELSIF (TG_OP = 'DELETE') THEN
-                foreign_id := hstore(OLD) -> foreign_key;
-            END IF;
-
-            IF (foreign_id IS NOT NULL) THEN
-                EXECUTE format('SELECT array_length(%I, 1) FROM %I where id = %s', column_name, table_name, foreign_id) INTO counted;
-                IF (counted is NULL) THEN
-                    RAISE EXCEPTION 'Trigger % Exception: NOT NULL CONSTRAINT VIOLATED for %.%', TG_NAME, table_name, column_name;
-                END IF;
-            END IF;
-            RETURN NULL;  -- AFTER TRIGGER needs no return
-        end;
-        $not_null_trigger$ language plpgsql;
-
         CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_modified_trigger$
         DECLARE
             escaped_table_name varchar;
@@ -900,7 +861,10 @@ class Helper:
         """
     )
 
-    for type_, field_check in {"1_1": "%I"}.items():
+    for type_, field_check in {
+        "1_1": "%I",
+        "relation_lists": "array_length(%I, 1)",
+    }.items():
         FILE_TEMPLATE_CONSTANT_DEFINITIONS += dedent(
             f"""
         CREATE FUNCTION check_not_null_for_{type_}() RETURNS trigger as $not_null_trigger$
@@ -915,11 +879,12 @@ class Helper:
             foreign_key TEXT := TG_ARGV[2];
             foreign_id INTEGER;
             counted INTEGER;
+            error_message TEXT;
         BEGIN
             IF (TG_OP = 'INSERT') THEN
                 -- in case of INSERT the view is checked on itself so the own id is applicable
                 foreign_id := NEW.id;
-            ELSIF (TG_OP = 'UPDATE') OR (TG_OP = 'DELETE') THEN
+            ELSIF TG_OP IN ('UPDATE', 'DELETE') THEN
                 foreign_id := hstore(OLD) -> foreign_key;
                 EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', table_name, foreign_id) INTO counted;
                 IF (counted IS NULL) THEN
@@ -931,7 +896,11 @@ class Helper:
             IF (foreign_id IS NOT NULL) THEN
                 EXECUTE format('SELECT {field_check} FROM %I WHERE id = %s', column_name, table_name, foreign_id) INTO counted;
                 IF (counted is NULL) THEN
-                    RAISE EXCEPTION 'Trigger % Exception: NOT NULL CONSTRAINT VIOLATED for %/%/% from relationship before %/%', TG_NAME, table_name, foreign_id, column_name, OLD.id, foreign_key;
+                    error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, table_name, foreign_id, column_name);
+                    IF TG_OP IN ('UPDATE', 'DELETE') THEN
+                        error_message := error_message || format(' from relationship before %s/%s', OLD.id, foreign_key);
+                    END IF;
+                    RAISE EXCEPTION '%', error_message;
                 END IF;
             END IF;
             RETURN NULL;  -- AFTER TRIGGER needs no return
