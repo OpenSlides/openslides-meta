@@ -101,7 +101,6 @@ class GenerateCodeBlocks:
             "type",
             "restriction_mode",
             "minimum",
-            "calculated",
             "description",
             "read_only",
             "enum",
@@ -215,11 +214,6 @@ class GenerateCodeBlocks:
         - string or a callable with return value of type SchemaZoneTexts
         - type as string
         """
-        if fdata.get("calculated"):
-            return (
-                f"type:{fdata.get('type')} is marked as a calculated field and not generated in schema\n",
-                "",
-            )
         if fname == "id":
             type_ = "primary_key"
         elif (

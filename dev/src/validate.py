@@ -49,7 +49,6 @@ VALID_TYPES = DATA_TYPES + RELATION_TYPES
 
 OPTIONAL_ATTRIBUTES = (
     "description",
-    "calculated",
     "required",
     "read_only",
     "constant",
@@ -154,9 +153,6 @@ class Checker:
                     f"Required attribute '{attr}' for collectionfield {collectionfield} is missing."
                 )
                 return
-
-        if field.get("calculated"):
-            return
 
         valid_attributes = list(OPTIONAL_ATTRIBUTES) + required_attributes
         if type == "string[]":
