@@ -1,7 +1,6 @@
 -- This script should only be used for an database filled with base_data.sql.
 
 --relation --relation-list gender_ids
-INSERT INTO gender_t (name) VALUES ('female');
 INSERT INTO user_t (username, gender_id) VALUES ('tom', 1);
 
 BEGIN;
