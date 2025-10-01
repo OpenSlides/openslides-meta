@@ -1630,15 +1630,15 @@ meeting:
     type: relation-list
     to: group/used_as_poll_default_id
     restriction_mode: B
-  poll_default_backend:
-    type: string
-    enum: *poll_backends
-    default: fast
-    restriction_mode: B
   poll_default_live_voting_enabled:
     type: boolean
     default: false
-    description: Defines default 'poll.live_voting_enabled' option suggested to user. Is not used in the validations.
+    description: Defines default 'poll.published' before finished option suggested to user. Is not used in the validations.
+    restriction_mode: B
+  poll_default_allow_invalid:
+    type: boolean
+    default: false
+    description: Defines defaut `poll.allow_invalid` option suggested to user.
     restriction_mode: B
   poll_couple_countdown:
     type: boolean
@@ -3415,9 +3415,6 @@ poll:
     type: string
     required: true
     restriction_mode: A
-  description:
-    type: text
-    restriction_mode: A
   method:
     type: string
     required: true
@@ -3425,7 +3422,7 @@ poll:
       - motion
       - selection
       - rating
-      - single_transferable_vote
+      - rating-motion
     restriction_mode: A
   config:
     type: text
@@ -3433,6 +3430,7 @@ poll:
     restriction_mode: A
   visibility:
     type: string
+    required: true
     enum:
       - manually
       - named
@@ -3445,17 +3443,21 @@ poll:
       - created
       - started
       - finished
-      - published
     default: created
     restriction_mode: A
   result:
     type: text
     description: Calculated result. The format depends on the value in poll/method. Can be manually set when visibility is set to manually.
     restriction_mode: B
-  live_voting_enabled:
+  published:
     type: boolean
     default: false
-    description: If true, the vote service sends the votes of the users to the autoupdate service.
+    description: If true, users can see the result.
+    restriction_mode: A
+  allow_invalid:
+    type: boolean
+    default: false
+    description: If true, the vote service does not validate. This is always the case for secret polls.
     restriction_mode: A
   sequential_number:
     type: number
@@ -3513,12 +3515,12 @@ vote:
   id: *id_field
   weight:
     type: decimal(6)
-    restriction_mode: A
+    restriction_mode: B
     constant: true
     default: "1.000000"
   value:
     type: text
-    restriction_mode: A
+    restriction_mode: B
     constant: true
   poll_id:
     type: relation
@@ -3532,12 +3534,12 @@ vote:
     type: relation
     reference: user
     to: user/acting_vote_ids
-    restriction_mode: A
+    restriction_mode: B
   represented_user_id:
     type: relation
     reference: user
     to: user/represented_vote_ids
-    restriction_mode: A
+    restriction_mode: B
   meeting_id:
     type: relation
     reference: meeting
