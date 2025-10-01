@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '45a8410dde8705474ea7e4c08430f1df'
+-- MODELS_YML_CHECKSUM = '4e5fb835b03145d8d69dee709d1b4aa7'
 
 
 -- Database parameters
@@ -1128,7 +1128,6 @@ CREATE TABLE projection_t (
     stable boolean DEFAULT False,
     weight integer,
     type varchar(256),
-    content jsonb,
     current_projector_id integer,
     preview_projector_id integer,
     history_projector_id integer,
