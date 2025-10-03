@@ -1787,11 +1787,6 @@ meeting:
     to: poll/meeting_id
     on_delete: CASCADE
     restriction_mode: B
-  vote_ids:
-    type: relation-list
-    to: vote/meeting_id
-    on_delete: CASCADE
-    restriction_mode: B
   assignment_ids:
     type: relation-list
     to: assignment/meeting_id
@@ -3540,13 +3535,6 @@ vote:
     reference: user
     to: user/represented_vote_ids
     restriction_mode: B
-  meeting_id:
-    type: relation
-    reference: meeting
-    to: meeting/vote_ids
-    required: true
-    restriction_mode: A
-    constant: true
 
 assignment:
   id: *id_field
