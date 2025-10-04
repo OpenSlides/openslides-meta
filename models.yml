@@ -3529,12 +3529,12 @@ vote:
     type: relation
     reference: user
     to: user/acting_vote_ids
-    restriction_mode: B
+    restriction_mode: C
   represented_user_id:
     type: relation
     reference: user
     to: user/represented_vote_ids
-    restriction_mode: B
+    restriction_mode: C
 
 assignment:
   id: *id_field
