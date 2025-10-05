@@ -3414,10 +3414,10 @@ poll:
     type: string
     required: true
     enum:
-      - motion
+      - approval
       - selection
-      - rating
-      - rating-motion
+      - rating-score
+      - rating-approval
     restriction_mode: A
   config:
     type: text
