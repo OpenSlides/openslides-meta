@@ -452,7 +452,7 @@ meeting_user:
     restriction_mode: A
   motion_supporter_ids:
     type: relation-list
-    to: motion_supporter/meeting_user_ids
+    to: motion_supporter/meeting_user_id
     equal_fields: meeting_id
     restriction_mode: A
   motion_editor_ids:
@@ -2660,7 +2660,7 @@ motion:
     restriction_mode: C
   supporter_ids:
     type: relation-list
-    to: motion_supporter/supporter_ids
+    to: motion_supporter/motion_id
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: C
