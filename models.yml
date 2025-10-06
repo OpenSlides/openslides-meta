@@ -2778,7 +2778,6 @@ motion_supporter:
     type: relation
     to: meeting_user/motion_supporter_ids
     restriction_mode: A
-    required: true
   motion_id:
     type: relation
     to: motion/supporter_ids
