@@ -97,8 +97,6 @@
 #       fields the value as to be an id of an existing object.
 #     - The property `equal_fields` describes fields that must have the same value in
 #       the instance and the related instance.
-#     - The property `unique` will guarantee the uniqueness of fields or field combinations by database constraint..
-#       Example: `unique: meeting_id, sequential_number`
 # Restriction Mode:
 #   The field `restriction_mode` is required for every field. It puts the field into a
 #   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview
@@ -2682,7 +2680,6 @@ motion:
     required: true
     restriction_mode: C
     constant: true
-    unique: meeting_id, sequential_number
   title:
     type: string
     required: true
@@ -4558,7 +4555,7 @@ history_position:
     to: history_entry/position_id
     restriction_mode: A
     on_delete: CASCADE
-  
+
 history_entry:
   id: *id_field
   entries:
