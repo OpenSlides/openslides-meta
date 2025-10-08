@@ -1640,6 +1640,11 @@ meeting:
     default: false
     description: Defines defaut `poll.allow_invalid` option suggested to user.
     restriction_mode: B
+  poll_default_allow_vote_split:
+    type: boolean
+    default: false
+    description: Defines defaut `poll.allow_vote_split` option suggested to user.
+    restriction_mode: B
   poll_couple_countdown:
     type: boolean
     default: True
@@ -3454,6 +3459,11 @@ poll:
     default: false
     description: If true, the vote service does not validate. This is always the case for secret polls.
     restriction_mode: A
+  allow_vote_split:
+    type: boolean
+    default: false
+    description: If true, users can split there vote.
+    restriction_mode: A
   sequential_number:
     type: number
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
@@ -3513,6 +3523,10 @@ vote:
     restriction_mode: B
     constant: true
     default: "1.000000"
+  split:
+    type: boolean
+    default: false
+    restriction_mode: B
   value:
     type: text
     restriction_mode: B
