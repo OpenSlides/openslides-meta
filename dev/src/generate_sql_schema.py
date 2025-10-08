@@ -76,7 +76,9 @@ class GenerateCodeBlocks:
     @classmethod
     def generate_the_code(
         cls,
-    ) -> tuple[str, str, str, str, str, list[str], str, str, str, str, str, list[str]]:
+    ) -> tuple[
+        str, str, str, str, str, list[str], str, str, str, str, str, str, list[str]
+    ]:
         """
         Return values:
           pre_code: Type definitions etc., which should all appear before first table definitions
