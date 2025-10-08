@@ -6,7 +6,7 @@ mypy==1.18.2
 pytest==8.4.2
 pyupgrade==3.20.0
 pyyaml==6.0.3
-simplejson==3.20.1
+simplejson==3.20.2
 
 # typing
 types-PyYAML==6.0.12.20250915
