@@ -858,6 +858,8 @@ class Helper:
             timestamp timestamptz,
             CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
         );
+
+        CREATE TABLE version (migration_index INTEGER);
         """
     )
 
