@@ -133,6 +133,8 @@ CREATE TABLE os_notify_log_t (
     CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
 );
 
+CREATE TABLE version (migration_index INTEGER);
+
 CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger as $not_null_trigger$
 -- usage with 3 parameters IN TRIGGER DEFINITION:
 -- table_name: relation to check, usually a view
