@@ -9,7 +9,6 @@ from string import Formatter
 from textwrap import dedent
 from typing import Any, TypedDict, cast
 
-
 from .helper_get_names import (
     KEYSEPARATOR,
     FieldSqlErrorType,
@@ -780,7 +779,7 @@ class Helper:
         AS $sequences_trigger$
         -- Creates a sequence for the id given by depend_field NEW data if it doesn't exist.
         -- Writes the next value to for this sequence to NEW.
-        -- In case a number is given in actual_column of the NEW record that is used 
+        -- In case a number is given in actual_column of the NEW record that is used
         -- and the corresponding sequence increased if necessary.
         -- Usage with 3 parameters IN TRIGGER DEFINITION:
         -- table_name: table this is treated for
