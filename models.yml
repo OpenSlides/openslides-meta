@@ -1288,6 +1288,12 @@ meeting:
     type: boolean
     default: False
     restriction_mode: B
+  motions_enable_restricted_editor_for_manager:
+    type: boolean
+    restriction_mode: B
+  motions_enable_restricted_editor_for_non_manager:
+    type: boolean
+    restriction_mode: B
 
   # Motion poll
   motion_poll_ballot_paper_selection:
@@ -3101,6 +3107,9 @@ motion_state:
     type: boolean
     restriction_mode: A
     default: false
+  state_button_label:
+    type: string
+    restriction_mode: A
   submitter_withdraw_state_id:
     type: relation
     to: motion_state/submitter_withdraw_back_ids
