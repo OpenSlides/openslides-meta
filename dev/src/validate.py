@@ -54,6 +54,7 @@ OPTIONAL_ATTRIBUTES = (
     "read_only",
     "constant",
     "unique",
+    "sequence_scope",
 )
 
 
@@ -157,6 +158,16 @@ class Checker:
 
         if field.get("calculated"):
             return
+
+        if field_name := field.get("sequence_scope", ""):
+            if type != "number":
+                self.errors.append(
+                    f"Sequences can only be generated for number fields. {collectionfield} is {type}."
+                )
+            if field_name not in self.models[collection]:
+                self.errors.append(
+                    f"{field_name} can not be used as a source of sequence scope since it is not part of {collection}."
+                )
 
         valid_attributes = list(OPTIONAL_ATTRIBUTES) + required_attributes
         if type == "string[]":
