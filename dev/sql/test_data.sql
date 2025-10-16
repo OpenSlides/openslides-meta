@@ -93,15 +93,14 @@ COMMIT;
 INSERT INTO poll_t (
     id,
     title,
-    type,
-    backend,
-    pollmethod,
-    onehundred_percent_base,
+    method,
+    visibility,
+    state,
     sequential_number,
     content_object_id,
     meeting_id
 )
-VALUES (1, 'Titel1', 'analog', 'fast', 'YNA', 'disabled', 1, 'topic/1', 2);
+VALUES (1, 'Titel1', 'selection', 'open', 'created', 1, 'topic/1', 2);
 SELECT nextval('poll_t_id_seq');
 
 --rl:rl committee_ids:user_ids
