@@ -3496,7 +3496,7 @@ poll:
   voted_ids:
     type: relation-list
     to: user/poll_voted_ids
-    restriction_mode: A
+    restriction_mode: B
   entitled_group_ids:
     type: relation-list
     to: group/poll_ids
