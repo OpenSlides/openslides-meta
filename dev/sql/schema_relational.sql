@@ -4,17 +4,6 @@
 -- MODELS_YML_CHECKSUM = '61012eeafa6bc4616939f5a7f4fa4e8d'
 
 
--- Database parameters
-
--- Do not log messages lower than WARNING
--- For client side logging this can be overwritten using
---
--- SET client_min_messages TO NOTICE;
---
--- to get the log messages in the client locally.
-SET log_min_messages TO WARNING;
-
-
 -- Function and meta table definitions
 
 CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
