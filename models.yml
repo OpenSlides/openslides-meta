@@ -3440,7 +3440,7 @@ poll:
     type: relation-list
     to: user/poll_option_poll_id
     on_delete: CASCADE
-    requred: false
+    required: false
     restriction_mode: A
   visibility:
     type: string
