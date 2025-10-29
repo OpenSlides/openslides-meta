@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '3186e677307ee4e486370173899de032'
+-- MODELS_YML_CHECKSUM = 'b865ed095468e6ce067d9298f64fa1c8'
 
 
 -- Function and meta table definitions
@@ -1418,6 +1418,12 @@ CREATE TABLE nm_motion_state_next_state_ids_motion_state_t (
     PRIMARY KEY (next_state_id, previous_state_id)
 );
 
+CREATE TABLE nm_poll_config_option_user_ids_user_t (
+    poll_id integer NOT NULL REFERENCES poll_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    user_id integer NOT NULL REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    PRIMARY KEY (poll_id, user_id)
+);
+
 CREATE TABLE nm_poll_voted_ids_user_t (
     poll_id integer NOT NULL REFERENCES poll_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     user_id integer NOT NULL REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
@@ -1497,6 +1503,7 @@ CREATE VIEW "user" AS SELECT *,
 (select array_agg(v.id ORDER BY v.id) from vote_t v where v.acting_user_id = u.id) as acting_vote_ids,
 (select array_agg(v.id ORDER BY v.id) from vote_t v where v.represented_user_id = u.id) as represented_vote_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_candidate_t p where p.user_id = u.id) as poll_candidate_ids,
+(select array_agg(n.poll_id ORDER BY n.poll_id) from nm_poll_config_option_user_ids_user_t n where n.user_id = u.id) as poll_option_poll_id,
 (select array_agg(h.id ORDER BY h.id) from history_position_t h where h.user_id = u.id) as history_position_ids,
 (select array_agg(h.id ORDER BY h.id) from history_entry_t h where h.model_id_user_id = u.id) as history_entry_ids,
 (
@@ -1800,6 +1807,7 @@ FROM motion_workflow_t m;
 
 
 CREATE VIEW "poll" AS SELECT *,
+(select array_agg(n.user_id ORDER BY n.user_id) from nm_poll_config_option_user_ids_user_t n where n.poll_id = p.id) as config_option_user_ids,
 (select array_agg(v.id ORDER BY v.id) from vote_t v where v.poll_id = p.id) as vote_ids,
 (select array_agg(n.user_id ORDER BY n.user_id) from nm_poll_voted_ids_user_t n where n.poll_id = p.id) as voted_ids,
 (select array_agg(n.group_id ORDER BY n.group_id) from nm_group_poll_ids_poll_t n where n.poll_id = p.id) as entitled_group_ids,
@@ -2834,6 +2842,11 @@ CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELET
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
 
+CREATE TRIGGER tr_log_nm_poll_config_option_user_ids_user_t AFTER INSERT OR UPDATE OR DELETE ON nm_poll_config_option_user_ids_user_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll','poll_id','user','user_id');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_poll_config_option_user_ids_user_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
 CREATE TRIGGER tr_log_motion_content_object_id_motion_id AFTER INSERT OR UPDATE OF content_object_id_motion_id OR DELETE ON poll_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion','content_object_id_motion_id');
 
@@ -3146,6 +3159,7 @@ SQL nt:nt => user/poll_voted_ids:-> poll/voted_ids
 SQL nt:1r => user/acting_vote_ids:-> vote/acting_user_id
 SQL nt:1r => user/represented_vote_ids:-> vote/represented_user_id
 SQL nt:1r => user/poll_candidate_ids:-> poll_candidate/user_id
+SQL nt:nt => user/poll_option_poll_id:-> poll/config_option_user_ids
 FIELD 1r:nt => user/home_committee_id:-> committee/native_user_ids
 SQL nt:1r => user/history_position_ids:-> history_position/user_id
 SQL nt:1Gr => user/history_entry_ids:-> history_entry/model_id
@@ -3421,6 +3435,7 @@ SQL 1t:1rR => motion_workflow/default_workflow_meeting_id:-> meeting/motions_def
 SQL 1t:1rR => motion_workflow/default_amendment_workflow_meeting_id:-> meeting/motions_default_amendment_workflow_id
 FIELD 1rR:nt => motion_workflow/meeting_id:-> meeting/motion_workflow_ids
 
+SQL nt:nt => poll/config_option_user_ids:-> user/poll_option_poll_id
 FIELD 1GrR:nt,nt,nt => poll/content_object_id:-> motion/poll_ids,assignment/poll_ids,topic/poll_ids
 SQL nt:1rR => poll/vote_ids:-> vote/poll_id
 SQL nt:nt => poll/voted_ids:-> user/poll_voted_ids
@@ -3535,4 +3550,4 @@ FIELD 1r:nt => history_entry/meeting_id:-> meeting/relevant_history_entry_ids
 
 */
 
-/*   Missing attribute handling for constant, on_delete, equal_fields, deferred */
+/*   Missing attribute handling for constant, on_delete, equal_fields, deferred, requred */

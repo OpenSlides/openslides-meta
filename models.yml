@@ -443,6 +443,10 @@ user:
     type: relation-list
     to: poll_candidate/user_id
     restriction_mode: A
+  poll_option_poll_id:
+    type: relation-list
+    to: poll/config_option_user_ids
+    restriction_mode: A
   home_committee_id:
     type: relation
     to: committee/native_user_ids
@@ -3431,6 +3435,12 @@ poll:
   config:
     type: text
     description: Values to configure the poll. Depends on the value in poll/method.
+    restriction_mode: A
+  config_option_user_ids:
+    type: relation-list
+    to: user/poll_option_poll_id
+    on_delete: CASCADE
+    requred: false
     restriction_mode: A
   visibility:
     type: string
