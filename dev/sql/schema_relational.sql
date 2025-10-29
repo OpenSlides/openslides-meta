@@ -1,18 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '529e4e4f9295f128c0fa0d441ee2efae'
-
-
--- Database parameters
-
--- Do not log messages lower than WARNING
--- For client side logging this can be overwritten using
---
--- SET client_min_messages TO NOTICE;
---
--- to get the log messages in the client locally.
-SET log_min_messages TO WARNING;
+-- MODELS_YML_CHECKSUM = '3186e677307ee4e486370173899de032'
 
 
 -- Function and meta table definitions
@@ -129,14 +118,12 @@ $notify_trigger$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION log_modified_related_models()
 RETURNS trigger AS $log_modified_related_trigger$
 DECLARE
-    operation_var TEXT;
     fqid_var TEXT;
     ref_column TEXT;
     foreign_table TEXT;
     foreign_id TEXT;
     i INTEGER := 0;
 BEGIN
-    operation_var := LOWER(TG_OP);
 
     WHILE i < TG_NARGS LOOP
         foreign_table := TG_ARGV[i];
@@ -151,7 +138,7 @@ BEGIN
         IF foreign_id IS NOT NULL THEN
             fqid_var := foreign_table || '/' || foreign_id;
             INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp)
-            VALUES (operation_var, fqid_var, pg_current_xact_id(), now())
+            VALUES ('update', fqid_var, pg_current_xact_id(), now())
             ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
         END IF;
 
