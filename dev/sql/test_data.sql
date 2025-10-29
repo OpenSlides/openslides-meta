@@ -10,9 +10,9 @@ VALUES (5, 'motionState5', 1, 2, 2);
 SELECT nextval('motion_state_t_id_seq');
 
 INSERT INTO motion_workflow_t (
-    id, name, sequential_number, first_state_id, meeting_id
+    id, name, first_state_id, meeting_id
 )
-VALUES (2, 'workflow2', 2, 4, 2);
+VALUES (2, 'workflow2', 4, 2);
 SELECT nextval('motion_workflow_t_id_seq');
 
 INSERT INTO meeting_t (
@@ -40,7 +40,6 @@ SELECT nextval('committee_t_id_seq');
 
 INSERT INTO projector_t (
     id,
-    sequential_number,
     meeting_id,
     used_as_default_projector_for_agenda_item_list_in_meeting_id,
     used_as_default_projector_for_topic_in_meeting_id,
@@ -57,7 +56,11 @@ INSERT INTO projector_t (
     used_as_default_projector_for_motion_poll_in_meeting_id,
     used_as_default_projector_for_poll_in_meeting_id
 )
-VALUES (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+VALUES (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+SELECT nextval('projector_t_id_seq');
+
+INSERT INTO projector_t (id, meeting_id)
+VALUES (3, 2);
 SELECT nextval('projector_t_id_seq');
 
 INSERT INTO group_t (id, name, meeting_id)
@@ -74,8 +77,8 @@ INSERT INTO gm_organization_tag_tagged_ids_t (organization_tag_id, tagged_id)
 VALUES (2, 'meeting/1');
 
 BEGIN;
-INSERT INTO topic_t (id, title, sequential_number, meeting_id)
-VALUES (1, 'Thema1', 1, 2);
+INSERT INTO topic_t (id, title, meeting_id)
+VALUES (1, 'Thema1', 2);
 SELECT nextval('topic_t_id_seq');
 
 --list_of_speakers.content_object_id:topic.list_of_speakers_id gr:r
