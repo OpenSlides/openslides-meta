@@ -431,14 +431,6 @@ user:
     type: relation-list
     to: poll/voted_ids
     restriction_mode: A
-  acting_vote_ids:
-    type: relation-list
-    to: vote/acting_user_id
-    restriction_mode: A
-  represented_vote_ids:
-    type: relation-list
-    to: vote/represented_user_id
-    restriction_mode: A
   poll_candidate_ids:
     type: relation-list
     to: poll_candidate/user_id
@@ -563,6 +555,20 @@ meeting_user:
     type: relation-list
     to: meeting_user/vote_delegated_to_id
     equal_fields: meeting_id
+    restriction_mode: A
+  poll_option_ids:
+    type: relation-list
+    to: poll_config_option/meeting_user_id
+    reference: poll_config_option
+    required: false
+    restriction_mode: A
+  acting_ballot_ids:
+    type: relation-list
+    to: ballot/acting_user_id
+    restriction_mode: A
+  represented_ballot_ids:
+    type: relation-list
+    to: ballot/represented_user_id
     restriction_mode: A
   chat_message_ids:
     type: relation-list
@@ -3419,18 +3425,18 @@ poll:
     type: string
     required: true
     restriction_mode: A
-  method:
-    type: string
-    required: true
-    enum:
-      - approval
-      - selection
-      - rating-score
-      - rating-approval
-    restriction_mode: A
-  config:
-    type: text
-    description: Values to configure the poll. Depends on the value in poll/method.
+  config_id:
+    type: generic-relation
+    to:
+      - poll_config_approval/poll_id
+      - poll_config_selection/poll_id
+      - poll_config_rating_score/poll_id
+      - poll_config_rating_approval/poll_id
+    reference:
+      - poll_config_approval
+      - poll_config_selection
+      - poll_config_rating_score
+      - poll_config_rating_approval
     restriction_mode: A
   visibility:
     type: string
@@ -3492,9 +3498,10 @@ poll:
     restriction_mode: A
     required: true
     constant: true
-  vote_ids:
+  ballot_ids:
     type: relation-list
-    to: vote/poll_id
+    to: ballot/poll_id
+    reference: ballot
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
@@ -3521,7 +3528,133 @@ poll:
     required: true
     constant: true
 
-vote:
+poll_config_approval:
+  id: *id_field
+  poll_id:
+    type: relation
+    to: poll/config_id
+    reference: poll
+    required: true
+    restriction_mode: A
+  allow_abstain:
+    type: boolean
+    default: true
+    restriction_mode: A
+
+poll_config_selection:
+  id: *id_field
+  poll_id:
+    type: relation
+    to: poll/config_id
+    reference: poll
+    required: true
+    restriction_mode: A
+  option_ids:
+    type: relation-list
+    to: poll_config_option/poll_config_id
+    on_delete: CASCADE
+    restriction_mode: A
+  max_options_amount:
+    type: number
+    default: 0
+    restriction_mode: A
+  min_options_amount:
+    type: number
+    default: 0
+    restriction_mode: A
+  allow_nota:
+    type: boolean
+    default: false
+    restriction_mode: A
+
+poll_config_rating_score:
+  id: *id_field
+  poll_id:
+    type: relation
+    to: poll/config_id
+    reference: poll
+    required: true
+    restriction_mode: A
+  option_ids:
+    type: relation-list
+    to: poll_config_option/poll_config_id
+    on_delete: CASCADE
+    restriction_mode: A
+  max_options_amount:
+    type: number
+    default: 0
+    restriction_mode: A
+  min_options_amount:
+    type: number
+    default: 0
+    restriction_mode: A
+  max_votes_per_option:
+    type: number
+    default: 0
+    restriction_mode: A
+  max_vote_sum:
+    type: number
+    default: 0
+    restriction_mode: A
+  min_vote_sum:
+    type: number
+    default: 0
+    restriction_mode: A
+
+poll_config_rating_approval:
+  id: *id_field
+  poll_id:
+    type: relation
+    to: poll/config_id
+    reference: poll
+    required: true
+    restriction_mode: A
+  option_ids:
+    type: relation-list
+    to: poll_config_option/poll_config_id
+    on_delete: CASCADE
+    restriction_mode: A
+  max_options_amount:
+    type: number
+    default: 0
+    restriction_mode: A
+  min_options_amount:
+    type: number
+    default: 0
+    restriction_mode: A
+  allow_abstain:
+    type: boolean
+    default: true
+    restriction_mode: A
+
+poll_config_option:
+  id: *id_field
+  poll_config_id:
+    type: generic-relation
+    to:
+      - poll_config_selection/option_ids
+      - poll_config_rating_score/option_ids
+      - poll_config_rating_approval/option_ids
+    reference:
+      - poll_config_selection
+      - poll_config_rating_score
+      - poll_config_rating_approval
+    required: true
+    restriction_mode: A
+  weight:
+    type: number
+    restriction_mode: A
+  text:
+    type: string
+    restriction_mode: A
+  meeting_user_id:
+    type: relation
+    to: meeting_user/poll_option_ids
+    reference: meeting_user
+    required: false
+    restriction_mode: A
+
+ballot:
   id: *id_field
   weight:
     type: decimal(6)
@@ -3539,7 +3672,7 @@ vote:
   poll_id:
     type: relation
     reference: poll
-    to: poll/vote_ids
+    to: poll/ballot_ids
     equal_fields: meeting_id
     required: true
     restriction_mode: A
@@ -3547,12 +3680,12 @@ vote:
   acting_user_id:
     type: relation
     reference: user
-    to: user/acting_vote_ids
+    to: meeting_user/acting_ballot_ids
     restriction_mode: C
   represented_user_id:
     type: relation
     reference: user
-    to: user/represented_vote_ids
+    to: meeting_user/represented_ballot_ids
     restriction_mode: C
 
 assignment:

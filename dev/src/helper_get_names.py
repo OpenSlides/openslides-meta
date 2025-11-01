@@ -71,9 +71,9 @@ class HelperGetNames:
     def max_length(func: Callable) -> Callable:
         def wrapper(*args, **kwargs) -> str:  # type:ignore
             name = func(*args, **kwargs)
-            assert (
-                len(name) <= HelperGetNames.MAX_LEN
-            ), f"Name '{name}' generated too long in function {func}!"
+            assert len(name) <= HelperGetNames.MAX_LEN, (
+                f"Name '{name}' generated too long in function {func}!"
+            )
             return name
 
         return wrapper
@@ -319,19 +319,19 @@ class InternalHelper:
 
     @staticmethod
     def get_field_definition_from_to(to: str) -> tuple[str, str, dict[str, Any]]:
-        tname, fname = to.split("/")
         try:
+            tname, fname = to.split("/")
             field = InternalHelper.get_models(tname, fname)
-        except Exception:
+        except Exception as e:
             raise Exception(
-                f"Exception on splitting to {to} in get_field_definition_from_to"
+                f"Exception on splitting to {to} in get_field_definition_from_to: {e}"
             )
-        assert (
-            len(tname) <= HelperGetNames.MAX_LEN
-        ), f"Generated tname '{tname}' to long in function 'get_field_definition_from_to'!"
-        assert (
-            len(fname) <= HelperGetNames.MAX_LEN
-        ), f"Generated fname '{fname}' to long in function 'get_field_definition_from_to'!"
+        assert len(tname) <= HelperGetNames.MAX_LEN, (
+            f"Generated tname '{tname}' to long in function 'get_field_definition_from_to'!"
+        )
+        assert len(fname) <= HelperGetNames.MAX_LEN, (
+            f"Generated fname '{fname}' to long in function 'get_field_definition_from_to'!"
+        )
 
         return tname, fname, field
 
