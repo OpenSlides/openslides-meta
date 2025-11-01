@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '35b94c9dd647672ed7ae797bf80a8df2'
+-- MODELS_YML_CHECKSUM = '23279d1eda1e7f45ab74fe4edfbaf546'
 
 
 -- Function and meta table definitions
@@ -1357,6 +1357,12 @@ CREATE TABLE nm_meeting_user_supported_motion_ids_motion_t (
     PRIMARY KEY (meeting_user_id, motion_id)
 );
 
+CREATE TABLE nm_meeting_user_poll_voted_ids_poll_t (
+    meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    poll_id integer NOT NULL REFERENCES poll_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
+    PRIMARY KEY (meeting_user_id, poll_id)
+);
+
 CREATE TABLE nm_meeting_user_structure_level_ids_structure_level_t (
     meeting_user_id integer NOT NULL REFERENCES meeting_user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     structure_level_id integer NOT NULL REFERENCES structure_level_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
@@ -1480,12 +1486,6 @@ CREATE TABLE nm_motion_state_next_state_ids_motion_state_t (
     PRIMARY KEY (next_state_id, previous_state_id)
 );
 
-CREATE TABLE nm_poll_voted_ids_user_t (
-    poll_id integer NOT NULL REFERENCES poll_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    user_id integer NOT NULL REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (poll_id, user_id)
-);
-
 CREATE TABLE gm_meeting_mediafile_attachment_ids_t (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
@@ -1555,7 +1555,6 @@ CREATE VIEW "user" AS SELECT *,
 ,
 (select array_agg(n.committee_id ORDER BY n.committee_id) from nm_committee_manager_ids_user_t n where n.user_id = u.id) as committee_management_ids,
 (select array_agg(m.id ORDER BY m.id) from meeting_user_t m where m.user_id = u.id) as meeting_user_ids,
-(select array_agg(n.poll_id ORDER BY n.poll_id) from nm_poll_voted_ids_user_t n where n.user_id = u.id) as poll_voted_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_candidate_t p where p.user_id = u.id) as poll_candidate_ids,
 (select array_agg(h.id ORDER BY h.id) from history_position_t h where h.user_id = u.id) as history_position_ids,
 (select array_agg(h.id ORDER BY h.id) from history_entry_t h where h.model_id_user_id = u.id) as history_entry_ids,
@@ -1580,6 +1579,7 @@ CREATE VIEW "meeting_user" AS SELECT *,
 (select array_agg(ms.id ORDER BY ms.id) from motion_submitter_t ms where ms.meeting_user_id = m.id) as motion_submitter_ids,
 (select array_agg(a.id ORDER BY a.id) from assignment_candidate_t a where a.meeting_user_id = m.id) as assignment_candidate_ids,
 (select array_agg(mu.id ORDER BY mu.id) from meeting_user_t mu where mu.vote_delegated_to_id = m.id) as vote_delegations_from_ids,
+(select array_agg(n.poll_id ORDER BY n.poll_id) from nm_meeting_user_poll_voted_ids_poll_t n where n.meeting_user_id = m.id) as poll_voted_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_config_option_t p where p.meeting_user_id = m.id) as poll_option_ids,
 (select array_agg(b.id ORDER BY b.id) from ballot_t b where b.acting_meeting_user_id = m.id) as acting_ballot_ids,
 (select array_agg(b.id ORDER BY b.id) from ballot_t b where b.represented_meeting_user_id = m.id) as represented_ballot_ids,
@@ -1864,7 +1864,7 @@ FROM motion_workflow_t m;
 
 CREATE VIEW "poll" AS SELECT *,
 (select array_agg(b.id ORDER BY b.id) from ballot_t b where b.poll_id = p.id) as ballot_ids,
-(select array_agg(n.user_id ORDER BY n.user_id) from nm_poll_voted_ids_user_t n where n.poll_id = p.id) as voted_ids,
+(select array_agg(n.meeting_user_id ORDER BY n.meeting_user_id) from nm_meeting_user_poll_voted_ids_poll_t n where n.poll_id = p.id) as voted_ids,
 (select array_agg(n.group_id ORDER BY n.group_id) from nm_group_poll_ids_poll_t n where n.poll_id = p.id) as entitled_group_ids,
 (select array_agg(pt.id ORDER BY pt.id) from projection_t pt where pt.content_object_id_poll_id = p.id) as projection_ids
 FROM poll_t p;
@@ -2478,6 +2478,11 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 CREATE TRIGGER tr_log_meeting_user_t_vote_delegated_to_id AFTER INSERT OR UPDATE OF vote_delegated_to_id OR DELETE ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user', 'vote_delegated_to_id');
 
+CREATE TRIGGER tr_log_nm_meeting_user_poll_voted_ids_poll_t AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_user_poll_voted_ids_poll_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user','meeting_user_id','poll','poll_id');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_user_poll_voted_ids_poll_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
 CREATE TRIGGER tr_log_nm_meeting_user_structure_level_ids_structure_level_t AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_user_structure_level_ids_structure_level_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user','meeting_user_id','structure_level','structure_level_id');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_user_structure_level_ids_structure_level_t
@@ -2955,11 +2960,6 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('assignment','content_
 
 CREATE TRIGGER tr_log_topic_content_object_id_topic_id AFTER INSERT OR UPDATE OF content_object_id_topic_id OR DELETE ON poll_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('topic','content_object_id_topic_id');
-
-CREATE TRIGGER tr_log_nm_poll_voted_ids_user_t AFTER INSERT OR UPDATE OR DELETE ON nm_poll_voted_ids_user_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll','poll_id','user','user_id');
-CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_poll_voted_ids_user_t
-DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 CREATE TRIGGER tr_log_poll_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON poll_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id');
 
@@ -3304,7 +3304,6 @@ SQL nt:nt => user/is_present_in_meeting_ids:-> meeting/present_user_ids
 SQL nts:nts => user/committee_ids:-> committee/user_ids
 SQL nt:nt => user/committee_management_ids:-> committee/manager_ids
 SQL nt:1rR => user/meeting_user_ids:-> meeting_user/user_id
-SQL nt:nt => user/poll_voted_ids:-> poll/voted_ids
 SQL nt:1r => user/poll_candidate_ids:-> poll_candidate/user_id
 FIELD 1r:nt => user/home_committee_id:-> committee/native_user_ids
 SQL nt:1r => user/history_position_ids:-> history_position/user_id
@@ -3322,6 +3321,7 @@ SQL nt:1rR => meeting_user/motion_submitter_ids:-> motion_submitter/meeting_user
 SQL nt:1r => meeting_user/assignment_candidate_ids:-> assignment_candidate/meeting_user_id
 FIELD 1r:nt => meeting_user/vote_delegated_to_id:-> meeting_user/vote_delegations_from_ids
 SQL nt:1r => meeting_user/vote_delegations_from_ids:-> meeting_user/vote_delegated_to_id
+SQL nt:nt => meeting_user/poll_voted_ids:-> poll/voted_ids
 SQL nr:1r => meeting_user/poll_option_ids:-> poll_config_option/meeting_user_id
 SQL nt:1r => meeting_user/acting_ballot_ids:-> ballot/acting_meeting_user_id
 SQL nt:1r => meeting_user/represented_ballot_ids:-> ballot/represented_meeting_user_id
@@ -3587,7 +3587,7 @@ FIELD 1rR:nt => motion_workflow/meeting_id:-> meeting/motion_workflow_ids
 FIELD 1GrR:1rR,1rR,1rR,1rR => poll/config_id:-> poll_config_approval/poll_id,poll_config_selection/poll_id,poll_config_rating_score/poll_id,poll_config_rating_approval/poll_id
 FIELD 1GrR:nt,nt,nt => poll/content_object_id:-> motion/poll_ids,assignment/poll_ids,topic/poll_ids
 SQL nr:1rR => poll/ballot_ids:-> ballot/poll_id
-SQL nt:nt => poll/voted_ids:-> user/poll_voted_ids
+SQL nt:nt => poll/voted_ids:-> meeting_user/poll_voted_ids
 SQL nt:nt => poll/entitled_group_ids:-> group/poll_ids
 SQL nt:1GrR => poll/projection_ids:-> projection/content_object_id
 FIELD 1rR:nt => poll/meeting_id:-> meeting/poll_ids

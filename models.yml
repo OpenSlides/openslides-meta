@@ -427,10 +427,6 @@ user:
     to: meeting_user/user_id
     restriction_mode: A
     on_delete: CASCADE
-  poll_voted_ids:
-    type: relation-list
-    to: poll/voted_ids
-    restriction_mode: A
   poll_candidate_ids:
     type: relation-list
     to: poll_candidate/user_id
@@ -555,6 +551,10 @@ meeting_user:
     type: relation-list
     to: meeting_user/vote_delegated_to_id
     equal_fields: meeting_id
+    restriction_mode: A
+  poll_voted_ids:
+    type: relation-list
+    to: poll/voted_ids
     restriction_mode: A
   poll_option_ids:
     type: relation-list
@@ -3508,7 +3508,7 @@ poll:
     restriction_mode: A
   voted_ids:
     type: relation-list
-    to: user/poll_voted_ids
+    to: meeting_user/poll_voted_ids
     restriction_mode: B
   entitled_group_ids:
     type: relation-list
