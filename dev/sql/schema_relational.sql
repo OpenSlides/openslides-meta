@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'f010c4895a857f5b0f8559cac2d6499e'
+-- MODELS_YML_CHECKSUM = '35b94c9dd647672ed7ae797bf80a8df2'
 
 
 -- Function and meta table definitions
@@ -1085,8 +1085,8 @@ CREATE TABLE ballot_t (
     split boolean DEFAULT False,
     value text,
     poll_id integer NOT NULL,
-    acting_user_id integer,
-    represented_user_id integer
+    acting_meeting_user_id integer,
+    represented_meeting_user_id integer
 );
 
 
@@ -1581,8 +1581,8 @@ CREATE VIEW "meeting_user" AS SELECT *,
 (select array_agg(a.id ORDER BY a.id) from assignment_candidate_t a where a.meeting_user_id = m.id) as assignment_candidate_ids,
 (select array_agg(mu.id ORDER BY mu.id) from meeting_user_t mu where mu.vote_delegated_to_id = m.id) as vote_delegations_from_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_config_option_t p where p.meeting_user_id = m.id) as poll_option_ids,
-(select array_agg(b.id ORDER BY b.id) from ballot_t b where b.acting_user_id = m.id) as acting_ballot_ids,
-(select array_agg(b.id ORDER BY b.id) from ballot_t b where b.represented_user_id = m.id) as represented_ballot_ids,
+(select array_agg(b.id ORDER BY b.id) from ballot_t b where b.acting_meeting_user_id = m.id) as acting_ballot_ids,
+(select array_agg(b.id ORDER BY b.id) from ballot_t b where b.represented_meeting_user_id = m.id) as represented_ballot_ids,
 (select array_agg(c.id ORDER BY c.id) from chat_message_t c where c.meeting_user_id = m.id) as chat_message_ids,
 (select array_agg(n.group_id ORDER BY n.group_id) from nm_group_meeting_user_ids_meeting_user_t n where n.meeting_user_id = m.id) as group_ids,
 (select array_agg(n.structure_level_id ORDER BY n.structure_level_id) from nm_meeting_user_structure_level_ids_structure_level_t n where n.meeting_user_id = m.id) as structure_level_ids
@@ -2147,8 +2147,8 @@ ALTER TABLE poll_config_option_t ADD FOREIGN KEY(poll_config_id_poll_config_rati
 ALTER TABLE poll_config_option_t ADD FOREIGN KEY(meeting_user_id) REFERENCES meeting_user_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE ballot_t ADD FOREIGN KEY(poll_id) REFERENCES poll_t(id) INITIALLY DEFERRED;
-ALTER TABLE ballot_t ADD FOREIGN KEY(acting_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
-ALTER TABLE ballot_t ADD FOREIGN KEY(represented_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
+ALTER TABLE ballot_t ADD FOREIGN KEY(acting_meeting_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
+ALTER TABLE ballot_t ADD FOREIGN KEY(represented_meeting_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE assignment_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 
@@ -3019,10 +3019,10 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 
 CREATE TRIGGER tr_log_ballot_t_poll_id AFTER INSERT OR UPDATE OF poll_id OR DELETE ON ballot_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll', 'poll_id');
-CREATE TRIGGER tr_log_ballot_t_acting_user_id AFTER INSERT OR UPDATE OF acting_user_id OR DELETE ON ballot_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'acting_user_id');
-CREATE TRIGGER tr_log_ballot_t_represented_user_id AFTER INSERT OR UPDATE OF represented_user_id OR DELETE ON ballot_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'represented_user_id');
+CREATE TRIGGER tr_log_ballot_t_acting_meeting_user_id AFTER INSERT OR UPDATE OF acting_meeting_user_id OR DELETE ON ballot_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'acting_meeting_user_id');
+CREATE TRIGGER tr_log_ballot_t_represented_meeting_user_id AFTER INSERT OR UPDATE OF represented_meeting_user_id OR DELETE ON ballot_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'represented_meeting_user_id');
 
 CREATE TRIGGER tr_log_assignment AFTER INSERT OR UPDATE OR DELETE ON assignment_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('assignment');
@@ -3323,8 +3323,8 @@ SQL nt:1r => meeting_user/assignment_candidate_ids:-> assignment_candidate/meeti
 FIELD 1r:nt => meeting_user/vote_delegated_to_id:-> meeting_user/vote_delegations_from_ids
 SQL nt:1r => meeting_user/vote_delegations_from_ids:-> meeting_user/vote_delegated_to_id
 SQL nr:1r => meeting_user/poll_option_ids:-> poll_config_option/meeting_user_id
-SQL nt:1r => meeting_user/acting_ballot_ids:-> ballot/acting_user_id
-SQL nt:1r => meeting_user/represented_ballot_ids:-> ballot/represented_user_id
+SQL nt:1r => meeting_user/acting_ballot_ids:-> ballot/acting_meeting_user_id
+SQL nt:1r => meeting_user/represented_ballot_ids:-> ballot/represented_meeting_user_id
 SQL nt:1r => meeting_user/chat_message_ids:-> chat_message/meeting_user_id
 SQL nt:nt => meeting_user/group_ids:-> group/meeting_user_ids
 SQL nt:nt => meeting_user/structure_level_ids:-> structure_level/meeting_user_ids
@@ -3607,8 +3607,8 @@ FIELD 1GrR:nt,nt,nt => poll_config_option/poll_config_id:-> poll_config_selectio
 FIELD 1r:nr => poll_config_option/meeting_user_id:-> meeting_user/poll_option_ids
 
 FIELD 1rR:nr => ballot/poll_id:-> poll/ballot_ids
-FIELD 1r:nt => ballot/acting_user_id:-> user/acting_ballot_ids
-FIELD 1r:nt => ballot/represented_user_id:-> user/represented_ballot_ids
+FIELD 1r:nt => ballot/acting_meeting_user_id:-> user/acting_ballot_ids
+FIELD 1r:nt => ballot/represented_meeting_user_id:-> user/represented_ballot_ids
 
 SQL nt:1rR => assignment/candidate_ids:-> assignment_candidate/assignment_id
 SQL nt:1GrR => assignment/poll_ids:-> poll/content_object_id

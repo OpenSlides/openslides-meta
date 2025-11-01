@@ -564,11 +564,11 @@ meeting_user:
     restriction_mode: A
   acting_ballot_ids:
     type: relation-list
-    to: ballot/acting_user_id
+    to: ballot/acting_meeting_user_id
     restriction_mode: A
   represented_ballot_ids:
     type: relation-list
-    to: ballot/represented_user_id
+    to: ballot/represented_meeting_user_id
     restriction_mode: A
   chat_message_ids:
     type: relation-list
@@ -3678,12 +3678,12 @@ ballot:
     required: true
     restriction_mode: A
     constant: true
-  acting_user_id:
+  acting_meeting_user_id:
     type: relation
     reference: user
     to: meeting_user/acting_ballot_ids
     restriction_mode: C
-  represented_user_id:
+  represented_meeting_user_id:
     type: relation
     reference: user
     to: meeting_user/represented_ballot_ids
