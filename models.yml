@@ -3437,6 +3437,7 @@ poll:
       - poll_config_selection
       - poll_config_rating_score
       - poll_config_rating_approval
+    required: true
     restriction_mode: A
   visibility:
     type: string
