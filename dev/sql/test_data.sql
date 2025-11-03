@@ -92,19 +92,28 @@ INSERT INTO agenda_item_t (content_object_id, meeting_id)
 VALUES ('topic/1', 2);
 COMMIT;
 
+INSERT INTO poll_config_approval_t (
+    allow_abstain,
+)
+VALUES (true);
+
 --rl:gr topic.poll_ids:poll.content_object_id
 INSERT INTO poll_t (
     id,
     title,
-    method,
+    config_id
     visibility,
     state,
     sequential_number,
     content_object_id,
     meeting_id
 )
-VALUES (1, 'Titel1', 'selection', 'open', 'created', 1, 'topic/1', 2);
+-- TODO: use the correct id from poll_config_approval.
+VALUES (1, 'Titel1', 'poll_config_approval/1', 'open', 'created', 1, 'topic/1', 2);
 SELECT nextval('poll_t_id_seq');
+
+-- TODO: Use correct IDs. Can be removed after this is fixed: https://github.com/OpenSlides/openslides-meta/issues/339
+UPDATE poll_config_approval_t SET poll_id = 1 WHERE id = 1;
 
 --rl:rl committee_ids:user_ids
 INSERT INTO nm_committee_manager_ids_user_t (committee_id, user_id)
