@@ -319,12 +319,12 @@ class InternalHelper:
 
     @staticmethod
     def get_field_definition_from_to(to: str) -> tuple[str, str, dict[str, Any]]:
-        tname, fname = to.split("/")
         try:
+            tname, fname = to.split("/")
             field = InternalHelper.get_models(tname, fname)
-        except Exception:
+        except Exception as e:
             raise Exception(
-                f"Exception on splitting to {to} in get_field_definition_from_to"
+                f"Exception on splitting to {to} in get_field_definition_from_to: {e}"
             )
         assert (
             len(tname) <= HelperGetNames.MAX_LEN
