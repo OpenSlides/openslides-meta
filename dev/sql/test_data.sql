@@ -93,9 +93,9 @@ VALUES ('topic/1', 2);
 COMMIT;
 
 INSERT INTO poll_config_approval_t (
-    allow_abstain,
+    allow_abstain
 )
-VALUES (true);
+VALUES (True);
 
 --rl:gr topic.poll_ids:poll.content_object_id
 INSERT INTO poll_t (
