@@ -96,7 +96,7 @@ COMMIT;
 INSERT INTO poll_t (
     id,
     title,
-    config_id
+    config_id,
     visibility,
     state,
     sequential_number,
