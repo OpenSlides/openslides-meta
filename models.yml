@@ -427,10 +427,6 @@ user:
     to: meeting_user/user_id
     restriction_mode: A
     on_delete: CASCADE
-  poll_candidate_ids:
-    type: relation-list
-    to: poll_candidate/user_id
-    restriction_mode: A
   home_committee_id:
     type: relation
     to: committee/native_user_ids
@@ -1454,16 +1450,6 @@ meeting:
     type: number
     default: 6
     required: true
-    restriction_mode: B
-
-  # poll list election
-  poll_candidate_list_ids:
-    type: relation-list
-    to: poll_candidate_list/meeting_id
-    restriction_mode: B
-  poll_candidate_ids:
-    type: relation-list
-    to: poll_candidate/meeting_id
     restriction_mode: B
 
   # Users
