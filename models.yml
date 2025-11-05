@@ -427,10 +427,6 @@ user:
     to: meeting_user/user_id
     restriction_mode: A
     on_delete: CASCADE
-  poll_candidate_ids:
-    type: relation-list
-    to: poll_candidate/user_id
-    restriction_mode: A
   home_committee_id:
     type: relation
     to: committee/native_user_ids
@@ -1454,16 +1450,6 @@ meeting:
     type: number
     default: 6
     required: true
-    restriction_mode: B
-
-  # poll list election
-  poll_candidate_list_ids:
-    type: relation-list
-    to: poll_candidate_list/meeting_id
-    restriction_mode: B
-  poll_candidate_ids:
-    type: relation-list
-    to: poll_candidate/meeting_id
     restriction_mode: B
 
   # Users
@@ -3537,6 +3523,11 @@ poll_config_approval:
     reference: poll
     required: true
     restriction_mode: A
+  option_ids:
+    type: relation-list
+    to: poll_config_option/poll_config_id
+    on_delete: CASCADE
+    restriction_mode: A
   allow_abstain:
     type: boolean
     default: true
@@ -3633,10 +3624,12 @@ poll_config_option:
   poll_config_id:
     type: generic-relation
     to:
+      - poll_config_approval/option_ids
       - poll_config_selection/option_ids
       - poll_config_rating_score/option_ids
       - poll_config_rating_approval/option_ids
     reference:
+      - poll_config_approval
       - poll_config_selection
       - poll_config_rating_score
       - poll_config_rating_approval
@@ -3806,51 +3799,6 @@ assignment_candidate:
     type: relation
     reference: meeting
     to: meeting/assignment_candidate_ids
-    required: true
-    restriction_mode: A
-    constant: true
-
-# models for the poll list election
-poll_candidate_list:
-  id: *id_field
-  poll_candidate_ids:
-    type: relation-list
-    to: poll_candidate/poll_candidate_list_id
-    on_delete: CASCADE
-    restriction_mode: A
-    equal_fields: meeting_id
-  meeting_id:
-    type: relation
-    reference: meeting
-    to: meeting/poll_candidate_list_ids
-    required: true
-    restriction_mode: A
-    constant: true
-
-poll_candidate:
-  id: *id_field
-  poll_candidate_list_id:
-    type: relation
-    reference: poll_candidate_list
-    to: poll_candidate_list/poll_candidate_ids
-    equal_fields: meeting_id
-    restriction_mode: A
-    required: true
-    constant: true
-  user_id:
-    type: relation
-    reference: user
-    to: user/poll_candidate_ids
-    restriction_mode: A
-    constant: true
-  weight:
-    type: number
-    required: true
-    restriction_mode: A
-  meeting_id:
-    type: relation
-    reference: meeting
-    to: meeting/poll_candidate_ids
     required: true
     restriction_mode: A
     constant: true
