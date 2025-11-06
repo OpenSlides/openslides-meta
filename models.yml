@@ -118,6 +118,9 @@ organization:
     type: relation-list
     to: gender/organization_id
     restriction_mode: A
+  disable_forward_with_attachments:
+    type: boolean
+    restriction_mode: A
 
   # Configuration (only for the server owner)
   enable_electronic_voting:
