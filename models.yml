@@ -542,19 +542,16 @@ meeting_user:
     type: relation-list
     to: motion_editor/meeting_user_id
     equal_fields: meeting_id
-    on_delete: CASCADE
     restriction_mode: A
   motion_working_group_speaker_ids:
     type: relation-list
     to: motion_working_group_speaker/meeting_user_id
     equal_fields: meeting_id
-    on_delete: CASCADE
     restriction_mode: A
   motion_submitter_ids:
     type: relation-list
     to: motion_submitter/meeting_user_id
     equal_fields: meeting_id
-    on_delete: CASCADE
     restriction_mode: A
   assignment_candidate_ids:
     type: relation-list
@@ -927,7 +924,6 @@ meeting:
   description:
     type: string
     maxLength: 100
-    default: Presentation and assembly system
     restriction_mode: B
   location:
     type: string
@@ -1410,6 +1406,12 @@ meeting:
   motions_export_follow_recommendation:
     type: boolean
     default: False
+    restriction_mode: B
+  motions_enable_restricted_editor_for_manager:
+    type: boolean
+    restriction_mode: B
+  motions_enable_restricted_editor_for_non_manager:
+    type: boolean
     restriction_mode: B
 
   # Motion poll
@@ -2949,7 +2951,6 @@ motion_submitter:
     reference: meeting_user
     to: meeting_user/motion_submitter_ids
     restriction_mode: A
-    required: true
   motion_id:
     type: relation
     reference: motion
@@ -2976,7 +2977,6 @@ motion_editor:
     reference: meeting_user
     to: meeting_user/motion_editor_ids
     restriction_mode: A
-    required: true
   motion_id:
     type: relation
     reference: motion
@@ -3003,7 +3003,6 @@ motion_working_group_speaker:
     reference: meeting_user
     to: meeting_user/motion_working_group_speaker_ids
     restriction_mode: A
-    required: true
   motion_id:
     type: relation
     reference: motion
@@ -3331,6 +3330,9 @@ motion_state:
     type: boolean
     restriction_mode: A
     default: false
+  state_button_label:
+    type: string
+    restriction_mode: A
   submitter_withdraw_state_id:
     type: relation
     reference: motion_state
