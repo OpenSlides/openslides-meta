@@ -434,18 +434,22 @@ user:
   option_ids:
     type: relation-list
     to: option/content_object_id
+    reference: option
     restriction_mode: A
   vote_ids:
     type: relation-list
     to: vote/user_id
+    reference: vote
     restriction_mode: A
   delegated_vote_ids:
     type: relation-list
     to: vote/delegated_user_id
+    reference: vote
     restriction_mode: A
   poll_candidate_ids:
     type: relation-list
     to: poll_candidate/user_id
+    reference: poll_candidate
     restriction_mode: A
   home_committee_id:
     type: relation
@@ -1458,10 +1462,12 @@ meeting:
   poll_candidate_list_ids:
     type: relation-list
     to: poll_candidate_list/meeting_id
+    reference: poll_candidate_list
     restriction_mode: B
   poll_candidate_ids:
     type: relation-list
     to: poll_candidate/meeting_id
+    reference: poll_candidate
     restriction_mode: B
 
   # Users
@@ -1787,16 +1793,19 @@ meeting:
   poll_ids:
     type: relation-list
     to: poll/meeting_id
+    reference: poll
     on_delete: CASCADE
     restriction_mode: B
   option_ids:
     type: relation-list
     to: option/meeting_id
+    reference: option
     on_delete: CASCADE
     restriction_mode: B
   vote_ids:
     type: relation-list
     to: vote/meeting_id
+    reference: vote
     on_delete: CASCADE
     restriction_mode: B
   assignment_ids:
@@ -2865,6 +2874,7 @@ motion:
   option_ids:
     type: relation-list
     to: option/content_object_id
+    reference: option
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: C
@@ -3552,12 +3562,14 @@ poll:
   option_ids:
     type: relation-list
     to: option/poll_id
+    reference: option
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
   global_option_id:
     type: relation
     to: option/used_as_global_option_in_poll_id
+    reference: option
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
@@ -3580,6 +3592,7 @@ poll:
   meeting_id:
     type: relation
     to: meeting/poll_ids
+    reference: meeting
     restriction_mode: A
     required: true
     constant: true
@@ -3606,18 +3619,21 @@ option:
   poll_id:
     type: relation
     to: poll/option_ids
+    reference: poll
     equal_fields: meeting_id
     restriction_mode: A
     constant: true
   used_as_global_option_in_poll_id:
     type: relation
     to: poll/global_option_id
+    reference: poll
     equal_fields: meeting_id
     restriction_mode: A
     constant: true
   vote_ids:
     type: relation-list
     to: vote/option_id
+    reference: vote
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
@@ -3627,12 +3643,17 @@ option:
       - motion/option_ids
       - user/option_ids
       - poll_candidate_list/option_id
+    reference:
+      - motion
+      - user
+      - poll_candidate_list
     equal_fields: meeting_id
     restriction_mode: A
     constant: true
   meeting_id:
     type: relation
     to: meeting/option_ids
+    reference: meeting
     required: true
     restriction_mode: A
     constant: true
@@ -3656,6 +3677,7 @@ vote:
   option_id:
     type: relation
     to: option/vote_ids
+    reference: option
     equal_fields: meeting_id
     required: true
     restriction_mode: A
@@ -3663,14 +3685,17 @@ vote:
   user_id:
     type: relation
     to: user/vote_ids
+    reference: user
     restriction_mode: A
   delegated_user_id:
     type: relation
     to: user/delegated_vote_ids
+    reference: user
     restriction_mode: A
   meeting_id:
     type: relation
     to: meeting/vote_ids
+    reference: meeting
     required: true
     restriction_mode: A
     constant: true
@@ -3802,12 +3827,14 @@ poll_candidate_list:
   poll_candidate_ids:
     type: relation-list
     to: poll_candidate/poll_candidate_list_id
+    reference: poll_candidate
     on_delete: CASCADE
     restriction_mode: A
     equal_fields: meeting_id
   meeting_id:
     type: relation
     to: meeting/poll_candidate_list_ids
+    reference: meeting
     required: true
     restriction_mode: A
     constant: true
@@ -3824,6 +3851,7 @@ poll_candidate:
   poll_candidate_list_id:
     type: relation
     to: poll_candidate_list/poll_candidate_ids
+    reference: poll_candidate_list
     equal_fields: meeting_id
     restriction_mode: A
     required: true
@@ -3831,6 +3859,7 @@ poll_candidate:
   user_id:
     type: relation
     to: user/poll_candidate_ids
+    reference: user
     restriction_mode: A
     constant: true
   weight:
@@ -3840,6 +3869,7 @@ poll_candidate:
   meeting_id:
     type: relation
     to: meeting/poll_candidate_ids
+    reference: meeting
     required: true
     restriction_mode: A
     constant: true
