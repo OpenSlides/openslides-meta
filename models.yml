@@ -3446,6 +3446,9 @@ poll:
     type: string
     required: true
     restriction_mode: A
+  description:
+    type: string
+    restriction_mode: A
   type:
     type: string
     required: true
@@ -4273,6 +4276,7 @@ projection:
 
   content:
     type: JSON
+    calculated: true
     restriction_mode: A
 
   current_projector_id:
