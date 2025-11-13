@@ -730,17 +730,6 @@ class Helper:
         -- Code generated. DO NOT EDIT.
         """
     )
-    FILE_TEMPLATE_PARAMETERS = dedent(
-        """
-        -- Do not log messages lower than WARNING
-        -- For client side logging this can be overwritten using
-        --
-        -- SET client_min_messages TO NOTICE;
-        --
-        -- to get the log messages in the client locally.
-        SET log_min_messages TO WARNING;
-        """
-    )
     FILE_TEMPLATE_CONSTANT_DEFINITIONS = dedent(
         """
         CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
@@ -1490,8 +1479,6 @@ def main() -> None:
     with open(DESTINATION, "w") as dest:
         dest.write(Helper.FILE_TEMPLATE_HEADER)
         dest.write("-- MODELS_YML_CHECKSUM = " + repr(checksum) + "\n")
-        dest.write("\n\n-- Database parameters\n")
-        dest.write(Helper.FILE_TEMPLATE_PARAMETERS)
         dest.write("\n\n-- Function and meta table definitions\n")
         dest.write(Helper.FILE_TEMPLATE_CONSTANT_DEFINITIONS)
         dest.write("\n\n-- Type definitions\n")
