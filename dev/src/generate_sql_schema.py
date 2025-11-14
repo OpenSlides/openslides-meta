@@ -813,7 +813,7 @@ class Helper:
             operation_var := LOWER(TG_OP);
             fqid_var :=  escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                fqid_var = escaped_table_name || '/' || OLD.id;
+                fqid_var := escaped_table_name || '/' || OLD.id;
             END IF;
 
             INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp)
@@ -834,7 +834,7 @@ class Helper:
             value_1 integer;
             value_2 integer;
         BEGIN
-            base_column_name = TG_ARGV[0];
+            base_column_name := TG_ARGV[0];
             value_1 := hstore(NEW) -> (base_column_name || '_1');
             value_2 := hstore(NEW) -> (base_column_name || '_2');
 
@@ -852,7 +852,7 @@ class Helper:
             payload TEXT;
             body_content_text TEXT;
         BEGIN
-            -- Running the trigger for the first time in a transaction creates the table and after commiting the transaction the table is dropped.
+            -- Running the trigger for the first time in a transaction creates the table and after committing the transaction the table is dropped.
             -- Every next run of the trigger in this transaction raises a notice that the table exists. Setting the log_min_messages to notice increases the noise because of such messages.
             CREATE LOCAL TEMPORARY TABLE
             IF NOT EXISTS tbl_notify_counter_tx_once (
@@ -913,6 +913,13 @@ class Helper:
             xact_id xid8,
             timestamp timestamptz,
             CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
+        );
+
+        CREATE TABLE version (
+            migration_index INTEGER PRIMARY KEY,
+            database_writable BOOLEAN,
+            migration_state TEXT,
+            replace_tables JSONB
         );
         """
     )
