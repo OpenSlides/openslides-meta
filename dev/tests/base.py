@@ -341,7 +341,6 @@ class BaseTestCase(TestCase):
                 "show_title": True,
                 "show_logo": True,
                 "show_clock": True,
-                "sequential_number": 1,
                 "used_as_default_projector_for_agenda_item_list_in_meeting_id": result[
                     "meeting_id"
                 ],
@@ -405,7 +404,6 @@ class BaseTestCase(TestCase):
                 "show_title": True,
                 "show_logo": True,
                 "show_clock": True,
-                "sequential_number": 2,
                 "meeting_id": result["meeting_id"],
             },
         ]
@@ -781,14 +779,12 @@ class BaseTestCase(TestCase):
             {
                 "id": result["simple_workflow_id"],
                 "name": "Simple Workflow",
-                "sequential_number": 1,
                 "first_state_id": wf_m1_simple_first_state_id,
                 "meeting_id": result["meeting_id"],
             },
             {
                 "id": result["complex_workflow_id"],
                 "name": "Complex Workflow",
-                "sequential_number": 2,
                 "first_state_id": wf_m1_complex_first_state_id,
                 "meeting_id": result["meeting_id"],
             },

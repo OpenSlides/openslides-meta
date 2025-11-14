@@ -1,12 +1,50 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'd8f710ff7cfd672ef69e72f451ed558c'
+-- MODELS_YML_CHECKSUM = '22ab0cf0aa5fb1b778851b7f5aada0fe'
 
 
 -- Function and meta table definitions
 
 CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
+
+CREATE FUNCTION generate_sequence()
+RETURNS trigger
+AS $sequences_trigger$
+-- Creates a sequence for the id given by depend_field NEW data if it doesn't exist.
+-- Writes the next value to for this sequence to NEW.
+-- In case a number is given in actual_column of the NEW record that is used
+-- and the corresponding sequence increased if necessary.
+-- Usage with 3 parameters IN TRIGGER DEFINITION:
+-- table_name: table this is treated for
+-- actual_column: column that will be filled with the actual value
+-- depend_field: field that differentiates the sequences. usually meeting_id
+DECLARE
+    table_name TEXT := TG_ARGV[0];
+    actual_column TEXT := TG_ARGV[1];
+    depend_field TEXT := TG_ARGV[2];
+    depend_field_id INTEGER;
+    sequence_name TEXT;
+    sequence_value INTEGER;
+    sequence_max INTEGER;
+BEGIN
+    depend_field_id := hstore(NEW) -> (depend_field);
+    sequence_name := table_name || '_' || depend_field || depend_field_id || '_' || actual_column || '_seq';
+    EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I OWNED BY %I.%I', sequence_name, table_name, actual_column);
+    sequence_value := hstore(NEW) -> actual_column;
+    IF sequence_value IS NULL THEN
+        sequence_value := nextval(sequence_name);
+    ELSE
+        EXECUTE format('SELECT last_value FROM %I', sequence_name) INTO sequence_max;
+        -- <= because the unused sequence starts with last_value=1 and is_called=f and needs to be written to.
+        IF sequence_max <= sequence_value THEN
+            SELECT setval(sequence_name, sequence_value) INTO sequence_value;
+        END IF;
+    END IF;
+    RETURN populate_record(NEW, format('%s=>%s',actual_column, sequence_value)::hstore);
+END;
+$sequences_trigger$
+LANGUAGE plpgsql;
 
 CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_modified_trigger$
 DECLARE
@@ -80,14 +118,12 @@ $notify_trigger$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION log_modified_related_models()
 RETURNS trigger AS $log_modified_related_trigger$
 DECLARE
-    operation_var TEXT;
     fqid_var TEXT;
     ref_column TEXT;
     foreign_table TEXT;
     foreign_id TEXT;
     i INTEGER := 0;
 BEGIN
-    operation_var := LOWER(TG_OP);
 
     WHILE i < TG_NARGS LOOP
         foreign_table := TG_ARGV[i];
@@ -102,7 +138,7 @@ BEGIN
         IF foreign_id IS NOT NULL THEN
             fqid_var := foreign_table || '/' || foreign_id;
             INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp)
-            VALUES (operation_var, fqid_var, pg_current_xact_id(), now())
+            VALUES ('update', fqid_var, pg_current_xact_id(), now())
             ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
         END IF;
 
@@ -405,7 +441,7 @@ CREATE TABLE meeting_t (
     name varchar(100) NOT NULL DEFAULT 'OpenSlides',
     is_active_in_organization_id integer,
     is_archived_in_organization_id integer,
-    description varchar(100) DEFAULT 'Presentation and assembly system',
+    description varchar(100),
     location varchar(256),
     start_time timestamptz,
     end_time timestamptz,
@@ -509,6 +545,8 @@ CREATE TABLE meeting_t (
     motions_export_preamble text,
     motions_export_submitter_recommendation boolean DEFAULT True,
     motions_export_follow_recommendation boolean DEFAULT False,
+    motions_enable_restricted_editor_for_manager boolean,
+    motions_enable_restricted_editor_for_non_manager boolean,
     motion_poll_ballot_paper_selection varchar(256) CONSTRAINT enum_meeting_motion_poll_ballot_paper_selection CHECK (motion_poll_ballot_paper_selection IN ('NUMBER_OF_DELEGATES', 'NUMBER_OF_ALL_PARTICIPANTS', 'CUSTOM_NUMBER')) DEFAULT 'CUSTOM_NUMBER',
     motion_poll_ballot_paper_number integer DEFAULT 8,
     motion_poll_default_type varchar(256) DEFAULT 'pseudoanonymous',
@@ -560,9 +598,8 @@ This email was generated automatically.',
     poll_default_type varchar(256) DEFAULT 'analog',
     poll_default_method varchar(256),
     poll_default_onehundred_percent_base varchar(256) CONSTRAINT enum_meeting_poll_default_onehundred_percent_base CHECK (poll_default_onehundred_percent_base IN ('Y', 'YN', 'YNA', 'N', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled')) DEFAULT 'YNA',
+    poll_default_backend varchar(256) CONSTRAINT enum_meeting_poll_default_backend CHECK (poll_default_backend IN ('long', 'fast')) DEFAULT 'fast',
     poll_default_live_voting_enabled boolean DEFAULT False,
-    poll_default_allow_invalid boolean DEFAULT False,
-    poll_default_allow_vote_split boolean DEFAULT False,
     poll_couple_countdown boolean DEFAULT True,
     logo_projector_main_id integer UNIQUE,
     logo_projector_header_id integer UNIQUE,
@@ -596,9 +633,7 @@ comment on column meeting_t.is_active_in_organization_id is 'Backrelation and bo
 comment on column meeting_t.is_archived_in_organization_id is 'Backrelation and boolean flag at once';
 comment on column meeting_t.list_of_speakers_default_structure_level_time is '0 disables structure level countdowns.';
 comment on column meeting_t.list_of_speakers_intervention_time is '0 disables intervention speakers.';
-comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default ''poll.published'' before finished option suggested to user. Is not used in the validations.';
-comment on column meeting_t.poll_default_allow_invalid is 'Defines defaut `poll.allow_invalid` option suggested to user.';
-comment on column meeting_t.poll_default_allow_vote_split is 'Defines defaut `poll.allow_vote_split` option suggested to user.';
+comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default ''poll.live_voting_enabled'' option suggested to user. Is not used in the validations.';
 
 
 CREATE TABLE structure_level_t (
@@ -686,6 +721,7 @@ CREATE TABLE list_of_speakers_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
     closed boolean DEFAULT False,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_list_of_speakers_sequential_number UNIQUE (sequential_number, meeting_id),
     moderator_notes text,
     content_object_id varchar(100) NOT NULL,
     content_object_id_motion_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
@@ -758,6 +794,7 @@ CREATE TABLE topic_t (
     title varchar(256) NOT NULL,
     text text,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_topic_sequential_number UNIQUE (sequential_number, meeting_id),
     meeting_id integer NOT NULL
 );
 
@@ -771,6 +808,7 @@ CREATE TABLE motion_t (
     number varchar(256),
     number_value integer,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_motion_sequential_number UNIQUE (sequential_number, meeting_id),
     title varchar(256) NOT NULL,
     text text,
     text_hash varchar(256),
@@ -809,7 +847,7 @@ comment on column motion_t.marked_forwarded is 'Forwarded amendments can be mark
 CREATE TABLE motion_submitter_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
     weight integer,
-    meeting_user_id integer NOT NULL,
+    meeting_user_id integer,
     motion_id integer NOT NULL,
     meeting_id integer NOT NULL
 );
@@ -820,7 +858,7 @@ CREATE TABLE motion_submitter_t (
 CREATE TABLE motion_editor_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
     weight integer,
-    meeting_user_id integer NOT NULL,
+    meeting_user_id integer,
     motion_id integer NOT NULL,
     meeting_id integer NOT NULL
 );
@@ -831,7 +869,7 @@ CREATE TABLE motion_editor_t (
 CREATE TABLE motion_working_group_speaker_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
     weight integer,
-    meeting_user_id integer NOT NULL,
+    meeting_user_id integer,
     motion_id integer NOT NULL,
     meeting_id integer NOT NULL
 );
@@ -855,6 +893,7 @@ CREATE TABLE motion_comment_section_t (
     name varchar(256) NOT NULL,
     weight integer DEFAULT 10000,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_motion_comment_section_sequential_number UNIQUE (sequential_number, meeting_id),
     submitter_can_write boolean,
     meeting_id integer NOT NULL
 );
@@ -871,6 +910,7 @@ CREATE TABLE motion_category_t (
     weight integer DEFAULT 10000,
     level integer,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_motion_category_sequential_number UNIQUE (sequential_number, meeting_id),
     parent_id integer,
     meeting_id integer NOT NULL
 );
@@ -886,6 +926,7 @@ CREATE TABLE motion_block_t (
     title varchar(256) NOT NULL,
     internal boolean,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_motion_block_sequential_number UNIQUE (sequential_number, meeting_id),
     meeting_id integer NOT NULL
 );
 
@@ -929,6 +970,7 @@ CREATE TABLE motion_state_t (
     allow_motion_forwarding boolean DEFAULT False,
     allow_amendment_forwarding boolean,
     set_workflow_timestamp boolean DEFAULT False,
+    state_button_label varchar(256),
     submitter_withdraw_state_id integer,
     workflow_id integer NOT NULL,
     meeting_id integer NOT NULL
@@ -941,6 +983,7 @@ CREATE TABLE motion_workflow_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
     name varchar(256) NOT NULL,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_motion_workflow_sequential_number UNIQUE (sequential_number, meeting_id),
     first_state_id integer NOT NULL UNIQUE,
     meeting_id integer NOT NULL
 );
@@ -953,41 +996,76 @@ comment on column motion_workflow_t.sequential_number is 'The (positive) serial 
 CREATE TABLE poll_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
     title varchar(256) NOT NULL,
-    method varchar(256) NOT NULL CONSTRAINT enum_poll_method CHECK (method IN ('approval', 'selection', 'rating-score', 'rating-approval')),
-    config text,
-    visibility varchar(256) NOT NULL CONSTRAINT enum_poll_visibility CHECK (visibility IN ('manually', 'named', 'open', 'secret')),
-    state varchar(256) CONSTRAINT enum_poll_state CHECK (state IN ('created', 'started', 'finished')) DEFAULT 'created',
-    result text,
-    published boolean DEFAULT False,
-    allow_invalid boolean DEFAULT False,
-    allow_vote_split boolean DEFAULT False,
+    description varchar(256),
+    type varchar(256) NOT NULL CONSTRAINT enum_poll_type CHECK (type IN ('analog', 'named', 'pseudoanonymous', 'cryptographic')),
+    backend varchar(256) NOT NULL CONSTRAINT enum_poll_backend CHECK (backend IN ('long', 'fast')) DEFAULT 'fast',
+    is_pseudoanonymized boolean,
+    pollmethod varchar(256) NOT NULL CONSTRAINT enum_poll_pollmethod CHECK (pollmethod IN ('Y', 'YN', 'YNA', 'N')),
+    state varchar(256) CONSTRAINT enum_poll_state CHECK (state IN ('created', 'started', 'finished', 'published')) DEFAULT 'created',
+    min_votes_amount integer CONSTRAINT minimum_min_votes_amount CHECK (min_votes_amount >= 1) DEFAULT 1,
+    max_votes_amount integer CONSTRAINT minimum_max_votes_amount CHECK (max_votes_amount >= 1) DEFAULT 1,
+    max_votes_per_option integer CONSTRAINT minimum_max_votes_per_option CHECK (max_votes_per_option >= 1) DEFAULT 1,
+    global_yes boolean DEFAULT False,
+    global_no boolean DEFAULT False,
+    global_abstain boolean DEFAULT False,
+    onehundred_percent_base varchar(256) NOT NULL CONSTRAINT enum_poll_onehundred_percent_base CHECK (onehundred_percent_base IN ('Y', 'YN', 'YNA', 'N', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled')) DEFAULT 'disabled',
+    votesvalid decimal(16,6),
+    votesinvalid decimal(16,6),
+    votescast decimal(16,6),
+    entitled_users_at_stop jsonb,
+    live_voting_enabled boolean DEFAULT False,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_poll_sequential_number UNIQUE (sequential_number, meeting_id),
     content_object_id varchar(100) NOT NULL,
     content_object_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     content_object_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     content_object_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','assignment','topic')),
+    global_option_id integer UNIQUE,
     meeting_id integer NOT NULL
 );
 
 
 
-comment on column poll_t.config is 'Values to configure the poll. Depends on the value in poll/method.';
-comment on column poll_t.result is 'Calculated result. The format depends on the value in poll/method. Can be manually set when visibility is set to manually.';
-comment on column poll_t.published is 'If true, users can see the result.';
-comment on column poll_t.allow_invalid is 'If true, the vote service does not validate. This is always the case for secret polls.';
-comment on column poll_t.allow_vote_split is 'If true, users can split there vote.';
+comment on column poll_t.live_voting_enabled is 'If true, the vote service sends the votes of the users to the autoupdate service.';
 comment on column poll_t.sequential_number is 'The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.';
+
+/*
+ Fields without SQL definition for table poll
+
+    poll/live_votes: type:JSON is marked as a calculated field and not generated in schema
+
+*/
+
+CREATE TABLE option_t (
+    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
+    weight integer DEFAULT 10000,
+    text text,
+    yes decimal(16,6),
+    no decimal(16,6),
+    abstain decimal(16,6),
+    poll_id integer,
+    used_as_global_option_in_poll_id integer UNIQUE,
+    content_object_id varchar(100),
+    content_object_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_user_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'user' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_poll_candidate_list_id integer UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'poll_candidate_list' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    CONSTRAINT valid_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','user','poll_candidate_list')),
+    meeting_id integer NOT NULL
+);
+
+
 
 
 CREATE TABLE vote_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
-    weight decimal(16,6) DEFAULT '1.000000',
-    split boolean DEFAULT False,
-    value text,
-    poll_id integer NOT NULL,
-    acting_user_id integer,
-    represented_user_id integer
+    weight decimal(16,6),
+    value varchar(256),
+    user_token varchar(256) NOT NULL,
+    option_id integer NOT NULL,
+    user_id integer,
+    delegated_user_id integer,
+    meeting_id integer NOT NULL
 );
 
 
@@ -1002,6 +1080,7 @@ CREATE TABLE assignment_t (
     default_poll_description text,
     number_poll_candidates boolean,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_assignment_sequential_number UNIQUE (sequential_number, meeting_id),
     meeting_id integer NOT NULL
 );
 
@@ -1100,6 +1179,7 @@ CREATE TABLE projector_t (
     show_logo boolean DEFAULT True,
     show_clock boolean DEFAULT True,
     sequential_number integer NOT NULL,
+    CONSTRAINT unique_projector_sequential_number UNIQUE (sequential_number, meeting_id),
     used_as_default_projector_for_agenda_item_list_in_meeting_id integer,
     used_as_default_projector_for_topic_in_meeting_id integer,
     used_as_default_projector_for_list_of_speakers_in_meeting_id integer,
@@ -1128,7 +1208,6 @@ CREATE TABLE projection_t (
     stable boolean DEFAULT False,
     weight integer,
     type varchar(256),
-    content jsonb,
     current_projector_id integer,
     preview_projector_id integer,
     history_projector_id integer,
@@ -1150,6 +1229,12 @@ CREATE TABLE projection_t (
 
 
 
+/*
+ Fields without SQL definition for table projection
+
+    projection/content: type:JSON is marked as a calculated field and not generated in schema
+
+*/
 
 CREATE TABLE projector_message_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
@@ -1455,8 +1540,9 @@ CREATE VIEW "user" AS SELECT *,
 (select array_agg(n.committee_id ORDER BY n.committee_id) from nm_committee_manager_ids_user_t n where n.user_id = u.id) as committee_management_ids,
 (select array_agg(m.id ORDER BY m.id) from meeting_user_t m where m.user_id = u.id) as meeting_user_ids,
 (select array_agg(n.poll_id ORDER BY n.poll_id) from nm_poll_voted_ids_user_t n where n.user_id = u.id) as poll_voted_ids,
-(select array_agg(v.id ORDER BY v.id) from vote_t v where v.acting_user_id = u.id) as acting_vote_ids,
-(select array_agg(v.id ORDER BY v.id) from vote_t v where v.represented_user_id = u.id) as represented_vote_ids,
+(select array_agg(o.id ORDER BY o.id) from option_t o where o.content_object_id_user_id = u.id) as option_ids,
+(select array_agg(v.id ORDER BY v.id) from vote_t v where v.user_id = u.id) as vote_ids,
+(select array_agg(v.id ORDER BY v.id) from vote_t v where v.delegated_user_id = u.id) as delegated_vote_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_candidate_t p where p.user_id = u.id) as poll_candidate_ids,
 (select array_agg(h.id ORDER BY h.id) from history_position_t h where h.user_id = u.id) as history_position_ids,
 (select array_agg(h.id ORDER BY h.id) from history_entry_t h where h.model_id_user_id = u.id) as history_entry_ids,
@@ -1575,6 +1661,8 @@ CREATE VIEW "meeting" AS SELECT *,
 (select array_agg(mc.id ORDER BY mc.id) from motion_change_recommendation_t mc where mc.meeting_id = m.id) as motion_change_recommendation_ids,
 (select array_agg(ms.id ORDER BY ms.id) from motion_state_t ms where ms.meeting_id = m.id) as motion_state_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_t p where p.meeting_id = m.id) as poll_ids,
+(select array_agg(o.id ORDER BY o.id) from option_t o where o.meeting_id = m.id) as option_ids,
+(select array_agg(v.id ORDER BY v.id) from vote_t v where v.meeting_id = m.id) as vote_ids,
 (select array_agg(a.id ORDER BY a.id) from assignment_t a where a.meeting_id = m.id) as assignment_ids,
 (select array_agg(a.id ORDER BY a.id) from assignment_candidate_t a where a.meeting_id = m.id) as assignment_candidate_ids,
 (select array_agg(p.id ORDER BY p.id) from personal_note_t p where p.meeting_id = m.id) as personal_note_ids,
@@ -1695,6 +1783,7 @@ CREATE VIEW "motion" AS SELECT *,
 (select array_agg(me.id ORDER BY me.id) from motion_editor_t me where me.motion_id = m.id) as editor_ids,
 (select array_agg(mw.id ORDER BY mw.id) from motion_working_group_speaker_t mw where mw.motion_id = m.id) as working_group_speaker_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_t p where p.content_object_id_motion_id = m.id) as poll_ids,
+(select array_agg(o.id ORDER BY o.id) from option_t o where o.content_object_id_motion_id = m.id) as option_ids,
 (select array_agg(mc.id ORDER BY mc.id) from motion_change_recommendation_t mc where mc.motion_id = m.id) as change_recommendation_ids,
 (select array_agg(mc.id ORDER BY mc.id) from motion_comment_t mc where mc.motion_id = m.id) as comment_ids,
 (select a.id from agenda_item_t a where a.content_object_id_motion_id = m.id) as agenda_item_id,
@@ -1761,11 +1850,16 @@ FROM motion_workflow_t m;
 
 
 CREATE VIEW "poll" AS SELECT *,
-(select array_agg(v.id ORDER BY v.id) from vote_t v where v.poll_id = p.id) as vote_ids,
+(select array_agg(o.id ORDER BY o.id) from option_t o where o.poll_id = p.id) as option_ids,
 (select array_agg(n.user_id ORDER BY n.user_id) from nm_poll_voted_ids_user_t n where n.poll_id = p.id) as voted_ids,
 (select array_agg(n.group_id ORDER BY n.group_id) from nm_group_poll_ids_poll_t n where n.poll_id = p.id) as entitled_group_ids,
 (select array_agg(pt.id ORDER BY pt.id) from projection_t pt where pt.content_object_id_poll_id = p.id) as projection_ids
 FROM poll_t p;
+
+
+CREATE VIEW "option" AS SELECT *,
+(select array_agg(v.id ORDER BY v.id) from vote_t v where v.option_id = o.id) as vote_ids
+FROM option_t o;
 
 
 CREATE VIEW "vote" AS SELECT * FROM vote_t v;
@@ -1787,7 +1881,8 @@ CREATE VIEW "assignment_candidate" AS SELECT * FROM assignment_candidate_t a;
 
 
 CREATE VIEW "poll_candidate_list" AS SELECT *,
-(select array_agg(pc.id ORDER BY pc.id) from poll_candidate_t pc where pc.poll_candidate_list_id = p.id) as poll_candidate_ids
+(select array_agg(pc.id ORDER BY pc.id) from poll_candidate_t pc where pc.poll_candidate_list_id = p.id) as poll_candidate_ids,
+(select o.id from option_t o where o.content_object_id_poll_candidate_list_id = p.id) as option_id
 FROM poll_candidate_list_t p;
 
 
@@ -2004,11 +2099,20 @@ ALTER TABLE motion_workflow_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(i
 ALTER TABLE poll_t ADD FOREIGN KEY(content_object_id_motion_id) REFERENCES motion_t(id) INITIALLY DEFERRED;
 ALTER TABLE poll_t ADD FOREIGN KEY(content_object_id_assignment_id) REFERENCES assignment_t(id) INITIALLY DEFERRED;
 ALTER TABLE poll_t ADD FOREIGN KEY(content_object_id_topic_id) REFERENCES topic_t(id) INITIALLY DEFERRED;
+ALTER TABLE poll_t ADD FOREIGN KEY(global_option_id) REFERENCES option_t(id) INITIALLY DEFERRED;
 ALTER TABLE poll_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 
-ALTER TABLE vote_t ADD FOREIGN KEY(poll_id) REFERENCES poll_t(id) INITIALLY DEFERRED;
-ALTER TABLE vote_t ADD FOREIGN KEY(acting_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
-ALTER TABLE vote_t ADD FOREIGN KEY(represented_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
+ALTER TABLE option_t ADD FOREIGN KEY(poll_id) REFERENCES poll_t(id) INITIALLY DEFERRED;
+ALTER TABLE option_t ADD FOREIGN KEY(used_as_global_option_in_poll_id) REFERENCES poll_t(id) INITIALLY DEFERRED;
+ALTER TABLE option_t ADD FOREIGN KEY(content_object_id_motion_id) REFERENCES motion_t(id) INITIALLY DEFERRED;
+ALTER TABLE option_t ADD FOREIGN KEY(content_object_id_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
+ALTER TABLE option_t ADD FOREIGN KEY(content_object_id_poll_candidate_list_id) REFERENCES poll_candidate_list_t(id) INITIALLY DEFERRED;
+ALTER TABLE option_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
+
+ALTER TABLE vote_t ADD FOREIGN KEY(option_id) REFERENCES option_t(id) INITIALLY DEFERRED;
+ALTER TABLE vote_t ADD FOREIGN KEY(user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
+ALTER TABLE vote_t ADD FOREIGN KEY(delegated_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
+ALTER TABLE vote_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 
 ALTER TABLE assignment_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 
@@ -2082,6 +2186,59 @@ ALTER TABLE history_entry_t ADD FOREIGN KEY(meeting_id) REFERENCES meeting_t(id)
 
 
 
+-- Create triggers generating partitioned sequences
+
+-- definition trigger generate partitioned sequence number for list_of_speakers_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_list_of_speakers_sequential_number BEFORE INSERT ON list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('list_of_speakers_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for topic_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_topic_sequential_number BEFORE INSERT ON topic_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('topic_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_sequential_number BEFORE INSERT ON motion_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_comment_section_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_comment_section_sequential_number BEFORE INSERT ON motion_comment_section_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_comment_section_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_category_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_category_sequential_number BEFORE INSERT ON motion_category_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_category_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_block_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_block_sequential_number BEFORE INSERT ON motion_block_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_block_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for motion_workflow_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_motion_workflow_sequential_number BEFORE INSERT ON motion_workflow_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('motion_workflow_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for poll_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_poll_sequential_number BEFORE INSERT ON poll_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('poll_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for assignment_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_assignment_sequential_number BEFORE INSERT ON assignment_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('assignment_t', 'sequential_number', 'meeting_id');
+
+
+-- definition trigger generate partitioned sequence number for projector_t.sequential_number partitioned by meeting_id
+CREATE TRIGGER tr_generate_sequence_projector_sequential_number BEFORE INSERT ON projector_t
+FOR EACH ROW EXECUTE FUNCTION generate_sequence('projector_t', 'sequential_number', 'meeting_id');
+
+
+
 -- Create triggers checking foreign_id not null for view-relations and no duplicates in 1:1 relationships
 
 -- definition trigger not null for topic.agenda_item_id against agenda_item.content_object_id_topic_id
@@ -2121,6 +2278,14 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('assignment', 'list_of_spea
 
 CREATE CONSTRAINT TRIGGER tr_ud_assignment_list_of_speakers_id AFTER UPDATE OF content_object_id_assignment_id OR DELETE ON list_of_speakers_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('assignment', 'list_of_speakers_id', 'content_object_id_assignment_id');
+
+
+-- definition trigger not null for poll_candidate_list.option_id against option.content_object_id_poll_candidate_list_id
+CREATE CONSTRAINT TRIGGER tr_i_poll_candidate_list_option_id AFTER INSERT ON poll_candidate_list_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_candidate_list', 'option_id', '');
+
+CREATE CONSTRAINT TRIGGER tr_ud_poll_candidate_list_option_id AFTER UPDATE OF content_object_id_poll_candidate_list_id OR DELETE ON option_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_candidate_list', 'option_id', 'content_object_id_poll_candidate_list_id');
 
 
 
@@ -2750,6 +2915,8 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('assignment','content_
 
 CREATE TRIGGER tr_log_topic_content_object_id_topic_id AFTER INSERT OR UPDATE OF content_object_id_topic_id OR DELETE ON poll_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('topic','content_object_id_topic_id');
+CREATE TRIGGER tr_log_poll_t_global_option_id AFTER INSERT OR UPDATE OF global_option_id OR DELETE ON poll_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('option', 'global_option_id');
 
 CREATE TRIGGER tr_log_nm_poll_voted_ids_user_t AFTER INSERT OR UPDATE OR DELETE ON nm_poll_voted_ids_user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll','poll_id','user','user_id');
@@ -2758,17 +2925,40 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 CREATE TRIGGER tr_log_poll_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON poll_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id');
 
+CREATE TRIGGER tr_log_option AFTER INSERT OR UPDATE OR DELETE ON option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('option');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON option_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+CREATE TRIGGER tr_log_option_t_poll_id AFTER INSERT OR UPDATE OF poll_id OR DELETE ON option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll', 'poll_id');
+CREATE TRIGGER tr_log_option_t_used_as_global_option_in_poll_id AFTER INSERT OR UPDATE OF used_as_global_option_in_poll_id OR DELETE ON option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll', 'used_as_global_option_in_poll_id');
+
+CREATE TRIGGER tr_log_motion_content_object_id_motion_id AFTER INSERT OR UPDATE OF content_object_id_motion_id OR DELETE ON option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion','content_object_id_motion_id');
+
+CREATE TRIGGER tr_log_user_content_object_id_user_id AFTER INSERT OR UPDATE OF content_object_id_user_id OR DELETE ON option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user','content_object_id_user_id');
+
+CREATE TRIGGER tr_log_poll_candidate_list_content_object_id_poll_candidate_list_id AFTER INSERT OR UPDATE OF content_object_id_poll_candidate_list_id OR DELETE ON option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll_candidate_list','content_object_id_poll_candidate_list_id');
+CREATE TRIGGER tr_log_option_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id');
+
 CREATE TRIGGER tr_log_vote AFTER INSERT OR UPDATE OR DELETE ON vote_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('vote');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON vote_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
-CREATE TRIGGER tr_log_vote_t_poll_id AFTER INSERT OR UPDATE OF poll_id OR DELETE ON vote_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll', 'poll_id');
-CREATE TRIGGER tr_log_vote_t_acting_user_id AFTER INSERT OR UPDATE OF acting_user_id OR DELETE ON vote_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'acting_user_id');
-CREATE TRIGGER tr_log_vote_t_represented_user_id AFTER INSERT OR UPDATE OF represented_user_id OR DELETE ON vote_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'represented_user_id');
+CREATE TRIGGER tr_log_vote_t_option_id AFTER INSERT OR UPDATE OF option_id OR DELETE ON vote_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('option', 'option_id');
+CREATE TRIGGER tr_log_vote_t_user_id AFTER INSERT OR UPDATE OF user_id OR DELETE ON vote_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'user_id');
+CREATE TRIGGER tr_log_vote_t_delegated_user_id AFTER INSERT OR UPDATE OF delegated_user_id OR DELETE ON vote_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'delegated_user_id');
+CREATE TRIGGER tr_log_vote_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON vote_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id');
 
 CREATE TRIGGER tr_log_assignment AFTER INSERT OR UPDATE OR DELETE ON assignment_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('assignment');
@@ -3051,9 +3241,10 @@ SQL nts:nts => user/committee_ids:-> committee/user_ids
 SQL nt:nt => user/committee_management_ids:-> committee/manager_ids
 SQL nt:1rR => user/meeting_user_ids:-> meeting_user/user_id
 SQL nt:nt => user/poll_voted_ids:-> poll/voted_ids
-SQL nt:1r => user/acting_vote_ids:-> vote/acting_user_id
-SQL nt:1r => user/represented_vote_ids:-> vote/represented_user_id
-SQL nt:1r => user/poll_candidate_ids:-> poll_candidate/user_id
+SQL nr:1Gr => user/option_ids:-> option/content_object_id
+SQL nr:1r => user/vote_ids:-> vote/user_id
+SQL nr:1r => user/delegated_vote_ids:-> vote/delegated_user_id
+SQL nr:1r => user/poll_candidate_ids:-> poll_candidate/user_id
 FIELD 1r:nt => user/home_committee_id:-> committee/native_user_ids
 SQL nt:1r => user/history_position_ids:-> history_position/user_id
 SQL nt:1Gr => user/history_entry_ids:-> history_entry/model_id
@@ -3064,9 +3255,9 @@ FIELD 1rR:nt => meeting_user/meeting_id:-> meeting/meeting_user_ids
 SQL nt:1rR => meeting_user/personal_note_ids:-> personal_note/meeting_user_id
 SQL nt:1r => meeting_user/speaker_ids:-> speaker/meeting_user_id
 SQL nt:nt => meeting_user/supported_motion_ids:-> motion/supporter_meeting_user_ids
-SQL nt:1rR => meeting_user/motion_editor_ids:-> motion_editor/meeting_user_id
-SQL nt:1rR => meeting_user/motion_working_group_speaker_ids:-> motion_working_group_speaker/meeting_user_id
-SQL nt:1rR => meeting_user/motion_submitter_ids:-> motion_submitter/meeting_user_id
+SQL nt:1r => meeting_user/motion_editor_ids:-> motion_editor/meeting_user_id
+SQL nt:1r => meeting_user/motion_working_group_speaker_ids:-> motion_working_group_speaker/meeting_user_id
+SQL nt:1r => meeting_user/motion_submitter_ids:-> motion_submitter/meeting_user_id
 SQL nt:1r => meeting_user/assignment_candidate_ids:-> assignment_candidate/meeting_user_id
 FIELD 1r:nt => meeting_user/vote_delegated_to_id:-> meeting_user/vote_delegations_from_ids
 SQL nt:1r => meeting_user/vote_delegations_from_ids:-> meeting_user/vote_delegated_to_id
@@ -3099,8 +3290,8 @@ FIELD 1r:nt => meeting/template_for_organization_id:-> organization/template_mee
 FIELD 1rR:1t => meeting/motions_default_workflow_id:-> motion_workflow/default_workflow_meeting_id
 FIELD 1rR:1t => meeting/motions_default_amendment_workflow_id:-> motion_workflow/default_amendment_workflow_meeting_id
 SQL nt:1r => meeting/motion_poll_default_group_ids:-> group/used_as_motion_poll_default_id
-SQL nt:1rR => meeting/poll_candidate_list_ids:-> poll_candidate_list/meeting_id
-SQL nt:1rR => meeting/poll_candidate_ids:-> poll_candidate/meeting_id
+SQL nr:1rR => meeting/poll_candidate_list_ids:-> poll_candidate_list/meeting_id
+SQL nr:1rR => meeting/poll_candidate_ids:-> poll_candidate/meeting_id
 SQL nt:1rR => meeting/meeting_user_ids:-> meeting_user/meeting_id
 SQL nt:1r => meeting/assignment_poll_default_group_ids:-> group/used_as_assignment_poll_default_id
 SQL nt:1r => meeting/poll_default_group_ids:-> group/used_as_poll_default_id
@@ -3131,7 +3322,9 @@ SQL nt:1rR => meeting/motion_editor_ids:-> motion_editor/meeting_id
 SQL nt:1rR => meeting/motion_working_group_speaker_ids:-> motion_working_group_speaker/meeting_id
 SQL nt:1rR => meeting/motion_change_recommendation_ids:-> motion_change_recommendation/meeting_id
 SQL nt:1rR => meeting/motion_state_ids:-> motion_state/meeting_id
-SQL nt:1rR => meeting/poll_ids:-> poll/meeting_id
+SQL nr:1rR => meeting/poll_ids:-> poll/meeting_id
+SQL nr:1rR => meeting/option_ids:-> option/meeting_id
+SQL nr:1rR => meeting/vote_ids:-> vote/meeting_id
 SQL nt:1rR => meeting/assignment_ids:-> assignment/meeting_id
 SQL nt:1rR => meeting/assignment_candidate_ids:-> assignment_candidate/meeting_id
 SQL nt:1rR => meeting/personal_note_ids:-> personal_note/meeting_id
@@ -3267,6 +3460,7 @@ SQL nt:nt => motion/supporter_meeting_user_ids:-> meeting_user/supported_motion_
 SQL nt:1rR => motion/editor_ids:-> motion_editor/motion_id
 SQL nt:1rR => motion/working_group_speaker_ids:-> motion_working_group_speaker/motion_id
 SQL nt:1GrR => motion/poll_ids:-> poll/content_object_id
+SQL nr:1Gr => motion/option_ids:-> option/content_object_id
 SQL nt:1rR => motion/change_recommendation_ids:-> motion_change_recommendation/motion_id
 SQL nt:1rR => motion/comment_ids:-> motion_comment/motion_id
 SQL 1t:1GrR => motion/agenda_item_id:-> agenda_item/content_object_id
@@ -3278,15 +3472,15 @@ SQL nt:1Gr => motion/personal_note_ids:-> personal_note/content_object_id
 FIELD 1rR:nt => motion/meeting_id:-> meeting/motion_ids
 SQL nt:1Gr => motion/history_entry_ids:-> history_entry/model_id
 
-FIELD 1rR:nt => motion_submitter/meeting_user_id:-> meeting_user/motion_submitter_ids
+FIELD 1r:nt => motion_submitter/meeting_user_id:-> meeting_user/motion_submitter_ids
 FIELD 1rR:nt => motion_submitter/motion_id:-> motion/submitter_ids
 FIELD 1rR:nt => motion_submitter/meeting_id:-> meeting/motion_submitter_ids
 
-FIELD 1rR:nt => motion_editor/meeting_user_id:-> meeting_user/motion_editor_ids
+FIELD 1r:nt => motion_editor/meeting_user_id:-> meeting_user/motion_editor_ids
 FIELD 1rR:nt => motion_editor/motion_id:-> motion/editor_ids
 FIELD 1rR:nt => motion_editor/meeting_id:-> meeting/motion_editor_ids
 
-FIELD 1rR:nt => motion_working_group_speaker/meeting_user_id:-> meeting_user/motion_working_group_speaker_ids
+FIELD 1r:nt => motion_working_group_speaker/meeting_user_id:-> meeting_user/motion_working_group_speaker_ids
 FIELD 1rR:nt => motion_working_group_speaker/motion_id:-> motion/working_group_speaker_ids
 FIELD 1rR:nt => motion_working_group_speaker/meeting_id:-> meeting/motion_working_group_speaker_ids
 
@@ -3330,15 +3524,23 @@ SQL 1t:1rR => motion_workflow/default_amendment_workflow_meeting_id:-> meeting/m
 FIELD 1rR:nt => motion_workflow/meeting_id:-> meeting/motion_workflow_ids
 
 FIELD 1GrR:nt,nt,nt => poll/content_object_id:-> motion/poll_ids,assignment/poll_ids,topic/poll_ids
-SQL nt:1rR => poll/vote_ids:-> vote/poll_id
+SQL nr:1r => poll/option_ids:-> option/poll_id
+FIELD 1r:1r => poll/global_option_id:-> option/used_as_global_option_in_poll_id
 SQL nt:nt => poll/voted_ids:-> user/poll_voted_ids
 SQL nt:nt => poll/entitled_group_ids:-> group/poll_ids
 SQL nt:1GrR => poll/projection_ids:-> projection/content_object_id
-FIELD 1rR:nt => poll/meeting_id:-> meeting/poll_ids
+FIELD 1rR:nr => poll/meeting_id:-> meeting/poll_ids
 
-FIELD 1rR:nt => vote/poll_id:-> poll/vote_ids
-FIELD 1r:nt => vote/acting_user_id:-> user/acting_vote_ids
-FIELD 1r:nt => vote/represented_user_id:-> user/represented_vote_ids
+FIELD 1r:nr => option/poll_id:-> poll/option_ids
+FIELD 1r:1r => option/used_as_global_option_in_poll_id:-> poll/global_option_id
+SQL nr:1rR => option/vote_ids:-> vote/option_id
+FIELD 1Gr:nr,nr,1tR => option/content_object_id:-> motion/option_ids,user/option_ids,poll_candidate_list/option_id
+FIELD 1rR:nr => option/meeting_id:-> meeting/option_ids
+
+FIELD 1rR:nr => vote/option_id:-> option/vote_ids
+FIELD 1r:nr => vote/user_id:-> user/vote_ids
+FIELD 1r:nr => vote/delegated_user_id:-> user/delegated_vote_ids
+FIELD 1rR:nr => vote/meeting_id:-> meeting/vote_ids
 
 SQL nt:1rR => assignment/candidate_ids:-> assignment_candidate/assignment_id
 SQL nt:1GrR => assignment/poll_ids:-> poll/content_object_id
@@ -3354,12 +3556,13 @@ FIELD 1rR:nt => assignment_candidate/assignment_id:-> assignment/candidate_ids
 FIELD 1r:nt => assignment_candidate/meeting_user_id:-> meeting_user/assignment_candidate_ids
 FIELD 1rR:nt => assignment_candidate/meeting_id:-> meeting/assignment_candidate_ids
 
-SQL nt:1rR => poll_candidate_list/poll_candidate_ids:-> poll_candidate/poll_candidate_list_id
-FIELD 1rR:nt => poll_candidate_list/meeting_id:-> meeting/poll_candidate_list_ids
+SQL nr:1rR => poll_candidate_list/poll_candidate_ids:-> poll_candidate/poll_candidate_list_id
+FIELD 1rR:nr => poll_candidate_list/meeting_id:-> meeting/poll_candidate_list_ids
+SQL 1tR:1Gr => poll_candidate_list/option_id:-> option/content_object_id
 
-FIELD 1rR:nt => poll_candidate/poll_candidate_list_id:-> poll_candidate_list/poll_candidate_ids
-FIELD 1r:nt => poll_candidate/user_id:-> user/poll_candidate_ids
-FIELD 1rR:nt => poll_candidate/meeting_id:-> meeting/poll_candidate_ids
+FIELD 1rR:nr => poll_candidate/poll_candidate_list_id:-> poll_candidate_list/poll_candidate_ids
+FIELD 1r:nr => poll_candidate/user_id:-> user/poll_candidate_ids
+FIELD 1rR:nr => poll_candidate/meeting_id:-> meeting/poll_candidate_ids
 
 FIELD 1r:nt => mediafile/published_to_meetings_in_organization_id:-> organization/published_mediafile_ids
 FIELD 1r:nt => mediafile/parent_id:-> mediafile/child_ids
@@ -3442,5 +3645,10 @@ FIELD 1rR:nt => history_entry/position_id:-> history_position/entry_ids
 FIELD 1r:nt => history_entry/meeting_id:-> meeting/relevant_history_entry_ids
 
 */
+/*
+There are 2 errors/warnings
+    poll/live_votes: type:JSON is marked as a calculated field and not generated in schema
+    projection/content: type:JSON is marked as a calculated field and not generated in schema
+*/
 
-/*   Missing attribute handling for constant, on_delete, equal_fields, unique, deferred */
+/*   Missing attribute handling for constant, on_delete, equal_fields, deferred */

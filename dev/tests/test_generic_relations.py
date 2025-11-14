@@ -79,10 +79,9 @@ class Relations(BaseTestCase):
                     *assignment_t.insert(
                         [
                             assignment_t.title,
-                            assignment_t.sequential_number,
                             assignment_t.meeting_id,
                         ],
-                        [["title assignment 1", 21, self.meeting1_id]],
+                        [["title assignment 1", self.meeting1_id]],
                         returning=[assignment_t.id],
                     )
                 ).fetchone()["id"]
@@ -148,7 +147,6 @@ class Relations(BaseTestCase):
                             content_object_id := f"mediafile/{mediafile_id}"
                         ),
                         "meeting_id": self.meeting1_id,
-                        "sequential_number": 28,
                     },
                 ]
                 columns, values = DbUtils.get_columns_and_values_for_insert(
@@ -381,7 +379,6 @@ class Relations(BaseTestCase):
                         {
                             "id": assignment_id,
                             "title": "I am an assignment",
-                            "sequential_number": 42,
                             "meeting_id": self.meeting1_id,
                         },
                     ],
@@ -408,7 +405,6 @@ class Relations(BaseTestCase):
                                 content_object_id := f"assignment/{assignment_id}"
                             ),
                             "meeting_id": self.meeting1_id,
-                            "sequential_number": 28,
                         }
                     ],
                 )
@@ -788,7 +784,6 @@ class Relations(BaseTestCase):
                         "used_as_default_projector_for_assignment_poll_in_meeting_id",
                         "used_as_default_projector_for_motion_poll_in_meeting_id",
                         "used_as_default_projector_for_poll_in_meeting_id",
-                        "sequential_number",
                     ],
                 )
                 projector: dict[str, Any] = curs.execute(
@@ -799,7 +794,6 @@ class Relations(BaseTestCase):
                     )
                 ).fetchone()
                 projector_old_id = projector.pop("id")
-                projector["sequential_number"] += 2
                 columns, values = DbUtils.get_columns_and_values_for_insert(
                     projector_t, [projector]
                 )

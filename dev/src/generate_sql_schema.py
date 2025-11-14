@@ -32,6 +32,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     post_view: str
     alter_table: str
     alter_table_final: str
+    create_trigger_partitioned_sequences: str
     create_trigger_1_1_relation_not_null: str
     create_trigger_relationlistnotnull: str
     create_trigger_unique_ids_pair_code: str
@@ -75,7 +76,9 @@ class GenerateCodeBlocks:
     @classmethod
     def generate_the_code(
         cls,
-    ) -> tuple[str, str, str, str, str, list[str], str, str, str, str, str, list[str]]:
+    ) -> tuple[
+        str, str, str, str, str, list[str], str, str, str, str, str, str, list[str]
+    ]:
         """
         Return values:
           pre_code: Type definitions etc., which should all appear before first table definitions
@@ -87,6 +90,7 @@ class GenerateCodeBlocks:
           im_table_code: Code for intermediate tables.
               n:m-relations name schema: f"nm_{smaller-table-name}_{it's-fieldname}_{greater-table_name}" uses one per relation
               g:m-relations name schema: f"gm_{table_field.table}_{table_field.column}" of table with generic-list-field
+          create_trigger_partitioned_sequences_code: Definitions of triggers calling generate_sequence
           create_trigger_1_1_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_1_relation
           create_trigger_relationlistnotnull_code: Definitions of triggers calling check_not_null_for_relation_lists
           create_trigger_unique_ids_pair_code: Definitions of triggers calling check_unique_ids_pair
@@ -108,6 +112,7 @@ class GenerateCodeBlocks:
             "items",
             "to",
             "reference",
+            "sequence_scope",
             # "on_delete", # must have other name then the key-value-store one
             "sql",
             # "equal_fields", # Seems we need, see example_transactional.sql between meeting and groups?
@@ -117,6 +122,7 @@ class GenerateCodeBlocks:
         table_name_code: str = ""
         view_name_code: str = ""
         alter_table_final_code: str = ""
+        create_trigger_partitioned_sequences_code: str = ""
         create_trigger_1_1_relation_not_null_code: str = ""
         create_trigger_relationlistnotnull_code: str = ""
         create_trigger_unique_ids_pair_code: str = ""
@@ -169,6 +175,8 @@ class GenerateCodeBlocks:
                 view_name_code += code
             if code := schema_zone_texts["alter_table_final"]:
                 alter_table_final_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_partitioned_sequences"]:
+                create_trigger_partitioned_sequences_code += code + "\n"
             if code := schema_zone_texts["create_trigger_1_1_relation_not_null"]:
                 create_trigger_1_1_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_relationlistnotnull"]:
@@ -199,6 +207,7 @@ class GenerateCodeBlocks:
             final_info_code,
             missing_handled_attributes,
             im_table_code,
+            create_trigger_partitioned_sequences_code,
             create_trigger_1_1_relation_not_null_code,
             create_trigger_relationlistnotnull_code,
             create_trigger_unique_ids_pair_code,
@@ -243,6 +252,15 @@ class GenerateCodeBlocks:
     ) -> tuple[SchemaZoneTexts, str]:
         text, subst = cls.get_text_for_simple_types(table_name, fname, fdata, type_)
         text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
+        if depend_field := fdata.get("sequence_scope"):
+            text[
+                "create_trigger_partitioned_sequences"
+            ] += cls.get_trigger_generate_partitioned_sequence(
+                table_name, fname, depend_field
+            )
+            text[
+                "table"
+            ] += f"    CONSTRAINT unique_{table_name}_{fname} UNIQUE ({fname}, {depend_field}),\n"
         return text, ""
 
     @classmethod
@@ -563,6 +581,19 @@ class GenerateCodeBlocks:
         return f"({query}) as {fname},\n"
 
     @classmethod
+    def get_trigger_generate_partitioned_sequence(
+        cls, view_name: str, actual_field: str, depend_field: str
+    ) -> str:
+        table_name = HelperGetNames.get_table_name(view_name)
+        return dedent(
+            f"""
+            -- definition trigger generate partitioned sequence number for {table_name}.{actual_field} partitioned by {depend_field}
+            CREATE TRIGGER tr_generate_sequence_{view_name}_{actual_field} BEFORE INSERT ON {table_name}
+            FOR EACH ROW EXECUTE FUNCTION generate_sequence('{table_name}', '{actual_field}', '{depend_field}');
+            """
+        )
+
+    @classmethod
     def get_trigger_check_not_null_for_1_1_relation(
         cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
     ) -> str:
@@ -734,6 +765,44 @@ class Helper:
         """
         CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
 
+        CREATE FUNCTION generate_sequence()
+        RETURNS trigger
+        AS $sequences_trigger$
+        -- Creates a sequence for the id given by depend_field NEW data if it doesn't exist.
+        -- Writes the next value to for this sequence to NEW.
+        -- In case a number is given in actual_column of the NEW record that is used
+        -- and the corresponding sequence increased if necessary.
+        -- Usage with 3 parameters IN TRIGGER DEFINITION:
+        -- table_name: table this is treated for
+        -- actual_column: column that will be filled with the actual value
+        -- depend_field: field that differentiates the sequences. usually meeting_id
+        DECLARE
+            table_name TEXT := TG_ARGV[0];
+            actual_column TEXT := TG_ARGV[1];
+            depend_field TEXT := TG_ARGV[2];
+            depend_field_id INTEGER;
+            sequence_name TEXT;
+            sequence_value INTEGER;
+            sequence_max INTEGER;
+        BEGIN
+            depend_field_id := hstore(NEW) -> (depend_field);
+            sequence_name := table_name || '_' || depend_field || depend_field_id || '_' || actual_column || '_seq';
+            EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I OWNED BY %I.%I', sequence_name, table_name, actual_column);
+            sequence_value := hstore(NEW) -> actual_column;
+            IF sequence_value IS NULL THEN
+                sequence_value := nextval(sequence_name);
+            ELSE
+                EXECUTE format('SELECT last_value FROM %I', sequence_name) INTO sequence_max;
+                -- <= because the unused sequence starts with last_value=1 and is_called=f and needs to be written to.
+                IF sequence_max <= sequence_value THEN
+                    SELECT setval(sequence_name, sequence_value) INTO sequence_value;
+                END IF;
+            END IF;
+            RETURN populate_record(NEW, format('%s=>%s',actual_column, sequence_value)::hstore);
+        END;
+        $sequences_trigger$
+        LANGUAGE plpgsql;
+
         CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_modified_trigger$
         DECLARE
             escaped_table_name varchar;
@@ -806,14 +875,12 @@ class Helper:
         CREATE OR REPLACE FUNCTION log_modified_related_models()
         RETURNS trigger AS $log_modified_related_trigger$
         DECLARE
-            operation_var TEXT;
             fqid_var TEXT;
             ref_column TEXT;
             foreign_table TEXT;
             foreign_id TEXT;
             i INTEGER := 0;
         BEGIN
-            operation_var := LOWER(TG_OP);
 
             WHILE i < TG_NARGS LOOP
                 foreign_table := TG_ARGV[i];
@@ -828,7 +895,7 @@ class Helper:
                 IF foreign_id IS NOT NULL THEN
                     fqid_var := foreign_table || '/' || foreign_id;
                     INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp)
-                    VALUES (operation_var, fqid_var, pg_current_xact_id(), now())
+                    VALUES ('update', fqid_var, pg_current_xact_id(), now())
                     ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
                 END IF;
 
@@ -1470,6 +1537,7 @@ def main() -> None:
         final_info_code,
         missing_handled_attributes,
         im_table_code,
+        create_trigger_partitioned_sequences_code,
         create_trigger_1_1_relation_not_null_code,
         create_trigger_relationlistnotnull_code,
         create_trigger_unique_ids_pair_code,
@@ -1491,6 +1559,8 @@ def main() -> None:
         dest.write(view_name_code)
         dest.write("\n\n-- Alter table relations\n")
         dest.write(alter_table_code)
+        dest.write("\n\n-- Create triggers generating partitioned sequences\n")
+        dest.write(create_trigger_partitioned_sequences_code)
         dest.write(
             "\n\n-- Create triggers checking foreign_id not null for view-relations and no duplicates in 1:1 relationships\n"
         )

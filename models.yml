@@ -97,8 +97,6 @@
 #       fields the value as to be an id of an existing object.
 #     - The property `equal_fields` describes fields that must have the same value in
 #       the instance and the related instance.
-#     - The property `unique` will guarantee the uniqueness of fields or field combinations by database constraint..
-#       Example: `unique: meeting_id, sequential_number`
 # Restriction Mode:
 #   The field `restriction_mode` is required for every field. It puts the field into a
 #   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview
@@ -433,17 +431,25 @@ user:
     type: relation-list
     to: poll/voted_ids
     restriction_mode: A
-  acting_vote_ids:
+  option_ids:
     type: relation-list
-    to: vote/acting_user_id
+    to: option/content_object_id
+    reference: option
     restriction_mode: A
-  represented_vote_ids:
+  vote_ids:
     type: relation-list
-    to: vote/represented_user_id
+    to: vote/user_id
+    reference: vote
+    restriction_mode: A
+  delegated_vote_ids:
+    type: relation-list
+    to: vote/delegated_user_id
+    reference: vote
     restriction_mode: A
   poll_candidate_ids:
     type: relation-list
     to: poll_candidate/user_id
+    reference: poll_candidate
     restriction_mode: A
   home_committee_id:
     type: relation
@@ -536,19 +542,16 @@ meeting_user:
     type: relation-list
     to: motion_editor/meeting_user_id
     equal_fields: meeting_id
-    on_delete: CASCADE
     restriction_mode: A
   motion_working_group_speaker_ids:
     type: relation-list
     to: motion_working_group_speaker/meeting_user_id
     equal_fields: meeting_id
-    on_delete: CASCADE
     restriction_mode: A
   motion_submitter_ids:
     type: relation-list
     to: motion_submitter/meeting_user_id
     equal_fields: meeting_id
-    on_delete: CASCADE
     restriction_mode: A
   assignment_candidate_ids:
     type: relation-list
@@ -921,7 +924,6 @@ meeting:
   description:
     type: string
     maxLength: 100
-    default: Presentation and assembly system
     restriction_mode: B
   location:
     type: string
@@ -1405,6 +1407,12 @@ meeting:
     type: boolean
     default: False
     restriction_mode: B
+  motions_enable_restricted_editor_for_manager:
+    type: boolean
+    restriction_mode: B
+  motions_enable_restricted_editor_for_non_manager:
+    type: boolean
+    restriction_mode: B
 
   # Motion poll
   motion_poll_ballot_paper_selection:
@@ -1456,10 +1464,12 @@ meeting:
   poll_candidate_list_ids:
     type: relation-list
     to: poll_candidate_list/meeting_id
+    reference: poll_candidate_list
     restriction_mode: B
   poll_candidate_ids:
     type: relation-list
     to: poll_candidate/meeting_id
+    reference: poll_candidate
     restriction_mode: B
 
   # Users
@@ -1630,20 +1640,15 @@ meeting:
     type: relation-list
     to: group/used_as_poll_default_id
     restriction_mode: B
+  poll_default_backend:
+    type: string
+    enum: *poll_backends
+    default: fast
+    restriction_mode: B
   poll_default_live_voting_enabled:
     type: boolean
     default: false
-    description: Defines default 'poll.published' before finished option suggested to user. Is not used in the validations.
-    restriction_mode: B
-  poll_default_allow_invalid:
-    type: boolean
-    default: false
-    description: Defines defaut `poll.allow_invalid` option suggested to user.
-    restriction_mode: B
-  poll_default_allow_vote_split:
-    type: boolean
-    default: false
-    description: Defines defaut `poll.allow_vote_split` option suggested to user.
+    description: Defines default 'poll.live_voting_enabled' option suggested to user. Is not used in the validations.
     restriction_mode: B
   poll_couple_countdown:
     type: boolean
@@ -1790,6 +1795,19 @@ meeting:
   poll_ids:
     type: relation-list
     to: poll/meeting_id
+    reference: poll
+    on_delete: CASCADE
+    restriction_mode: B
+  option_ids:
+    type: relation-list
+    to: option/meeting_id
+    reference: option
+    on_delete: CASCADE
+    restriction_mode: B
+  vote_ids:
+    type: relation-list
+    to: vote/meeting_id
+    reference: vote
     on_delete: CASCADE
     restriction_mode: B
   assignment_ids:
@@ -2386,6 +2404,7 @@ list_of_speakers:
     restriction_mode: A
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -2599,6 +2618,7 @@ topic:
     restriction_mode: A
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -2658,12 +2678,12 @@ motion:
     restriction_mode: D
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
     restriction_mode: C
     constant: true
-    unique: meeting_id, sequential_number
   title:
     type: string
     required: true
@@ -2853,6 +2873,13 @@ motion:
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: C
+  option_ids:
+    type: relation-list
+    to: option/content_object_id
+    reference: option
+    on_delete: CASCADE
+    equal_fields: meeting_id
+    restriction_mode: C
   change_recommendation_ids:
     type: relation-list
     to: motion_change_recommendation/motion_id
@@ -2924,7 +2951,6 @@ motion_submitter:
     reference: meeting_user
     to: meeting_user/motion_submitter_ids
     restriction_mode: A
-    required: true
   motion_id:
     type: relation
     reference: motion
@@ -2951,7 +2977,6 @@ motion_editor:
     reference: meeting_user
     to: meeting_user/motion_editor_ids
     restriction_mode: A
-    required: true
   motion_id:
     type: relation
     reference: motion
@@ -2978,7 +3003,6 @@ motion_working_group_speaker:
     reference: meeting_user
     to: meeting_user/motion_working_group_speaker_ids
     restriction_mode: A
-    required: true
   motion_id:
     type: relation
     reference: motion
@@ -3037,6 +3061,7 @@ motion_comment_section:
     restriction_mode: A
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3090,6 +3115,7 @@ motion_category:
     restriction_mode: A
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3131,6 +3157,7 @@ motion_block:
     restriction_mode: A
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3303,6 +3330,9 @@ motion_state:
     type: boolean
     restriction_mode: A
     default: false
+  state_button_label:
+    type: string
+    restriction_mode: A
   submitter_withdraw_state_id:
     type: relation
     reference: motion_state
@@ -3374,6 +3404,7 @@ motion_workflow:
     restriction_mode: A
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3415,27 +3446,35 @@ poll:
     type: string
     required: true
     restriction_mode: A
-  method:
+  description:
+    type: string
+    restriction_mode: A
+  type:
     type: string
     required: true
     enum:
-      - approval
-      - selection
-      - rating-score
-      - rating-approval
-    restriction_mode: A
-  config:
-    type: text
-    description: Values to configure the poll. Depends on the value in poll/method.
-    restriction_mode: A
-  visibility:
-    type: string
-    required: true
-    enum:
-      - manually
+      - analog
       - named
-      - open
-      - secret
+      - pseudoanonymous
+      - cryptographic
+    restriction_mode: A
+  backend:
+    type: string
+    required: True
+    enum: *poll_backends
+    default: fast
+    restriction_mode: A
+  is_pseudoanonymized:
+    type: boolean
+    restriction_mode: A
+  pollmethod:
+    type: string
+    required: true
+    enum:
+      - "Y"
+      - "YN"
+      - "YNA"
+      - "N"
     restriction_mode: A
   state:
     type: string
@@ -3443,29 +3482,67 @@ poll:
       - created
       - started
       - finished
+      - published
     default: created
     restriction_mode: A
-  result:
-    type: text
-    description: Calculated result. The format depends on the value in poll/method. Can be manually set when visibility is set to manually.
+  min_votes_amount:
+    type: number
+    default: 1
+    minimum: 1
+    restriction_mode: A
+  max_votes_amount:
+    type: number
+    default: 1
+    minimum: 1
+    restriction_mode: A
+  max_votes_per_option:
+    type: number
+    default: 1
+    minimum: 1
+    restriction_mode: A
+  global_yes:
+    type: boolean
+    default: false
+    restriction_mode: A
+  global_no:
+    type: boolean
+    default: false
+    restriction_mode: A
+  global_abstain:
+    type: boolean
+    default: false
+    restriction_mode: A
+  onehundred_percent_base:
+    type: string
+    required: true
+    enum: *onehundred_percent_bases
+    default: disabled
+    restriction_mode: A
+  votesvalid:
+    type: decimal(6)
     restriction_mode: B
-  published:
+  votesinvalid:
+    type: decimal(6)
+    restriction_mode: B
+  votescast:
+    type: decimal(6)
+    restriction_mode: D
+  entitled_users_at_stop:
+    type: JSON
+    restriction_mode: A
+  live_voting_enabled:
     type: boolean
     default: false
-    description: If true, users can see the result.
+    description: If true, the vote service sends the votes of the users to the autoupdate service.
     restriction_mode: A
-  allow_invalid:
-    type: boolean
-    default: false
-    description: If true, the vote service does not validate. This is always the case for secret polls.
-    restriction_mode: A
-  allow_vote_split:
-    type: boolean
-    default: false
-    description: If true, users can split there vote.
-    restriction_mode: A
+  live_votes:
+    type: JSON
+    calculated: true
+    description: dict from user to their vote. The value is null, when live voting is disabled.
+    restriction_mode: C
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3487,12 +3564,21 @@ poll:
     restriction_mode: A
     required: true
     constant: true
-  vote_ids:
+  option_ids:
     type: relation-list
-    to: vote/poll_id
+    to: option/poll_id
+    reference: option
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
+  global_option_id:
+    type: relation
+    to: option/used_as_global_option_in_poll_id
+    reference: option
+    on_delete: CASCADE
+    equal_fields: meeting_id
+    restriction_mode: A
+    constant: true
   voted_ids:
     type: relation-list
     to: user/poll_voted_ids
@@ -3510,45 +3596,114 @@ poll:
     restriction_mode: A
   meeting_id:
     type: relation
-    reference: meeting
     to: meeting/poll_ids
+    reference: meeting
     restriction_mode: A
     required: true
+    constant: true
+
+option:
+  id: *id_field
+  weight:
+    type: number
+    default: 10000
+    restriction_mode: A
+  text:
+    type: HTMLStrict
+    restriction_mode: A
+  "yes":
+    type: decimal(6)
+    restriction_mode: B
+  "no":
+    type: decimal(6)
+    restriction_mode: B
+  abstain:
+    type: decimal(6)
+    restriction_mode: B
+
+  poll_id:
+    type: relation
+    to: poll/option_ids
+    reference: poll
+    equal_fields: meeting_id
+    restriction_mode: A
+    constant: true
+  used_as_global_option_in_poll_id:
+    type: relation
+    to: poll/global_option_id
+    reference: poll
+    equal_fields: meeting_id
+    restriction_mode: A
+    constant: true
+  vote_ids:
+    type: relation-list
+    to: vote/option_id
+    reference: vote
+    on_delete: CASCADE
+    equal_fields: meeting_id
+    restriction_mode: A
+  content_object_id:
+    type: generic-relation
+    to:
+      - motion/option_ids
+      - user/option_ids
+      - poll_candidate_list/option_id
+    reference:
+      - motion
+      - user
+      - poll_candidate_list
+    equal_fields: meeting_id
+    restriction_mode: A
+    constant: true
+  meeting_id:
+    type: relation
+    to: meeting/option_ids
+    reference: meeting
+    required: true
+    restriction_mode: A
     constant: true
 
 vote:
   id: *id_field
   weight:
     type: decimal(6)
-    restriction_mode: B
+    restriction_mode: A
     constant: true
-    default: "1.000000"
-  split:
-    type: boolean
-    default: false
-    restriction_mode: B
   value:
-    type: text
+    type: string
+    restriction_mode: A
+    constant: true
+  user_token:
+    type: string
+    required: true
     restriction_mode: B
     constant: true
-  poll_id:
+
+  option_id:
     type: relation
-    reference: poll
-    to: poll/vote_ids
+    to: option/vote_ids
+    reference: option
     equal_fields: meeting_id
     required: true
     restriction_mode: A
     constant: true
-  acting_user_id:
+  user_id:
     type: relation
+    to: user/vote_ids
     reference: user
-    to: user/acting_vote_ids
-    restriction_mode: C
-  represented_user_id:
+    restriction_mode: A
+  delegated_user_id:
     type: relation
+    to: user/delegated_vote_ids
     reference: user
-    to: user/represented_vote_ids
-    restriction_mode: C
+    restriction_mode: A
+  meeting_id:
+    type: relation
+    to: meeting/vote_ids
+    reference: meeting
+    required: true
+    restriction_mode: A
+    constant: true
 
 assignment:
   id: *id_field
@@ -3580,6 +3735,7 @@ assignment:
     restriction_mode: A
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -3676,13 +3832,21 @@ poll_candidate_list:
   poll_candidate_ids:
     type: relation-list
     to: poll_candidate/poll_candidate_list_id
+    reference: poll_candidate
     on_delete: CASCADE
     restriction_mode: A
     equal_fields: meeting_id
   meeting_id:
     type: relation
-    reference: meeting
     to: meeting/poll_candidate_list_ids
+    reference: meeting
+    required: true
+    restriction_mode: A
+    constant: true
+  option_id:
+    type: relation
+    to: option/content_object_id
+    equal_fields: meeting_id
     required: true
     restriction_mode: A
     constant: true
@@ -3691,16 +3855,16 @@ poll_candidate:
   id: *id_field
   poll_candidate_list_id:
     type: relation
-    reference: poll_candidate_list
     to: poll_candidate_list/poll_candidate_ids
+    reference: poll_candidate_list
     equal_fields: meeting_id
     restriction_mode: A
     required: true
     constant: true
   user_id:
     type: relation
-    reference: user
     to: user/poll_candidate_ids
+    reference: user
     restriction_mode: A
     constant: true
   weight:
@@ -3709,8 +3873,8 @@ poll_candidate:
     restriction_mode: A
   meeting_id:
     type: relation
-    reference: meeting
     to: meeting/poll_candidate_ids
+    reference: meeting
     required: true
     restriction_mode: A
     constant: true
@@ -3981,6 +4145,7 @@ projector:
     restriction_mode: A
   sequential_number:
     type: number
+    sequence_scope: meeting_id
     description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
     read_only: true
     required: true
@@ -4111,7 +4276,7 @@ projection:
 
   content:
     type: JSON
-    # calculated: true
+    calculated: true
     restriction_mode: A
 
   current_projector_id:
