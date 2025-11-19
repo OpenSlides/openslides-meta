@@ -453,9 +453,9 @@ meeting_user:
     to: speaker/meeting_user_id
     equal_fields: meeting_id
     restriction_mode: A
-  supported_motion_ids:
+  motion_supporter_ids:
     type: relation-list
-    to: motion/supporter_meeting_user_ids
+    to: motion_supporter/meeting_user_id
     equal_fields: meeting_id
     restriction_mode: A
   motion_editor_ids:
@@ -1654,6 +1654,11 @@ meeting:
     to: motion_submitter/meeting_id
     on_delete: CASCADE
     restriction_mode: B
+  motion_supporter_ids:
+    type: relation-list
+    to: motion_supporter/meeting_id
+    on_delete: CASCADE
+    restriction_mode: B
   motion_editor_ids:
     type: relation-list
     to: motion_editor/meeting_id
@@ -2653,9 +2658,10 @@ motion:
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: C
-  supporter_meeting_user_ids:
+  supporter_ids:
     type: relation-list
-    to: meeting_user/supported_motion_ids
+    to: motion_supporter/motion_id
+    on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: C
   editor_ids:
@@ -2761,6 +2767,26 @@ motion_submitter:
   meeting_id:
     type: relation
     to: meeting/motion_submitter_ids
+    required: true
+    restriction_mode: A
+    constant: true
+
+motion_supporter:
+  id: *id_field
+  meeting_user_id:
+    type: relation
+    to: meeting_user/motion_supporter_ids
+    restriction_mode: A
+  motion_id:
+    type: relation
+    to: motion/supporter_ids
+    equal_fields: meeting_id
+    restriction_mode: A
+    required: true
+    constant: true
+  meeting_id:
+    type: relation
+    to: meeting/motion_supporter_ids
     required: true
     restriction_mode: A
     constant: true
