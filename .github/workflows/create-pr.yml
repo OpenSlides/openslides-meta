@@ -24,12 +24,12 @@ jobs:
     name: Create or update PR
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: current-meta-repository
           ref: ${{ github.ref_name }}
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/${{ inputs.repository }}
           path: service-repository
