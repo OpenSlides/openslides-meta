@@ -87,7 +87,6 @@ _meta: # meta field to hold repeatedly used values
     - "entitled_present"
     - "disabled"
   required_majority: &required_majority
-    - "no_majority"
     - "two_third_majority"
     - "absolute_majority"
   id_field: &id_field
@@ -1328,7 +1327,6 @@ meeting:
   motion_poll_default_required_majority:
     type: string
     enum: *required_majority
-    default: no_majority
     restriction_mode: B
   motion_poll_default_group_ids:
     type: relation-list
@@ -1497,7 +1495,6 @@ meeting:
   assignment_poll_default_required_majority:
     type: string
     enum: *required_majority
-    default: no_majority
     restriction_mode: B
   assignment_poll_default_group_ids:
     type: relation-list
@@ -3308,7 +3305,6 @@ poll:
   required_majority:
     type: string
     enum: *required_majority
-    default: no_majority
     restriction_mode: A
   votesvalid:
     type: decimal(6)
