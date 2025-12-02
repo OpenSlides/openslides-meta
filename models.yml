@@ -4292,7 +4292,7 @@ history_position:
 history_entry:
   id: *id_field
   entries:
-    type: string[]
+    type: text[]
     restriction_mode: A
   original_model_id:
     type: string
