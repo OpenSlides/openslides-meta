@@ -160,7 +160,6 @@ CREATE TABLE os_notify_log_t (
 
 CREATE TABLE version (
     migration_index INTEGER PRIMARY KEY,
-    database_writable BOOLEAN,
     migration_state TEXT,
     replace_tables JSONB
 );

@@ -917,7 +917,6 @@ class Helper:
 
         CREATE TABLE version (
             migration_index INTEGER PRIMARY KEY,
-            database_writable BOOLEAN,
             migration_state TEXT,
             replace_tables JSONB
         );
