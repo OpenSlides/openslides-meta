@@ -1,0 +1,59 @@
+name: Test SQL
+on: [pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # TODO: What container should be used? This is from the github example
+    container: node:20-bookworm-slim
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_USER: openslides
+          POSTGRES_DB: openslides
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install psql
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends postgresql-client
+
+      - name: apply schema
+        shell: bash
+        run: bash dev/scripts/apply_db_schema.sh
+        env:
+          DATABASE_HOST: postgres
+          DATABASE_PORT: 5432
+          DATABASE_USER: openslides
+          DATABASE_NAME: openslides
+          PGPASSWORD: password
+
+      - name: insert base data
+        shell: bash
+        run: bash dev/scripts/apply_data.sh base_data.sql
+        env:
+          DATABASE_HOST: postgres
+          DATABASE_PORT: 5432
+          DATABASE_USER: openslides
+          DATABASE_NAME: openslides
+          PGPASSWORD: password
+
+      - name: insert test data
+        shell: bash
+        run: bash dev/scripts/apply_data.sh test_data.sql
+        env:
+          DATABASE_HOST: postgres
+          DATABASE_PORT: 5432
+          DATABASE_USER: openslides
+          DATABASE_NAME: openslides
+          PGPASSWORD: password
