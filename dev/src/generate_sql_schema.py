@@ -1481,6 +1481,10 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "pg_type": "integer[]",
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
+    "text[]": {
+        "pg_type": "text[]",
+        "method": GenerateCodeBlocks.get_schema_simple_types,
+    },
     "text": {"pg_type": "text", "method": GenerateCodeBlocks.get_schema_simple_types},
     "relation": {"pg_type": "integer", "method": GenerateCodeBlocks.get_relation_type},
     "relation-list": {
