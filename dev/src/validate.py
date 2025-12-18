@@ -33,6 +33,7 @@ DATA_TYPES = (
     "number",
     "string[]",
     "number[]",
+    "text[]",
     "boolean",
     "JSON",
     "HTMLStrict",
@@ -171,7 +172,7 @@ class Checker:
                 )
 
         valid_attributes = list(OPTIONAL_ATTRIBUTES) + required_attributes
-        if type == "string[]":
+        if type in ["string[]", "text[]"]:
             valid_attributes.append("items")
             if "items" in field and "enum" not in field["items"]:
                 self.errors.append(
@@ -249,7 +250,7 @@ class Checker:
                 self.errors.append(
                     f"Value '{value}' for '{collectionfield}' is not a {type_str}."
                 )
-        elif type_str in ("string[]", "number[]"):
+        elif type_str in ("string[]", "number[]", "text[]"):
             if not isinstance(value, list):
                 self.errors.append(
                     f"Value '{value}' for '{collectionfield}' is not a {type_str}."
