@@ -152,6 +152,9 @@ organization:
   enable_anonymous:
     type: boolean
     restriction_mode: A
+  restrict_editing_same_level_committee_admins:
+    type: boolean
+    restriction_mode: A
 
   # Saml settings
   saml_enabled:
