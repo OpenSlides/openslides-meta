@@ -121,6 +121,9 @@ organization:
   disable_forward_with_attachments:
     type: boolean
     restriction_mode: A
+  restrict_edit_forward_committees:
+    type: boolean
+    restriction_mode: A
 
   # Configuration (only for the server owner)
   enable_electronic_voting:
