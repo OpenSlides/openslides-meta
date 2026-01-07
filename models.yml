@@ -503,6 +503,7 @@ meeting_user:
     type: relation-list
     to: group/meeting_user_ids
     equal_fields: meeting_id
+    required: true
     restriction_mode: A
   structure_level_ids:
     type: relation-list
