@@ -787,7 +787,7 @@ class Helper:
         BEGIN
             depend_field_id := hstore(NEW) -> (depend_field);
             sequence_name := table_name || '_' || depend_field || depend_field_id || '_' || actual_column || '_seq';
-            EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I OWNED BY %I.%I', sequence_name, table_name, actual_column);
+            EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I', sequence_name);
             sequence_value := hstore(NEW) -> actual_column;
             IF sequence_value IS NULL THEN
                 sequence_value := nextval(sequence_name);
@@ -920,6 +920,12 @@ class Helper:
             migration_state TEXT,
             replace_tables JSONB
         );
+
+        CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
+        BEGIN
+            RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
+        END;
+        $read_only_trigger$ LANGUAGE plpgsql;
         """
     )
 
@@ -929,7 +935,7 @@ class Helper:
     }.items():
         FILE_TEMPLATE_CONSTANT_DEFINITIONS += dedent(
             f"""
-        CREATE FUNCTION check_not_null_for_{type_}() RETURNS trigger as $not_null_trigger$
+        CREATE FUNCTION check_not_null_for_{type_}() RETURNS trigger AS $not_null_trigger$
         -- usage with 3 parameters IN TRIGGER DEFINITION:
         -- table_name: relation to check, usually a view
         -- column_name: field to check, usually a field in a view
@@ -989,7 +995,6 @@ class Helper:
         dedent(
             """
             CREATE TABLE ${table_name} (
-                id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                 ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}

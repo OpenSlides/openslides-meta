@@ -30,7 +30,7 @@ DECLARE
 BEGIN
     depend_field_id := hstore(NEW) -> (depend_field);
     sequence_name := table_name || '_' || depend_field || depend_field_id || '_' || actual_column || '_seq';
-    EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I OWNED BY %I.%I', sequence_name, table_name, actual_column);
+    EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I', sequence_name);
     sequence_value := hstore(NEW) -> actual_column;
     IF sequence_value IS NULL THEN
         sequence_value := nextval(sequence_name);
@@ -164,7 +164,13 @@ CREATE TABLE version (
     replace_tables JSONB
 );
 
-CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger as $not_null_trigger$
+CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
+BEGIN
+    RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
+END;
+$read_only_trigger$ LANGUAGE plpgsql;
+
+CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger AS $not_null_trigger$
 -- usage with 3 parameters IN TRIGGER DEFINITION:
 -- table_name: relation to check, usually a view
 -- column_name: field to check, usually a field in a view
@@ -204,7 +210,7 @@ BEGIN
 END;
 $not_null_trigger$ language plpgsql;
 
-CREATE FUNCTION check_not_null_for_relation_lists() RETURNS trigger as $not_null_trigger$
+CREATE FUNCTION check_not_null_for_relation_lists() RETURNS trigger AS $not_null_trigger$
 -- usage with 3 parameters IN TRIGGER DEFINITION:
 -- table_name: relation to check, usually a view
 -- column_name: field to check, usually a field in a view
@@ -1352,7 +1358,6 @@ CREATE TABLE nm_meeting_user_structure_level_ids_structure_level_t (
 );
 
 CREATE TABLE gm_organization_tag_tagged_ids_t (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     organization_tag_id integer NOT NULL REFERENCES organization_tag_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     tagged_id varchar(100) NOT NULL,
     tagged_id_committee_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'committee' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES committee_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
@@ -1422,7 +1427,6 @@ CREATE TABLE nm_group_poll_ids_poll_t (
 );
 
 CREATE TABLE gm_tag_tagged_ids_t (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     tag_id integer NOT NULL REFERENCES tag_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     tagged_id varchar(100) NOT NULL,
     tagged_id_agenda_item_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'agenda_item' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES agenda_item_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
@@ -1445,7 +1449,6 @@ CREATE TABLE nm_motion_identical_motion_ids_motion_t (
 );
 
 CREATE TABLE gm_motion_state_extension_reference_ids_t (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     motion_id integer NOT NULL REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     state_extension_reference_id varchar(100) NOT NULL,
     state_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(state_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(state_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
@@ -1454,7 +1457,6 @@ CREATE TABLE gm_motion_state_extension_reference_ids_t (
 );
 
 CREATE TABLE gm_motion_recommendation_extension_reference_ids_t (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     motion_id integer NOT NULL REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     recommendation_extension_reference_id varchar(100) NOT NULL,
     recommendation_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(recommendation_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(recommendation_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
@@ -1475,7 +1477,6 @@ CREATE TABLE nm_poll_voted_ids_user_t (
 );
 
 CREATE TABLE gm_meeting_mediafile_attachment_ids_t (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     meeting_mediafile_id integer NOT NULL REFERENCES meeting_mediafile_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     attachment_id varchar(100) NOT NULL,
     attachment_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'motion' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
