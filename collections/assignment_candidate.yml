@@ -1,33 +1,32 @@
 ---
-assignment_candidate:
-  id:
-    type: number
-    restriction_mode: A
-    constant: true
-    required: true
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
 
-  weight:
-    type: number
-    default: 10000
-    restriction_mode: A
+weight:
+  type: number
+  default: 10000
+  restriction_mode: A
 
-  assignment_id:
-    type: relation
-    to: assignment/candidate_ids
-    equal_fields: meeting_id
-    restriction_mode: A
-    required: true
-    constant: true
-  meeting_user_id:
-    type: relation
-    to: meeting_user/assignment_candidate_ids
-    restriction_mode: A
-    constant: true
-  meeting_id:
-    type: relation
-    to: meeting/assignment_candidate_ids
-    required: true
-    restriction_mode: A
-    constant: true
+assignment_id:
+  type: relation
+  to: assignment/candidate_ids
+  equal_fields: meeting_id
+  restriction_mode: A
+  required: true
+  constant: true
+meeting_user_id:
+  type: relation
+  to: meeting_user/assignment_candidate_ids
+  restriction_mode: A
+  constant: true
+meeting_id:
+  type: relation
+  to: meeting/assignment_candidate_ids
+  required: true
+  restriction_mode: A
+  constant: true
 
 # models for the poll list election
