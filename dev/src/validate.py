@@ -33,6 +33,7 @@ DATA_TYPES = (
     "number",
     "string[]",
     "number[]",
+    "text[]",
     "boolean",
     "JSON",
     "HTMLStrict",
@@ -54,6 +55,8 @@ OPTIONAL_ATTRIBUTES = (
     "required",
     "read_only",
     "constant",
+    "unique",
+    "sequence_scope",
 )
 
 
@@ -158,8 +161,18 @@ class Checker:
         if field.get("calculated"):
             return
 
+        if field_name := field.get("sequence_scope", ""):
+            if type != "number":
+                self.errors.append(
+                    f"Sequences can only be generated for number fields. {collectionfield} is {type}."
+                )
+            if field_name not in self.models[collection]:
+                self.errors.append(
+                    f"{field_name} can not be used as a source of sequence scope since it is not part of {collection}."
+                )
+
         valid_attributes = list(OPTIONAL_ATTRIBUTES) + required_attributes
-        if type == "string[]":
+        if type in ["string[]", "text[]"]:
             valid_attributes.append("items")
             if "items" in field and "enum" not in field["items"]:
                 self.errors.append(
@@ -209,6 +222,7 @@ class Checker:
             valid_attributes.append("equal_fields")
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
+            valid_attributes.extend(("reference", "deferred", "sql"))
 
         for attr in field.keys():
             if attr not in valid_attributes:
@@ -236,7 +250,7 @@ class Checker:
                 self.errors.append(
                     f"Value '{value}' for '{collectionfield}' is not a {type_str}."
                 )
-        elif type_str in ("string[]", "number[]"):
+        elif type_str in ("string[]", "number[]", "text[]"):
             if not isinstance(value, list):
                 self.errors.append(
                     f"Value '{value}' for '{collectionfield}' is not a {type_str}."

@@ -1,0 +1,34 @@
+# Patterns of intentionally untracked files that Git should ignore
+
+# Private development data
+private/
+
+# Python compiled files
+__pycache__/
+
+# Python virtual environment target directory
+.virtualenv/
+.venv/
+
+# Mypy (static type checker) cache
+.mypy_cache/
+
+# Pytest, pytest-cov and Coverage.py cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Specific editor files
+.vscode/*
+.vimrc
+
+# coverage
+
+migrations/*.json
+migrations/*.sql
+
+# secrets
+secrets/
+
+# code-workspaces
+*.code-workspace
