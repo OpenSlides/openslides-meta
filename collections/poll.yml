@@ -4,116 +4,60 @@ id:
   restriction_mode: A
   constant: true
   required: true
-
 title:
   type: string
   required: true
   restriction_mode: A
-description:
-  type: string
+config_id:
+  type: generic-relation
+  to:
+    - poll_config_approval/poll_id
+    - poll_config_selection/poll_id
+    - poll_config_rating_score/poll_id
+    - poll_config_rating_approval/poll_id
+  reference:
+    - poll_config_approval
+    - poll_config_selection
+    - poll_config_rating_score
+    - poll_config_rating_approval
+  required: true
   restriction_mode: A
-type:
+visibility:
   type: string
   required: true
   enum:
-  - analog
-  - named
-  - pseudoanonymous
-  - cryptographic
-  restriction_mode: A
-backend:
-  type: string
-  required: true
-  enum:
-  - long
-  - fast
-  default: fast
-  restriction_mode: A
-is_pseudoanonymized:
-  type: boolean
-  restriction_mode: A
-pollmethod:
-  type: string
-  required: true
-  enum:
-  - "Y"
-  - "YN"
-  - "YNA"
-  - "N"
+    - manually
+    - named
+    - open
+    - secret
   restriction_mode: A
 state:
   type: string
   enum:
-  - created
-  - started
-  - finished
-  - published
+    - created
+    - started
+    - finished
   default: created
   restriction_mode: A
-min_votes_amount:
-  type: number
-  default: 1
-  minimum: 1
-  restriction_mode: A
-max_votes_amount:
-  type: number
-  default: 1
-  minimum: 1
-  restriction_mode: A
-max_votes_per_option:
-  type: number
-  default: 1
-  minimum: 1
-  restriction_mode: A
-global_yes:
-  type: boolean
-  default: false
-  restriction_mode: A
-global_no:
-  type: boolean
-  default: false
-  restriction_mode: A
-global_abstain:
-  type: boolean
-  default: false
-  restriction_mode: A
-onehundred_percent_base:
-  type: string
-  required: true
-  enum:
-  - "Y"
-  - "YN"
-  - "YNA"
-  - "N"
-  - "valid"
-  - "cast"
-  - "entitled"
-  - "entitled_present"
-  - "disabled"
-  default: disabled
-  restriction_mode: A
-votesvalid:
-  type: decimal(6)
+result:
+  type: text
+  description: Calculated result. The format depends on the value in poll/method. Can be manually set when visibility is set to manually.
   restriction_mode: B
-votesinvalid:
-  type: decimal(6)
-  restriction_mode: B
-votescast:
-  type: decimal(6)
-  restriction_mode: D
-entitled_users_at_stop:
-  type: JSON
-  restriction_mode: A
-live_voting_enabled:
+published:
   type: boolean
   default: false
-  description: If true, the vote service sends the votes of the users to the autoupdate service.
+  description: If true, users can see the result.
   restriction_mode: A
-live_votes:
-  type: JSON
-  calculated: true
-  description: dict from user to their vote. The value is null, when live voting is disabled.
-  restriction_mode: C
+allow_invalid:
+  type: boolean
+  default: false
+  description: If true, the vote service does not validate. This is always the case for secret polls.
+  restriction_mode: A
+allow_vote_split:
+  type: boolean
+  default: false
+  description: If true, users can split there vote.
+  restriction_mode: A
 sequential_number:
   type: number
   sequence_scope: meeting_id
@@ -125,38 +69,30 @@ sequential_number:
 content_object_id:
   type: generic-relation
   reference:
-  - motion
-  - assignment
-  - topic
-  to:
-    collections:
     - motion
     - assignment
     - topic
+  to:
+    collections:
+      - motion
+      - assignment
+      - topic
     field: poll_ids
   equal_fields: meeting_id
   restriction_mode: A
   required: true
   constant: true
-option_ids:
+ballot_ids:
   type: relation-list
-  to: option/poll_id
-  reference: option
+  to: ballot/poll_id
+  reference: ballot
   on_delete: CASCADE
   equal_fields: meeting_id
   restriction_mode: A
-global_option_id:
-  type: relation
-  to: option/used_as_global_option_in_poll_id
-  reference: option
-  on_delete: CASCADE
-  equal_fields: meeting_id
-  restriction_mode: A
-  constant: true
 voted_ids:
   type: relation-list
-  to: user/poll_voted_ids
-  restriction_mode: A
+  to: meeting_user/poll_voted_ids
+  restriction_mode: B
 entitled_group_ids:
   type: relation-list
   to: group/poll_ids
@@ -170,9 +106,8 @@ projection_ids:
   restriction_mode: A
 meeting_id:
   type: relation
-  to: meeting/poll_ids
   reference: meeting
+  to: meeting/poll_ids
   restriction_mode: A
   required: true
   constant: true
-

@@ -1,0 +1,29 @@
+---
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
+poll_id:
+  type: relation
+  to: poll/config_id
+  reference: poll
+  required: true
+  restriction_mode: A
+option_ids:
+  type: relation-list
+  to: poll_config_option/poll_config_id
+  on_delete: CASCADE
+  restriction_mode: A
+max_options_amount:
+  type: number
+  default: 0
+  restriction_mode: A
+min_options_amount:
+  type: number
+  default: 0
+  restriction_mode: A
+allow_nota:
+  type: boolean
+  default: false
+  restriction_mode: A
