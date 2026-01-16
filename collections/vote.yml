@@ -1,0 +1,43 @@
+---
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
+
+weight:
+  type: decimal(6)
+  restriction_mode: A
+  constant: true
+value:
+  type: string
+  restriction_mode: A
+  constant: true
+user_token:
+  type: string
+  required: true
+  restriction_mode: B
+  constant: true
+
+option_id:
+  type: relation
+  to: option/vote_ids
+  equal_fields: meeting_id
+  required: true
+  restriction_mode: A
+  constant: true
+user_id:
+  type: relation
+  to: user/vote_ids
+  restriction_mode: A
+delegated_user_id:
+  type: relation
+  to: user/delegated_vote_ids
+  restriction_mode: A
+meeting_id:
+  type: relation
+  to: meeting/vote_ids
+  required: true
+  restriction_mode: A
+  constant: true
+

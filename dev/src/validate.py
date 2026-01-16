@@ -42,6 +42,7 @@ DATA_TYPES = (
     "timestamp",
     "color",
     "text",
+    "text[]",
 )
 
 

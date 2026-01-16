@@ -1,0 +1,25 @@
+---
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
+
+meeting_user_id:
+  type: relation
+  to: meeting_user/motion_supporter_ids
+  restriction_mode: A
+motion_id:
+  type: relation
+  to: motion/supporter_ids
+  equal_fields: meeting_id
+  restriction_mode: A
+  required: true
+  constant: true
+meeting_id:
+  type: relation
+  to: meeting/motion_supporter_ids
+  required: true
+  restriction_mode: A
+  constant: true
+

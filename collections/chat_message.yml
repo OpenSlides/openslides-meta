@@ -1,0 +1,33 @@
+---
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
+
+content:
+  type: HTMLStrict
+  required: true
+  restriction_mode: A
+created:
+  type: timestamp
+  required: true
+  restriction_mode: A
+meeting_user_id:
+  type: relation
+  to: meeting_user/chat_message_ids
+  restriction_mode: A
+  constant: true
+chat_group_id:
+  type: relation
+  to: chat_group/chat_message_ids
+  restriction_mode: A
+  required: true
+  constant: true
+meeting_id:
+  type: relation
+  to: meeting/chat_message_ids
+  required: true
+  restriction_mode: A
+  constant: true
+

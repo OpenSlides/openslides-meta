@@ -1,0 +1,22 @@
+---
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
+
+name:
+  type: string
+  required: true
+  restriction_mode: A
+  description: unique
+organization_id:
+  type: relation
+  required: true
+  to: organization/gender_ids
+  restriction_mode: A
+user_ids:
+  type: relation-list
+  to: user/gender_id
+  restriction_mode: A
+

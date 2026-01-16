@@ -1,0 +1,28 @@
+---
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
+
+weight:
+  type: number
+  restriction_mode: A
+meeting_user_id:
+  type: relation
+  to: meeting_user/motion_submitter_ids
+  restriction_mode: A
+motion_id:
+  type: relation
+  to: motion/submitter_ids
+  equal_fields: meeting_id
+  restriction_mode: A
+  required: true
+  constant: true
+meeting_id:
+  type: relation
+  to: meeting/motion_submitter_ids
+  required: true
+  restriction_mode: A
+  constant: true
+
