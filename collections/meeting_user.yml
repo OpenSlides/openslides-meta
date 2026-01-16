@@ -5,7 +5,6 @@ id:
   constant: true
   required: true
 
-
 comment:
   type: HTMLStrict
   restriction_mode: D
@@ -82,6 +81,24 @@ vote_delegations_from_ids:
   to: meeting_user/vote_delegated_to_id
   equal_fields: meeting_id
   restriction_mode: A
+poll_voted_ids:
+  type: relation-list
+  to: poll/voted_ids
+  restriction_mode: A
+poll_option_ids:
+  type: relation-list
+  to: poll_config_option/meeting_user_id
+  reference: poll_config_option
+  required: false
+  restriction_mode: A
+acting_ballot_ids:
+  type: relation-list
+  to: ballot/acting_meeting_user_id
+  restriction_mode: A
+represented_ballot_ids:
+  type: relation-list
+  to: ballot/represented_meeting_user_id
+  restriction_mode: A
 chat_message_ids:
   type: relation-list
   to: chat_message/meeting_user_id
@@ -98,4 +115,3 @@ structure_level_ids:
   equal_fields: meeting_id
   restriction_mode: A
   to: structure_level/meeting_user_ids
-

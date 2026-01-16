@@ -1,0 +1,37 @@
+---
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
+weight:
+  type: decimal(6)
+  restriction_mode: B
+  constant: true
+  default: "1.000000"
+split:
+  type: boolean
+  default: false
+  restriction_mode: B
+value:
+  type: text
+  restriction_mode: B
+  constant: true
+poll_id:
+  type: relation
+  reference: poll
+  to: poll/ballot_ids
+  equal_fields: meeting_id
+  required: true
+  restriction_mode: A
+  constant: true
+acting_meeting_user_id:
+  type: relation
+  reference: meeting_user
+  to: meeting_user/acting_ballot_ids
+  restriction_mode: C
+represented_meeting_user_id:
+  type: relation
+  reference: meeting_user
+  to: meeting_user/represented_ballot_ids
+  restriction_mode: C

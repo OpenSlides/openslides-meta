@@ -18,12 +18,6 @@ weight:
 type:
   type: string
   restriction_mode: A
-
-content:
-  type: JSON
-  calculated: true
-  restriction_mode: A
-
 current_projector_id:
   type: relation
   to: projector/current_projection_ids
@@ -42,17 +36,17 @@ history_projector_id:
 content_object_id:
   type: generic-relation
   to:
-  - meeting/projection_ids
-  - motion/projection_ids
-  - meeting_mediafile/projection_ids
-  - list_of_speakers/projection_ids
-  - motion_block/projection_ids
-  - assignment/projection_ids
-  - agenda_item/projection_ids
-  - topic/projection_ids
-  - poll/projection_ids
-  - projector_message/projection_ids
-  - projector_countdown/projection_ids
+    - meeting/projection_ids
+    - motion/projection_ids
+    - meeting_mediafile/projection_ids
+    - list_of_speakers/projection_ids
+    - motion_block/projection_ids
+    - assignment/projection_ids
+    - agenda_item/projection_ids
+    - topic/projection_ids
+    - poll/projection_ids
+    - projector_message/projection_ids
+    - projector_countdown/projection_ids
   equal_fields: meeting_id
   restriction_mode: A
   required: true
@@ -63,4 +57,3 @@ meeting_id:
   required: true
   restriction_mode: A
   constant: true
-
