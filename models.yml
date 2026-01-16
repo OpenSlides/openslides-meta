@@ -1631,6 +1631,7 @@ meeting:
     type: boolean
     default: false
     description: Defines defaut `poll.allow_vote_split` option suggested to user.
+    restriction_mode: B
   poll_couple_countdown:
     type: boolean
     default: true
@@ -3097,69 +3098,6 @@ motion_working_group_speaker:
     required: true
     restriction_mode: A
     constant: true
-option:
-  id:
-    type: number
-    restriction_mode: A
-    constant: true
-    required: true
-  weight:
-    type: number
-    default: 10000
-    restriction_mode: A
-  text:
-    type: HTMLStrict
-    restriction_mode: A
-  'yes':
-    type: decimal(6)
-    restriction_mode: B
-  'no':
-    type: decimal(6)
-    restriction_mode: B
-  abstain:
-    type: decimal(6)
-    restriction_mode: B
-  poll_id:
-    type: relation
-    to: poll/option_ids
-    reference: poll
-    equal_fields: meeting_id
-    restriction_mode: A
-    constant: true
-  used_as_global_option_in_poll_id:
-    type: relation
-    to: poll/global_option_id
-    reference: poll
-    equal_fields: meeting_id
-    restriction_mode: A
-    constant: true
-  vote_ids:
-    type: relation-list
-    to: vote/option_id
-    reference: vote
-    on_delete: CASCADE
-    equal_fields: meeting_id
-    restriction_mode: A
-  content_object_id:
-    type: generic-relation
-    to:
-    - motion/option_ids
-    - user/option_ids
-    - poll_candidate_list/option_id
-    reference:
-    - motion
-    - user
-    - poll_candidate_list
-    equal_fields: meeting_id
-    restriction_mode: A
-    constant: true
-  meeting_id:
-    type: relation
-    to: meeting/option_ids
-    reference: meeting
-    required: true
-    restriction_mode: A
-    constant: true
 organization:
   id:
     type: number
@@ -4578,48 +4516,4 @@ user:
     to: organization/user_ids
     required: true
     restriction_mode: F
-    constant: true
-vote:
-  id:
-    type: number
-    restriction_mode: A
-    constant: true
-    required: true
-  weight:
-    type: decimal(6)
-    restriction_mode: A
-    constant: true
-  value:
-    type: string
-    restriction_mode: A
-    constant: true
-  user_token:
-    type: string
-    required: true
-    restriction_mode: B
-    constant: true
-  option_id:
-    type: relation
-    to: option/vote_ids
-    reference: option
-    equal_fields: meeting_id
-    required: true
-    restriction_mode: A
-    constant: true
-  user_id:
-    type: relation
-    to: user/vote_ids
-    reference: user
-    restriction_mode: A
-  delegated_user_id:
-    type: relation
-    to: user/delegated_vote_ids
-    reference: user
-    restriction_mode: A
-  meeting_id:
-    type: relation
-    to: meeting/vote_ids
-    reference: meeting
-    required: true
-    restriction_mode: A
     constant: true

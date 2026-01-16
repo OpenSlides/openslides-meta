@@ -779,6 +779,7 @@ poll_default_allow_vote_split:
   type: boolean
   default: false
   description: Defines defaut `poll.allow_vote_split` option suggested to user.
+  restriction_mode: B
 poll_couple_countdown:
   type: boolean
   default: true
