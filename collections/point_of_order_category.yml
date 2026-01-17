@@ -14,6 +14,7 @@ rank:
   restriction_mode: A
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/point_of_order_category_ids
   required: true
   restriction_mode: A

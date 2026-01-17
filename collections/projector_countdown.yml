@@ -40,6 +40,7 @@ used_as_poll_countdown_meeting_id:
   restriction_mode: A
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/projector_countdown_ids
   restriction_mode: A
   required: true

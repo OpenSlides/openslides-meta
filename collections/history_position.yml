@@ -16,6 +16,7 @@ user_id:
   type: relation
   to: user/history_position_ids
   restriction_mode: A
+  reference: user
 entry_ids:
   type: relation-list
   to: history_entry/position_id

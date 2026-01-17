@@ -13,6 +13,7 @@ internal:
   restriction_mode: A
 sequential_number:
   type: number
+  sequence_scope: meeting_id
   description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
   read_only: true
   required: true
@@ -45,6 +46,7 @@ projection_ids:
   restriction_mode: A
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/motion_block_ids
   required: true
   restriction_mode: A

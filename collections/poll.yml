@@ -4,12 +4,12 @@ id:
   constant: true
   required: true
 
-description:
-  type: text
-  restriction_mode: A
 title:
   type: string
   required: true
+  restriction_mode: A
+description:
+  type: string
   restriction_mode: A
 type:
   type: string
@@ -115,33 +115,18 @@ live_votes:
   restriction_mode: C
 sequential_number:
   type: number
+  sequence_scope: meeting_id
   description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
   read_only: true
   required: true
   restriction_mode: A
   constant: true
-crypt_key:
-  type: string
-  description: base64 public key to cryptographic votes.
-  read_only: true
-  restriction_mode: A
-crypt_signature:
-  type: string
-  description: base64 signature of cryptographic_key.
-  read_only: true
-  restriction_mode: A
-votes_raw:
-  type: text
-  description: original form of decrypted votes.
-  read_only: true
-  restriction_mode: B
-votes_signature:
-  type: string
-  description: base64 signature of votes_raw field.
-  read_only: true
-  restriction_mode: B
 content_object_id:
   type: generic-relation
+  reference:
+  - motion
+  - assignment
+  - topic
   to:
     collections:
     - motion
@@ -155,12 +140,14 @@ content_object_id:
 option_ids:
   type: relation-list
   to: option/poll_id
+  reference: option
   on_delete: CASCADE
   equal_fields: meeting_id
   restriction_mode: A
 global_option_id:
   type: relation
   to: option/used_as_global_option_in_poll_id
+  reference: option
   on_delete: CASCADE
   equal_fields: meeting_id
   restriction_mode: A
@@ -183,6 +170,7 @@ projection_ids:
 meeting_id:
   type: relation
   to: meeting/poll_ids
+  reference: meeting
   restriction_mode: A
   required: true
   constant: true

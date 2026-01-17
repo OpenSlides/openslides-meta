@@ -28,6 +28,7 @@ structure_level_list_of_speakers_ids:
 meeting_id:
   type: relation
   required: true
+  reference: meeting
   to: meeting/structure_level_ids
   restriction_mode: A
 

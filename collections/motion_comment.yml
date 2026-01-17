@@ -10,6 +10,7 @@ comment:
 
 motion_id:
   type: relation
+  reference: motion
   to: motion/comment_ids
   required: true
   equal_fields: meeting_id
@@ -17,6 +18,7 @@ motion_id:
   constant: true
 section_id:
   type: relation
+  reference: motion_comment_section
   to: motion_comment_section/comment_ids
   required: true
   equal_fields: meeting_id
@@ -24,6 +26,7 @@ section_id:
   constant: true
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/motion_comment_ids
   required: true
   restriction_mode: A

@@ -20,13 +20,19 @@ model_id:
     - assignment
     field: history_entry_ids
   restriction_mode: A
+  reference:
+  - user
+  - motion
+  - assignment
 position_id:
   type: relation
   to: history_position/entry_ids
   required: true
   restriction_mode: A
   constant: true
+  reference: history_position
 meeting_id:
   type: relation
   to: meeting/relevant_history_entry_ids
   restriction_mode: A
+  reference: meeting

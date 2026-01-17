@@ -14,8 +14,10 @@ organization_id:
   required: true
   to: organization/gender_ids
   restriction_mode: A
+  reference: organization
 user_ids:
   type: relation-list
   to: user/gender_id
   restriction_mode: A
+  reference: user
 

@@ -23,6 +23,7 @@ tagged_ids:
   restriction_mode: A
 organization_id:
   type: relation
+  reference: organization
   to: organization/organization_tag_ids
   restriction_mode: A
   required: true

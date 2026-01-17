@@ -22,6 +22,7 @@ level:
   restriction_mode: A
 sequential_number:
   type: number
+  sequence_scope: meeting_id
   description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
   read_only: true
   required: true
@@ -30,6 +31,7 @@ sequential_number:
 
 parent_id:
   type: relation
+  reference: motion_category
   to: motion_category/child_ids
   equal_fields: meeting_id
   restriction_mode: A
@@ -45,6 +47,7 @@ motion_ids:
   restriction_mode: A
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/motion_category_ids
   required: true
   restriction_mode: A

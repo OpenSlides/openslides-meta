@@ -14,6 +14,7 @@ number_value:
   restriction_mode: D
 sequential_number:
   type: number
+  sequence_scope: meeting_id
   description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
   read_only: true
   required: true
@@ -81,6 +82,7 @@ marked_forwarded:
 
 lead_motion_id:
   type: relation
+  reference: motion
   to: motion/amendment_ids
   equal_fields: meeting_id
   restriction_mode: C
@@ -92,6 +94,7 @@ amendment_ids:
   restriction_mode: C
 sort_parent_id:
   type: relation
+  reference: motion
   to: motion/sort_child_ids
   equal_fields: meeting_id
   restriction_mode: C
@@ -102,10 +105,12 @@ sort_child_ids:
   restriction_mode: C
 origin_id:
   type: relation
+  reference: motion
   to: motion/derived_motion_ids   # Note: The related motions may not be in the same meeting
   restriction_mode: A
 origin_meeting_id:   # The meeting of the motion in origin_id, if any
   type: relation
+  reference: meeting
   to: meeting/forwarded_motion_ids
   restriction_mode: A
 derived_motion_ids:
@@ -123,16 +128,17 @@ all_derived_motion_ids:   # Calculated: All children (derived_motion_ids), grand
 identical_motion_ids:
   type: relation-list
   to: motion/identical_motion_ids
-  equal_fields: meeting_id
   restriction_mode: C
 state_id:
   type: relation
+  reference: motion_state
   to: motion_state/motion_ids
   required: true
   equal_fields: meeting_id
   restriction_mode: C
 recommendation_id:
   type: relation
+  reference: motion_state
   to: motion_state/motion_recommendation_ids
   equal_fields: meeting_id
   restriction_mode: E
@@ -164,11 +170,13 @@ referenced_in_motion_recommendation_extension_ids:
   restriction_mode: C
 category_id:
   type: relation
+  reference: motion_category
   to: motion_category/motion_ids
   equal_fields: meeting_id
   restriction_mode: C
 block_id:
   type: relation
+  reference: motion_block
   to: motion_block/motion_ids
   equal_fields: meeting_id
   restriction_mode: C
@@ -205,6 +213,7 @@ poll_ids:
 option_ids:
   type: relation-list
   to: option/content_object_id
+  reference: option
   on_delete: CASCADE
   equal_fields: meeting_id
   restriction_mode: C
@@ -258,6 +267,7 @@ personal_note_ids:
   restriction_mode: C
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/motion_ids
   required: true
   restriction_mode: A
