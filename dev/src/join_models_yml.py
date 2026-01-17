@@ -6,10 +6,10 @@ from pathlib import Path
 import yaml
 
 
-def join_yaml_file(meta_file, collections_dir, output_file):
+def join_yaml_file(meta_file: str, collections_dir: str, output_file: str) -> None:
     result = {}
 
-    with open(meta_file, "r", encoding="utf-8") as f:
+    with open(meta_file, encoding="utf-8") as f:
         meta_data = yaml.safe_load(f)
         result["_meta"] = meta_data
 
@@ -17,7 +17,7 @@ def join_yaml_file(meta_file, collections_dir, output_file):
     yaml_files = sorted(collections_path.glob("*.yml"))
 
     for yaml_file in yaml_files:
-        with open(yaml_file, "r", encoding="utf-8") as f:
+        with open(yaml_file, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
             result[yaml_file.stem] = data
@@ -35,7 +35,13 @@ def join_yaml_file(meta_file, collections_dir, output_file):
 
 
 if __name__ == "__main__":
+    SCRIPT_DIR = Path(__file__).resolve().parent.parent  # dev/
+    PROJECT_ROOT = SCRIPT_DIR.parent
+
+    meta_file = PROJECT_ROOT / "collection-meta.yml"
+    collections_dir = PROJECT_ROOT / "collections"
+    output_file = PROJECT_ROOT / "models.yml"
     try:
-        join_yaml_file("collection-meta.yml", "collections", "models.yml")
+        join_yaml_file(str(meta_file), str(collections_dir), str(output_file))
     except Exception as e:
         print(f"Fehler: {e}")
