@@ -3376,11 +3376,13 @@ poll:
     - poll_config_selection/poll_id
     - poll_config_rating_score/poll_id
     - poll_config_rating_approval/poll_id
+    - poll_config_stv_scottish/poll_id
     reference:
     - poll_config_approval
     - poll_config_selection
     - poll_config_rating_score
     - poll_config_rating_approval
+    - poll_config_stv_scottish
     required: true
     restriction_mode: A
   visibility:
@@ -3509,11 +3511,13 @@ poll_config_option:
     - poll_config_selection/option_ids
     - poll_config_rating_score/option_ids
     - poll_config_rating_approval/option_ids
+    - poll_config_stv_scottish/option_ids
     reference:
     - poll_config_approval
     - poll_config_selection
     - poll_config_rating_score
     - poll_config_rating_approval
+    - poll_config_stv_scottish
     required: true
     restriction_mode: A
   weight:
@@ -3622,6 +3626,28 @@ poll_config_selection:
   allow_nota:
     type: boolean
     default: false
+    restriction_mode: A
+poll_config_stv_scottish:
+  id:
+    type: number
+    restriction_mode: A
+    constant: true
+    required: true
+  poll_id:
+    type: relation
+    to: poll/config_id
+    reference: poll
+    required: true
+    restriction_mode: A
+  option_ids:
+    type: relation-list
+    to: poll_config_option/poll_config_id
+    on_delete: CASCADE
+    restriction_mode: A
+  posts:
+    type: number
+    minimum: 1
+    default: 1
     restriction_mode: A
 projection:
   id:
