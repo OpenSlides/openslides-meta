@@ -4,8 +4,8 @@ on:
   pull_request:
     branches:
       - main
-      - 'feature/**'
-      - 'staging**'
+      - "feature/**"
+      - "staging**"
 
 env:
   PYTHON_VERSION: 3.10.x
@@ -19,36 +19,56 @@ jobs:
         working-directory: dev/
 
     steps:
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Install requirements
-      run: pip install -r requirements.txt
+      - name: Install requirements
+        run: pip install -r requirements.txt
 
-    - name: Check black
-      if: always()
-      run: make check-black
+      - name: Check black
+        if: always()
+        run: make check-black
 
-    - name: Check isort
-      if: always()
-      run: make check-isort
+      - name: Check isort
+        if: always()
+        run: make check-isort
 
-    - name: Check flake8
-      if: always()
-      run: make flake8
+      - name: Check flake8
+        if: always()
+        run: make flake8
 
-    - name: Check mypy
-      if: always()
-      run: make mypy
+      - name: Check mypy
+        if: always()
+        run: make mypy
 
-    - name: Check pyupgrade
-      if: always()
-      run: make pyupgrade
+      - name: Check pyupgrade
+        if: always()
+        run: make pyupgrade
 
-    - name: Validate models.yml
-      if: always()
-      run: make validate-models
+      - name: Validate models.yml
+        if: always()
+        run: make validate-models
+
+      - name: Generate models.yml from collections
+        run: python src/join_models_yml.py
+
+      - name: Check if models.yml is up-to-date
+        run: |
+          if git diff --exit-code ../models.yml; then
+            echo "✅ models.yml is up-to-date"
+          else
+            echo "❌ models.yml is out of sync with collections/"
+            echo ""
+            echo "The models.yml file needs to be regenerated."
+            echo "Please run the following command locally and commit the result:"
+            echo ""
+            echo "  python dev/src/join_models_yml.py"
+            echo ""
+            echo "Differences found:"
+            git diff models.yml
+            exit 1
+          fi
