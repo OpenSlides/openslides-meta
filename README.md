@@ -1,22 +1,21 @@
 # OpenSlides Meta Repository
 
-This shared repository holds all relevant (meta) data. Other service may include
+This shared repository holds all relevant (meta) data. Other services may include
 it as a sub-repository to have access to its data.
 
 
 ## Collections
 
-The datastructor of OpenSlides is defined by a list of collections. For each
-collection, there is a file in the `collections` folder. The file
-`collection-meta.yml` contains meta fields, that are used by more then one of
-the collection.
+The datastructure of OpenSlides is defined by a list of collections. For each
+collection, there is a file in the `collections` directory. The file
+`collection-meta.yml` contains meta fields, that are used by more then one collection.
 
 Each collection-file has the following format:
 
-Length of names:
+- Length of names:
     - field name: Their length is limited to 25 characters. There are still some
       fields with longer names, that has to be shortened
-Types:
+- Types:
     - Nativ datatypes: text, string (text with maxLength=256), number, boolean, JSON
     - HTMLStrict: A string with HTML content.
     - HTMLPermissive: A string with HTML content (with video tags).
@@ -29,7 +28,7 @@ Types:
       we support only some types. You can add JSON Schema properties for items
       using the extra property `items`
     - color: string that must match ^#[0-9a-f]{6}$
-Relations:
+- Relations:
     - We have the following types: `relation`, `relation-list`, `generic-relation`
       and `generic-relation-list`.
     - Non-generic relations: The simple syntax for such a field
@@ -59,10 +58,10 @@ Relations:
           - PROTECT: if the foreign key is not empty, throw an error instead of
                      deleting the object
           - CASCADE: also delete all models in this foreign key
-JSON Schema Properties:
+- JSON Schema Properties:
     - You can add JSON Schema properties to the fields like `enum`, `description`,
       `items`, `maxLength` and `minimum`
-Additional properties:
+- Additional properties:
     - The property `read_only` describes a field that can not be changed by an action.
     - The property `default` describes the default value that is used for new objects.
     - The property `required` describes that this field can not be null or an empty
@@ -70,6 +69,6 @@ Additional properties:
       fields the value as to be an id of an existing object.
     - The property `equal_fields` describes fields that must have the same value in
       the instance and the related instance.
-Restriction Mode:
+- Restriction Mode:
   The field `restriction_mode` is required for every field. It puts the field into a
   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview
