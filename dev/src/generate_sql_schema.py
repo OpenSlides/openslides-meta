@@ -68,7 +68,8 @@ class SubstDict(TypedDict, total=False):
 class GenerateCodeBlocks:
     """Main work is done here by recursing the models and their fields and determine the method to use"""
 
-    models = MODELS
+    if not InternalHelper.MODELS:
+        InternalHelper.read_models_yml(SOURCE.as_posix())
     intermediate_tables: dict[str, str] = (
         {}
     )  # Key=Name, data: collected content of table
@@ -131,10 +132,8 @@ class GenerateCodeBlocks:
         missing_handled_attributes = []
         im_table_code = ""
         errors: list[str] = []
-        if not cls.models:
-            cls.models = MODELS
 
-        for table_name, fields in cls.models.items():
+        for table_name, fields in InternalHelper.MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
                 continue
 
@@ -1413,7 +1412,7 @@ class ModelsHelper:
         """
 
         def _first_to_second(t1: str, t2: str) -> bool:
-            for field in MODELS[t1].values():
+            for field in InternalHelper.MODELS[t1].values():
                 if field.get("required") and field["type"].startswith("relation"):
                     ftable = ModelsHelper.get_foreign_table_from_to_or_reference(
                         field.get("to"), field.get("reference")
@@ -1523,15 +1522,13 @@ def main() -> None:
     Main entry point for this script to generate the schema_relational.sql from models.yml.
     """
 
-    global MODELS
-
     # Retrieve models.yml from call-parameter for testing purposes, local file or GitHub
     if len(sys.argv) > 1:
         file = sys.argv[1]
     else:
         file = str(SOURCE)
 
-    MODELS, checksum = InternalHelper.read_models_yml(file)
+    _, checksum = InternalHelper.read_models_yml(file)
 
     (
         pre_code,
