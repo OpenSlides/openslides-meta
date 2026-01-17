@@ -54,11 +54,11 @@ jobs:
         run: make validate-models
 
       - name: Generate models.yml from collections
-        run: python dev/src/join_models_yml.py
+        run: python src/join_models_yml.py
 
       - name: Check if models.yml is up-to-date
         run: |
-          if git diff --exit-code models.yml; then
+          if git diff --exit-code ../models.yml; then
             echo "✅ models.yml is up-to-date"
           else
             echo "❌ models.yml is out of sync with collections/"
