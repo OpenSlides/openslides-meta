@@ -35,7 +35,13 @@ def join_yaml_file(meta_file, collections_dir, output_file):
 
 
 if __name__ == "__main__":
+    SCRIPT_DIR = Path(__file__).resolve().parent  # dev/
+    PROJECT_ROOT = SCRIPT_DIR.parent
+
+    meta_file = PROJECT_ROOT / "collection-meta.yml"
+    collections_dir = PROJECT_ROOT / "collections"
+    output_file = PROJECT_ROOT / "models.yml"
     try:
-        join_yaml_file("collection-meta.yml", "collections", "models.yml")
+        join_yaml_file(str(meta_file), str(collections_dir), str(output_file))
     except Exception as e:
         print(f"Fehler: {e}")
