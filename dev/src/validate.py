@@ -65,7 +65,7 @@ class CheckException(Exception):
 
 class Checker:
     def __init__(self, collections_dir: str) -> None:
-        self.models = {}
+        self.models: dict[str, Any] = {}
         self.errors: list[str] = []
         self._load_collections(collections_dir)
 
