@@ -21,7 +21,6 @@ from .helper_get_names import (
 
 SOURCE = (Path(__file__).parent / ".." / ".." / "models.yml").resolve()
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
-MODELS: dict[str, dict[str, Any]] = {}
 
 
 class SchemaZoneTexts(TypedDict, total=False):
@@ -68,7 +67,8 @@ class SubstDict(TypedDict, total=False):
 class GenerateCodeBlocks:
     """Main work is done here by recursing the models and their fields and determine the method to use"""
 
-    models = MODELS
+    if not InternalHelper.MODELS:
+        InternalHelper.read_models_yml(SOURCE.as_posix())
     intermediate_tables: dict[str, str] = (
         {}
     )  # Key=Name, data: collected content of table
@@ -131,10 +131,8 @@ class GenerateCodeBlocks:
         missing_handled_attributes = []
         im_table_code = ""
         errors: list[str] = []
-        if not cls.models:
-            cls.models = MODELS
 
-        for table_name, fields in cls.models.items():
+        for table_name, fields in InternalHelper.MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
                 continue
 
@@ -588,7 +586,7 @@ class GenerateCodeBlocks:
         return dedent(
             f"""
             -- definition trigger generate partitioned sequence number for {table_name}.{actual_field} partitioned by {depend_field}
-            CREATE TRIGGER tr_generate_sequence_{view_name}_{actual_field} BEFORE INSERT ON {table_name}
+            CREATE OR REPLACE TRIGGER tr_generate_sequence_{view_name}_{actual_field} BEFORE INSERT ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION generate_sequence('{table_name}', '{actual_field}', '{depend_field}');
             """
         )
@@ -639,7 +637,7 @@ class GenerateCodeBlocks:
         return dedent(
             f"""
             -- definition trigger unique ids pair for {view}.{column}
-            CREATE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
+            CREATE OR REPLACE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('{base_column_name}');
 
             """
@@ -787,7 +785,7 @@ class Helper:
         BEGIN
             depend_field_id := hstore(NEW) -> (depend_field);
             sequence_name := table_name || '_' || depend_field || depend_field_id || '_' || actual_column || '_seq';
-            EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I OWNED BY %I.%I', sequence_name, table_name, actual_column);
+            EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I', sequence_name);
             sequence_value := hstore(NEW) -> actual_column;
             IF sequence_value IS NULL THEN
                 sequence_value := nextval(sequence_name);
@@ -813,7 +811,7 @@ class Helper:
             operation_var := LOWER(TG_OP);
             fqid_var :=  escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                fqid_var = escaped_table_name || '/' || OLD.id;
+                fqid_var := escaped_table_name || '/' || OLD.id;
             END IF;
 
             INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp)
@@ -834,7 +832,7 @@ class Helper:
             value_1 integer;
             value_2 integer;
         BEGIN
-            base_column_name = TG_ARGV[0];
+            base_column_name := TG_ARGV[0];
             value_1 := hstore(NEW) -> (base_column_name || '_1');
             value_2 := hstore(NEW) -> (base_column_name || '_2');
 
@@ -852,7 +850,7 @@ class Helper:
             payload TEXT;
             body_content_text TEXT;
         BEGIN
-            -- Running the trigger for the first time in a transaction creates the table and after commiting the transaction the table is dropped.
+            -- Running the trigger for the first time in a transaction creates the table and after committing the transaction the table is dropped.
             -- Every next run of the trigger in this transaction raises a notice that the table exists. Setting the log_min_messages to notice increases the noise because of such messages.
             CREATE LOCAL TEMPORARY TABLE
             IF NOT EXISTS tbl_notify_counter_tx_once (
@@ -914,6 +912,18 @@ class Helper:
             timestamp timestamptz,
             CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
         );
+
+        CREATE TABLE version (
+            migration_index INTEGER PRIMARY KEY,
+            migration_state TEXT,
+            replace_tables JSONB
+        );
+
+        CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
+        BEGIN
+            RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
+        END;
+        $read_only_trigger$ LANGUAGE plpgsql;
         """
     )
 
@@ -923,7 +933,7 @@ class Helper:
     }.items():
         FILE_TEMPLATE_CONSTANT_DEFINITIONS += dedent(
             f"""
-        CREATE FUNCTION check_not_null_for_{type_}() RETURNS trigger as $not_null_trigger$
+        CREATE FUNCTION check_not_null_for_{type_}() RETURNS trigger AS $not_null_trigger$
         -- usage with 3 parameters IN TRIGGER DEFINITION:
         -- table_name: relation to check, usually a view
         -- column_name: field to check, usually a field in a view
@@ -983,7 +993,6 @@ class Helper:
         dedent(
             """
             CREATE TABLE ${table_name} (
-                id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                 ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}
@@ -1069,7 +1078,7 @@ class Helper:
         trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
         own_table = HelperGetNames.get_table_name(table_name)
         escaped_table_name = "'" + table_name + "'"
-        code = f"CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
+        code = f"CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
         code += f"CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();\n"
@@ -1165,7 +1174,7 @@ class Helper:
             table_name, ref_column
         )
         own_table = HelperGetNames.get_table_name(table_name)
-        return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
+        return f"""CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}');\n"""
 
     @staticmethod
@@ -1271,7 +1280,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         trigger_name = f"tr_log_{table_name}"
 
         return f"""
-CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
+CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{foreign_table_field.table}','{field2}');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
@@ -1287,7 +1296,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         trigger_name = f"tr_log_{foreign_table}_{generic_plain_field_name}"
         own_table_name = HelperGetNames.get_table_name(table_name)
         return f"""
-CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
+CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}');
 """
 
@@ -1308,7 +1317,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{ge
                 f"{own_table_field.table}_{own_table_field.ref_column}"
             )
             trigger_text += f"""
-CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
+CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{foreign_table_field.table}','{gm_content_field}');
 """
         trigger_text += f"""CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {gm_table_name}
@@ -1402,7 +1411,7 @@ class ModelsHelper:
         """
 
         def _first_to_second(t1: str, t2: str) -> bool:
-            for field in MODELS[t1].values():
+            for field in InternalHelper.MODELS[t1].values():
                 if field.get("required") and field["type"].startswith("relation"):
                     ftable = ModelsHelper.get_foreign_table_from_to_or_reference(
                         field.get("to"), field.get("reference")
@@ -1516,15 +1525,13 @@ def main() -> None:
     Main entry point for this script to generate the schema_relational.sql from models.yml.
     """
 
-    global MODELS
-
     # Retrieve models.yml from call-parameter for testing purposes, local file or GitHub
     if len(sys.argv) > 1:
         file = sys.argv[1]
     else:
         file = str(SOURCE)
 
-    MODELS, checksum = InternalHelper.read_models_yml(file)
+    _, checksum = InternalHelper.read_models_yml(file)
 
     (
         pre_code,
