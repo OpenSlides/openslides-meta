@@ -54,7 +54,7 @@ jobs:
         run: make validate-models
 
       - name: Generate models.yml from collections
-        run: python dev/join_models_yml.py
+        run: python dev/src/join_models_yml.py
 
       - name: Check if models.yml is up-to-date
         run: |
@@ -66,7 +66,7 @@ jobs:
             echo "The models.yml file needs to be regenerated."
             echo "Please run the following command locally and commit the result:"
             echo ""
-            echo "  python dev/join_models_yml.py"
+            echo "  python dev/src/join_models_yml.py"
             echo ""
             echo "Differences found:"
             git diff models.yml

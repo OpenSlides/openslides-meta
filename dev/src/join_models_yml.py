@@ -35,7 +35,7 @@ def join_yaml_file(meta_file, collections_dir, output_file):
 
 
 if __name__ == "__main__":
-    SCRIPT_DIR = Path(__file__).resolve().parent  # dev/
+    SCRIPT_DIR = Path(__file__).resolve().parent.parent  # dev/
     PROJECT_ROOT = SCRIPT_DIR.parent
 
     meta_file = PROJECT_ROOT / "collection-meta.yml"
