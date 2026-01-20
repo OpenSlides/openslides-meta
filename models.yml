@@ -2165,6 +2165,9 @@ motion:
     type: string
     required: true
     restriction_mode: C
+  diff_version:
+    type: string
+    restriction_mode: C
   text:
     type: HTMLStrict
     restriction_mode: C
