@@ -21,6 +21,7 @@ from .helper_get_names import (
 
 SOURCE = (Path(__file__).parent / ".." / ".." / "models.yml").resolve()
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
+MODELS: dict[str, dict[str, Any]] = {}
 
 
 class SchemaZoneTexts(TypedDict, total=False):
@@ -586,7 +587,7 @@ class GenerateCodeBlocks:
         return dedent(
             f"""
             -- definition trigger generate partitioned sequence number for {table_name}.{actual_field} partitioned by {depend_field}
-            CREATE OR REPLACE TRIGGER tr_generate_sequence_{view_name}_{actual_field} BEFORE INSERT ON {table_name}
+            CREATE TRIGGER tr_generate_sequence_{view_name}_{actual_field} BEFORE INSERT ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION generate_sequence('{table_name}', '{actual_field}', '{depend_field}');
             """
         )
@@ -637,7 +638,7 @@ class GenerateCodeBlocks:
         return dedent(
             f"""
             -- definition trigger unique ids pair for {view}.{column}
-            CREATE OR REPLACE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
+            CREATE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('{base_column_name}');
 
             """
@@ -1078,7 +1079,7 @@ class Helper:
         trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
         own_table = HelperGetNames.get_table_name(table_name)
         escaped_table_name = "'" + table_name + "'"
-        code = f"CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
+        code = f"CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
         code += f"CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();\n"
@@ -1174,7 +1175,7 @@ class Helper:
             table_name, ref_column
         )
         own_table = HelperGetNames.get_table_name(table_name)
-        return f"""CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
+        return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}');\n"""
 
     @staticmethod
@@ -1280,7 +1281,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         trigger_name = f"tr_log_{table_name}"
 
         return f"""
-CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
+CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{foreign_table_field.table}','{field2}');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
@@ -1296,7 +1297,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         trigger_name = f"tr_log_{foreign_table}_{generic_plain_field_name}"
         own_table_name = HelperGetNames.get_table_name(table_name)
         return f"""
-CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
+CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}');
 """
 
@@ -1317,7 +1318,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{ge
                 f"{own_table_field.table}_{own_table_field.ref_column}"
             )
             trigger_text += f"""
-CREATE OR REPLACE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
+CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{foreign_table_field.table}','{gm_content_field}');
 """
         trigger_text += f"""CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {gm_table_name}
