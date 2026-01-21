@@ -786,7 +786,7 @@ class Helper:
         BEGIN
             depend_field_id := hstore(NEW) -> (depend_field);
             sequence_name := table_name || '_' || depend_field || depend_field_id || '_' || actual_column || '_seq';
-            EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I', sequence_name);
+            EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I OWNED BY %I.%I', sequence_name, table_name, actual_column);
             sequence_value := hstore(NEW) -> actual_column;
             IF sequence_value IS NULL THEN
                 sequence_value := nextval(sequence_name);
