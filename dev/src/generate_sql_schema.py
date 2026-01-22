@@ -68,7 +68,8 @@ class SubstDict(TypedDict, total=False):
 class GenerateCodeBlocks:
     """Main work is done here by recursing the models and their fields and determine the method to use"""
 
-    models = MODELS
+    if not InternalHelper.MODELS:
+        InternalHelper.read_models_yml(SOURCE.as_posix())
     intermediate_tables: dict[str, str] = (
         {}
     )  # Key=Name, data: collected content of table
@@ -131,10 +132,8 @@ class GenerateCodeBlocks:
         missing_handled_attributes = []
         im_table_code = ""
         errors: list[str] = []
-        if not cls.models:
-            cls.models = MODELS
 
-        for table_name, fields in cls.models.items():
+        for table_name, fields in InternalHelper.MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
                 continue
 
@@ -813,7 +812,7 @@ class Helper:
             operation_var := LOWER(TG_OP);
             fqid_var :=  escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
-                fqid_var = escaped_table_name || '/' || OLD.id;
+                fqid_var := escaped_table_name || '/' || OLD.id;
             END IF;
 
             INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp)
@@ -834,7 +833,7 @@ class Helper:
             value_1 integer;
             value_2 integer;
         BEGIN
-            base_column_name = TG_ARGV[0];
+            base_column_name := TG_ARGV[0];
             value_1 := hstore(NEW) -> (base_column_name || '_1');
             value_2 := hstore(NEW) -> (base_column_name || '_2');
 
@@ -852,7 +851,7 @@ class Helper:
             payload TEXT;
             body_content_text TEXT;
         BEGIN
-            -- Running the trigger for the first time in a transaction creates the table and after commiting the transaction the table is dropped.
+            -- Running the trigger for the first time in a transaction creates the table and after committing the transaction the table is dropped.
             -- Every next run of the trigger in this transaction raises a notice that the table exists. Setting the log_min_messages to notice increases the noise because of such messages.
             CREATE LOCAL TEMPORARY TABLE
             IF NOT EXISTS tbl_notify_counter_tx_once (
@@ -914,6 +913,18 @@ class Helper:
             timestamp timestamptz,
             CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
         );
+
+        CREATE TABLE version (
+            migration_index INTEGER PRIMARY KEY,
+            migration_state TEXT,
+            replace_tables JSONB
+        );
+
+        CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
+        BEGIN
+            RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
+        END;
+        $read_only_trigger$ LANGUAGE plpgsql;
         """
     )
 
@@ -923,7 +934,7 @@ class Helper:
     }.items():
         FILE_TEMPLATE_CONSTANT_DEFINITIONS += dedent(
             f"""
-        CREATE FUNCTION check_not_null_for_{type_}() RETURNS trigger as $not_null_trigger$
+        CREATE FUNCTION check_not_null_for_{type_}() RETURNS trigger AS $not_null_trigger$
         -- usage with 3 parameters IN TRIGGER DEFINITION:
         -- table_name: relation to check, usually a view
         -- column_name: field to check, usually a field in a view
@@ -983,7 +994,6 @@ class Helper:
         dedent(
             """
             CREATE TABLE ${table_name} (
-                id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                 ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}
@@ -1402,7 +1412,7 @@ class ModelsHelper:
         """
 
         def _first_to_second(t1: str, t2: str) -> bool:
-            for field in MODELS[t1].values():
+            for field in InternalHelper.MODELS[t1].values():
                 if field.get("required") and field["type"].startswith("relation"):
                     ftable = ModelsHelper.get_foreign_table_from_to_or_reference(
                         field.get("to"), field.get("reference")
@@ -1516,15 +1526,13 @@ def main() -> None:
     Main entry point for this script to generate the schema_relational.sql from models.yml.
     """
 
-    global MODELS
-
     # Retrieve models.yml from call-parameter for testing purposes, local file or GitHub
     if len(sys.argv) > 1:
         file = sys.argv[1]
     else:
         file = str(SOURCE)
 
-    MODELS, checksum = InternalHelper.read_models_yml(file)
+    _, checksum = InternalHelper.read_models_yml(file)
 
     (
         pre_code,

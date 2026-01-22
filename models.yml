@@ -862,7 +862,7 @@ meeting:
     restriction_mode: C
   name:
     type: string
-    maxLength: 100
+    maxLength: 200
     default: OpenSlides
     restriction_mode: A
     required: true

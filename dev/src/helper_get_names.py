@@ -90,9 +90,17 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_table_name(table_name: str) -> str:
-        """get's the table name as old collection name with appendix '_t'"""
-        if not table_name.endswith("_t"):
+    def get_table_name(table_name: str, migration: bool = False) -> str:
+        """
+        Gets the table name as old collection name with suffix '_t'.
+        If migration is True '_m'.
+        Takes either collection or table name.
+        """
+        if migration:
+            if table_name.endswith("_t"):
+                table_name = table_name[:-2]
+            return table_name + "_m"
+        elif not table_name.endswith("_t"):
             return table_name + "_t"
         else:
             return table_name
@@ -100,13 +108,13 @@ class HelperGetNames:
     @staticmethod
     @max_length
     def get_view_name(table_name: str) -> str:
-        """get's the name of a view. Its the collection name in quotes"""
+        """gets the name of a view. Its the collection name in quotes"""
         return f'"{table_name}"'
 
     @staticmethod
     @max_length
     def get_nm_table_name(own: TableFieldType, foreign: TableFieldType) -> str:
-        """get's the table name n:m-relations intermediate table"""
+        """gets the table name n:m-relations intermediate table"""
         if (f"{own.table}_{own.column}") < (f"{foreign.table}_{foreign.column}"):
             return f"nm_{own.table}_{HelperGetNames.get_initial_letters(own.column)}_{foreign.table}_t"
         else:
@@ -115,7 +123,10 @@ class HelperGetNames:
     @staticmethod
     @max_length
     def get_gm_table_name(table_field: TableFieldType) -> str:
-        """get's th table name for generic-list:many-relations intermediate table"""
+        """
+        Gets the table name for generic-list:many-relations intermediate table
+        Does not deliver correct results on non-primary relations.
+        """
         return f"gm_{table_field.table}_{table_field.column}_t"
 
     @staticmethod
@@ -123,7 +134,7 @@ class HelperGetNames:
     def get_field_in_n_m_relation_list(
         own_table_field: TableFieldType, foreign_table_name: str
     ) -> str:
-        """get's the field name in a n:m-intermediate table.
+        """gets the field name in a n:m-intermediate table.
         If both sides of the relation are in same table, the field name without 's' is used,
         otherwise the related tables names are used
         """
