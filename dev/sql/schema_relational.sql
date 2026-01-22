@@ -250,62 +250,59 @@ BEGIN
 END;
 $not_null_trigger$ language plpgsql;
 
-
-CREATE FUNCTION check_not_null_for_n_m()
-RETURNS trigger
-AS $not_null_trigger$
+CREATE FUNCTION check_not_null_for_n_m() RETURNS trigger AS $not_null_trigger$
+-- Parameters required for both INSERT and DELETE operations
+--   0. intermediate_table_name – name of the n:m table
+--   1. own_collection – name of the table on which the trigger is defined
+--   2. own_column – column in `own_collection` referencing
+--      `foreign_collection`
+--   3. intermediate_table_own_key – column in the n:m table referencing
+--      `own_collection`
+--
+-- Parameters needed for extended error message generation for 'DELETE'
+-- (can be empty on INSERT)
+--   4. intermediate_table_foreign_key – column in the n:m table referencing
+--      `foreign_collection`
+--   5. foreign_collection – name of the foreign table
+--   6. foreign_column – column in the foreign table referencing
+--      `own_collection`
 DECLARE
+    -- Always required
     intermediate_table_name TEXT := TG_ARGV[0];
     own_collection TEXT := TG_ARGV[1];
-    own_column_name TEXT := TG_ARGV[2];
+    own_column TEXT := TG_ARGV[2];
     intermediate_table_own_key TEXT := TG_ARGV[3];
+
+    -- Only for TG_OP = 'DELETE'
     intermediate_table_foreign_key TEXT := TG_ARGV[4];
     foreign_collection TEXT := TG_ARGV[5];
-    foreign_column_name TEXT := TG_ARGV[6];
+    foreign_column TEXT := TG_ARGV[6];
 
-    own_instance_id INTEGER;
-    foreign_instance_id INTEGER;
+    -- Calculated
+    own_id INTEGER;
+    foreign_id INTEGER;
     counted INTEGER;
     error_message TEXT;
 BEGIN
     IF (TG_OP = 'INSERT') THEN
-        own_instance_id := NEW.id;
+        own_id := NEW.id;
     ELSE
-        own_instance_id := hstore(OLD) -> intermediate_table_own_key;
-        foreign_instance_id := hstore(OLD) -> intermediate_table_foreign_key;
+        own_id := hstore(OLD) -> intermediate_table_own_key;
+        foreign_id := hstore(OLD) -> intermediate_table_foreign_key;
     END IF;
 
-    EXECUTE format(
-        'SELECT 1 FROM %I WHERE %I = %L',
-        intermediate_table_name,
-        intermediate_table_own_key,
-        own_instance_id
-    ) INTO counted;
-
+    EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', intermediate_table_name, intermediate_table_own_key, own_id) INTO counted;
     IF (counted is NULL) THEN
-        error_message := format(
-            'Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s',
-            TG_NAME,
-            own_collection,
-            own_instance_id,
-            own_column_name
-        );
-
+        error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, own_collection, own_id, own_column);
         IF (TG_OP = 'DELETE') THEN
-            error_message := error_message || format(
-                ' from relationship before %s/%s/%s',
-                foreign_collection,
-                foreign_instance_id,
-                foreign_column_name
-            );
+            error_message := error_message || format(' from relationship before %s/%s/%s', foreign_collection, foreign_id, foreign_column);
         END IF;
-
         RAISE EXCEPTION '%', error_message;
     END IF;
-
     RETURN NULL;
 END;
 $not_null_trigger$ language plpgsql;
+
 
 -- Type definitions
 
@@ -2475,39 +2472,14 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('meeting', 'default_project
 
 
 
--- Create triggers checking foreign_id not null for n:m relationships
+-- Create triggers checking foreign_ids not null for n:m relationships
 
--- definition trigger not null for meeting_user.group_ids against group_t.meeting_user_ids through nm_group_meeting_user_ids_meeting_user_t
-CREATE CONSTRAINT TRIGGER tr_i_meeting_user_group_ids
-AFTER INSERT ON
-meeting_user_t
-INITIALLY DEFERRED
-FOR EACH ROW
-EXECUTE FUNCTION check_not_null_for_n_m(
-    'nm_group_meeting_user_ids_meeting_user_t',
-    'meeting_user',
-    'group_ids',
-    'meeting_user_id',
-    '',
-    '',
-    ''
-);
+-- definition trigger not null for meeting_user.group_ids against group.meeting_user_ids through nm_group_meeting_user_ids_meeting_user_t
+CREATE CONSTRAINT TRIGGER tr_i_meeting_user_group_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_meeting_user_t', 'meeting_user', 'group_ids', 'meeting_user_id');
 
-CREATE CONSTRAINT TRIGGER tr_d_meeting_user_group_ids
-AFTER DELETE ON
-nm_group_meeting_user_ids_meeting_user_t
-INITIALLY DEFERRED
-FOR EACH ROW
-EXECUTE FUNCTION check_not_null_for_n_m(
-    'nm_group_meeting_user_ids_meeting_user_t',
-    'meeting_user',
-    'group_ids',
-    'meeting_user_id',
-    'group_id',
-    'group',
-    'meeting_user_ids'
-);
-
+CREATE CONSTRAINT TRIGGER tr_d_meeting_user_group_ids AFTER DELETE ON nm_group_meeting_user_ids_meeting_user_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_meeting_user_t', 'meeting_user', 'group_ids', 'meeting_user_id', 'group_id', 'group', 'meeting_user_ids');
 
 
 
