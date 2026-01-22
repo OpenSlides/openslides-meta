@@ -34,7 +34,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     alter_table_final: str
     create_trigger_partitioned_sequences: str
     create_trigger_1_1_relation_not_null: str
-    create_trigger_relationlistnotnull: str
+    create_trigger_1_n_relation_not_null: str
     create_trigger_unique_ids_pair_code: str
     create_trigger_notify: str
     undecided: str
@@ -93,7 +93,7 @@ class GenerateCodeBlocks:
               g:m-relations name schema: f"gm_{table_field.table}_{table_field.column}" of table with generic-list-field
           create_trigger_partitioned_sequences_code: Definitions of triggers calling generate_sequence
           create_trigger_1_1_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_1_relation
-          create_trigger_relationlistnotnull_code: Definitions of triggers calling check_not_null_for_relation_lists
+          create_trigger_1_n_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_n
           create_trigger_unique_ids_pair_code: Definitions of triggers calling check_unique_ids_pair
           create_trigger_notify_code: Definitions of triggers calling notify_modified_models
           errors: to show
@@ -125,7 +125,7 @@ class GenerateCodeBlocks:
         alter_table_final_code: str = ""
         create_trigger_partitioned_sequences_code: str = ""
         create_trigger_1_1_relation_not_null_code: str = ""
-        create_trigger_relationlistnotnull_code: str = ""
+        create_trigger_1_n_relation_not_null_code: str = ""
         create_trigger_unique_ids_pair_code: str = ""
         create_trigger_notify_code: str = ""
         final_info_code: str = ""
@@ -178,8 +178,8 @@ class GenerateCodeBlocks:
                 create_trigger_partitioned_sequences_code += code + "\n"
             if code := schema_zone_texts["create_trigger_1_1_relation_not_null"]:
                 create_trigger_1_1_relation_not_null_code += code + "\n"
-            if code := schema_zone_texts["create_trigger_relationlistnotnull"]:
-                create_trigger_relationlistnotnull_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_1_n_relation_not_null"]:
+                create_trigger_1_n_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
                 create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
@@ -208,7 +208,7 @@ class GenerateCodeBlocks:
             im_table_code,
             create_trigger_partitioned_sequences_code,
             create_trigger_1_1_relation_not_null_code,
-            create_trigger_relationlistnotnull_code,
+            create_trigger_1_n_relation_not_null_code,
             create_trigger_unique_ids_pair_code,
             create_trigger_notify_code,
             errors,
@@ -515,8 +515,8 @@ class GenerateCodeBlocks:
                     own_table_field.field_def == foreign_table_field.field_def,
                 )
                 if own_table_field.field_def.get("required"):
-                    text["create_trigger_relationlistnotnull"] = (
-                        cls.get_trigger_check_not_null_for_relation_lists(
+                    text["create_trigger_1_n_relation_not_null"] = (
+                        cls.get_trigger_check_not_null_for_1_n(
                             own_table_field.table,
                             own_table_field.column,
                             foreign_table_field.table,
@@ -610,7 +610,7 @@ class GenerateCodeBlocks:
         )
 
     @classmethod
-    def get_trigger_check_not_null_for_relation_lists(
+    def get_trigger_check_not_null_for_1_n(
         cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
     ) -> str:
         own_table_t = HelperGetNames.get_table_name(own_table)
@@ -619,10 +619,10 @@ class GenerateCodeBlocks:
             f"""
             -- definition trigger not null for {own_table}.{own_column} against {foreign_table_t}.{foreign_column}
             CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '');
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table}', '{own_column}', '');
 
             CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_relation_lists('{own_table}', '{own_column}', '{foreign_column}');
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table}', '{own_column}', '{foreign_column}');
 
             """
         )
@@ -930,7 +930,7 @@ class Helper:
 
     for type_, field_check in {
         "1_1": "%I",
-        "relation_lists": "array_length(%I, 1)",
+        "1_n": "array_length(%I, 1)",
     }.items():
         FILE_TEMPLATE_CONSTANT_DEFINITIONS += dedent(
             f"""
@@ -1544,7 +1544,7 @@ def main() -> None:
         im_table_code,
         create_trigger_partitioned_sequences_code,
         create_trigger_1_1_relation_not_null_code,
-        create_trigger_relationlistnotnull_code,
+        create_trigger_1_n_relation_not_null_code,
         create_trigger_unique_ids_pair_code,
         create_trigger_notify_code,
         errors,
@@ -1571,9 +1571,9 @@ def main() -> None:
         )
         dest.write(create_trigger_1_1_relation_not_null_code)
         dest.write(
-            "\n\n-- Create triggers checking foreign_id not null for relation-lists\n"
+            "\n\n-- Create triggers checking foreign_id not null for 1:n relationships\n"
         )
-        dest.write(create_trigger_relationlistnotnull_code)
+        dest.write(create_trigger_1_n_relation_not_null_code)
         dest.write(
             "\n\n-- Create triggers preventing mirrored duplicates in fields referencing themselves\n"
         )
