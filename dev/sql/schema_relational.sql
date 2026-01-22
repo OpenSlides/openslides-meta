@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'ab4b572f454cbbb047157f355372a879'
+-- MODELS_YML_CHECKSUM = '2ab51b5ebc2fc37f2202a887952b52a2'
 
 
 -- Function and meta table definitions
@@ -483,7 +483,7 @@ CREATE TABLE meeting_t (
     external_id varchar(256),
     welcome_title varchar(256) DEFAULT 'Welcome to OpenSlides',
     welcome_text text DEFAULT 'Space for your welcome text.',
-    name varchar(100) NOT NULL DEFAULT 'OpenSlides',
+    name varchar(200) NOT NULL DEFAULT 'OpenSlides',
     is_active_in_organization_id integer,
     is_archived_in_organization_id integer,
     description varchar(100),
