@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'fab7972b3adb110c4ad6d6d7557a595c'
+-- MODELS_YML_CHECKSUM = 'd6653826cc4577c311a9a9ad5668ac31'
 
 
 -- Function and meta table definitions
@@ -3290,7 +3290,7 @@ SQL nt:nGt => committee/organization_tag_ids:-> organization_tag/tagged_ids
 
 SQL nr:1r => gender/user_ids:-> user/gender_id
 
-SQL nt:nt => group/meeting_user_ids:-> meeting_user/group_ids
+SQL nt:ntR => group/meeting_user_ids:-> meeting_user/group_ids
 SQL 1t:1rR => group/default_group_for_meeting_id:-> meeting/default_group_id
 SQL 1t:1r => group/admin_group_for_meeting_id:-> meeting/admin_group_id
 SQL 1t:1r => group/anonymous_group_for_meeting_id:-> meeting/anonymous_group_id
@@ -3454,7 +3454,7 @@ SQL nt:1r => meeting_user/assignment_candidate_ids:-> assignment_candidate/meeti
 FIELD 1r:nt => meeting_user/vote_delegated_to_id:-> meeting_user/vote_delegations_from_ids
 SQL nt:1r => meeting_user/vote_delegations_from_ids:-> meeting_user/vote_delegated_to_id
 SQL nt:1r => meeting_user/chat_message_ids:-> chat_message/meeting_user_id
-SQL nt:nt => meeting_user/group_ids:-> group/meeting_user_ids
+SQL ntR:nt => meeting_user/group_ids:-> group/meeting_user_ids
 SQL nt:nt => meeting_user/structure_level_ids:-> structure_level/meeting_user_ids
 
 FIELD 1r:nt => motion/lead_motion_id:-> motion/amendment_ids

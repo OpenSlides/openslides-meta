@@ -2228,6 +2228,7 @@ meeting_user:
   group_ids:
     type: relation-list
     to: group/meeting_user_ids
+    required: true
     equal_fields: meeting_id
     restriction_mode: A
   structure_level_ids:
