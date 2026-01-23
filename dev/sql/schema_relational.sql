@@ -2472,6 +2472,7 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('meeting', 'default_project
 
 
 
+
 -- Create triggers checking foreign_ids not null for n:m relationships
 
 -- definition trigger not null for meeting_user.group_ids against group.meeting_user_ids through nm_group_meeting_user_ids_meeting_user_t
@@ -2480,6 +2481,7 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_
 
 CREATE CONSTRAINT TRIGGER tr_d_meeting_user_group_ids AFTER DELETE ON nm_group_meeting_user_ids_meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_meeting_user_t', 'meeting_user', 'group_ids', 'meeting_user_id', 'group_id', 'group', 'meeting_user_ids');
+
 
 
 
