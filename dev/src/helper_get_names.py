@@ -459,7 +459,9 @@ class InternalHelper:
             ("nt", "1rR"): (FieldSqlErrorType.SQL, False),
             ("nt", "nGt"): (FieldSqlErrorType.SQL, False),
             ("nt", "nt"): (FieldSqlErrorType.SQL, "primary_decide_alphabetical"),
+            ("nt", "ntR"): (FieldSqlErrorType.SQL, "primary_decide_alphabetical"),
             ("ntR", "1r"): (FieldSqlErrorType.SQL, False),
+            ("ntR", "nt"): (FieldSqlErrorType.SQL, "primary_decide_alphabetical"),
             ("nts", "nts"): (FieldSqlErrorType.SQL, False),
         }
 
