@@ -667,7 +667,7 @@ class GenerateCodeBlocks:
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}');
 
             CREATE CONSTRAINT TRIGGER tr_d_{own_table}_{own_column} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}', '{intermediate_table_foreign_key}', '{foreign_table}', '{foreign_column}');
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}', '{intermediate_table_foreign_key}', '{foreign_table}', '{foreign_column}', '{own_table_t}');
 
             """
         )
@@ -1039,6 +1039,7 @@ class Helper:
     --   5. foreign_collection – name of the foreign table
     --   6. foreign_column – column in the foreign table referencing
     --      `own_collection`
+    --   7. own_table – name of the table on which the trigger is defined
     DECLARE
         -- Always required
         intermediate_table_name TEXT := TG_ARGV[0];
@@ -1050,6 +1051,7 @@ class Helper:
         intermediate_table_foreign_key TEXT := TG_ARGV[4];
         foreign_collection TEXT := TG_ARGV[5];
         foreign_column TEXT := TG_ARGV[6];
+        own_table TEXT := TG_ARGV[7];
 
         -- Calculated
         own_id INTEGER;
@@ -1061,6 +1063,10 @@ class Helper:
             own_id := NEW.id;
         ELSE
             own_id := hstore(OLD) -> intermediate_table_own_key;
+            EXECUTE format('SELECT 1 FROM %I WHERE id = %L', own_table, own_id) INTO counted;
+            IF (counted is NULL) THEN
+                RETURN NULL;
+            END IF;
             foreign_id := hstore(OLD) -> intermediate_table_foreign_key;
         END IF;
 

@@ -266,6 +266,7 @@ CREATE FUNCTION check_not_null_for_n_m() RETURNS trigger AS $not_null_trigger$
 --   5. foreign_collection – name of the foreign table
 --   6. foreign_column – column in the foreign table referencing
 --      `own_collection`
+--   7. own_table – name of the table on which the trigger is defined
 DECLARE
     -- Always required
     intermediate_table_name TEXT := TG_ARGV[0];
@@ -277,6 +278,7 @@ DECLARE
     intermediate_table_foreign_key TEXT := TG_ARGV[4];
     foreign_collection TEXT := TG_ARGV[5];
     foreign_column TEXT := TG_ARGV[6];
+    own_table TEXT := TG_ARGV[7];
 
     -- Calculated
     own_id INTEGER;
@@ -288,6 +290,10 @@ BEGIN
         own_id := NEW.id;
     ELSE
         own_id := hstore(OLD) -> intermediate_table_own_key;
+        EXECUTE format('SELECT 1 FROM %I WHERE id = %L', own_table, own_id) INTO counted;
+        IF (counted is NULL) THEN
+            RETURN NULL;
+        END IF;
         foreign_id := hstore(OLD) -> intermediate_table_foreign_key;
     END IF;
 
@@ -2480,7 +2486,7 @@ CREATE CONSTRAINT TRIGGER tr_i_meeting_user_group_ids AFTER INSERT ON meeting_us
 FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_meeting_user_t', 'meeting_user', 'group_ids', 'meeting_user_id');
 
 CREATE CONSTRAINT TRIGGER tr_d_meeting_user_group_ids AFTER DELETE ON nm_group_meeting_user_ids_meeting_user_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_meeting_user_t', 'meeting_user', 'group_ids', 'meeting_user_id', 'group_id', 'group', 'meeting_user_ids');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_meeting_user_t', 'meeting_user', 'group_ids', 'meeting_user_id', 'group_id', 'group', 'meeting_user_ids', 'meeting_user_t');
 
 
 
