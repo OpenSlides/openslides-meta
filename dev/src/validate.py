@@ -19,7 +19,9 @@ COLLECTIONFIELD_REGEX = re.compile(f"^{_collection_regex}{KEYSEPARATOR}{_field_r
 DECIMAL_REGEX = re.compile(r"^-?(\d|[1-9]\d+)\.\d{6}$")
 COLOR_REGEX = re.compile(r"^#[0-9a-f]{6}$")
 
-DEFAULT_FILES = [str((Path(__file__).parent / ".." / ".." / "models.yml").resolve())]
+DEFAULT_COLLECTIONS_DIR = str(
+    (Path(__file__).parent / ".." / ".." / "collections").resolve()
+)
 
 RELATION_TYPES = (
     "relation",
@@ -62,10 +64,46 @@ class CheckException(Exception):
 
 
 class Checker:
-    def __init__(self, filepath: str) -> None:
-        with open(filepath, "rb") as x:
-            self.models = yaml.safe_load(x.read())
+    def __init__(self, collections_dir: str) -> None:
+        self.models: dict[str, Any] = {}
         self.errors: list[str] = []
+        self._load_collections(collections_dir)
+
+    def _load_collections(self, collections_dir: str) -> None:
+        collections_path = Path(collections_dir)
+
+        if not collections_path.exists():
+            raise CheckException(
+                f"Collections directory '{collections_dir}' does not exist."
+            )
+
+        if not collections_path.is_dir():
+            raise CheckException(f"'{collections_dir}' is not a directory.")
+
+        yaml_files = sorted(collections_path.glob("*.yml")) + sorted(
+            collections_path.glob("*.yaml")
+        )
+
+        if not yaml_files:
+            raise CheckException(f"No YAML files found in '{collections_dir}'.")
+
+        for yaml_file in yaml_files:
+            try:
+                with open(yaml_file, "rb") as f:
+                    data = yaml.safe_load(f.read())
+
+                if not isinstance(data, dict):
+                    self.errors.append(
+                        f"File '{yaml_file.name}' does not contain a valid dictionary."
+                    )
+                    continue
+
+                self.models[yaml_file.stem] = data
+
+            except yaml.YAMLError as e:
+                self.errors.append(f"Error parsing '{yaml_file.name}': {e}")
+            except Exception as e:
+                self.errors.append(f"Error reading '{yaml_file.name}': {e}")
 
     def run_check(self) -> None:
         self._run_checks()
@@ -338,19 +376,19 @@ class Checker:
 
 
 def main() -> int:
-    files = sys.argv[1:]
-    if not files:
-        files = DEFAULT_FILES
+    dirs = sys.argv[1:]
+    if not dirs:
+        dirs = [DEFAULT_COLLECTIONS_DIR]
 
     failed = False
-    for f in files:
+    for d in dirs:
         try:
-            Checker(f).run_check()
+            Checker(d).run_check()
         except CheckException as e:
-            print(f"Check for {f} failed:\n", e)
+            print(f"Check for {d} failed:\n", e)
             failed = True
         else:
-            print(f"Check for {f} successful.")
+            print(f"Check for {d} successful.")
     return 1 if failed else 0
 
 
