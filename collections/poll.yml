@@ -91,6 +91,14 @@ onehundred_percent_base:
   - "disabled"
   default: disabled
   restriction_mode: A
+required_majority:
+  type: string
+  enum: &required_majority
+    - "no_majority"
+    - "two_third_majority"
+    - "absolute_majority"
+  default: no_majority
+  restriction_mode: A
 votesvalid:
   type: decimal(6)
   restriction_mode: B

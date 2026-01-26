@@ -27,6 +27,10 @@ _meta:
   - entitled
   - entitled_present
   - disabled
+  required_majority:
+  - no_majority
+  - two_third_majority
+  - absolute_majority
   id_field:
     type: number
     restriction_mode: A
@@ -1334,13 +1338,21 @@ meeting:
     - disabled
     default: YNA
     restriction_mode: B
+  motion_poll_default_required_majority:
+    type: string
+    enum: &id003
+    - no_majority
+    - two_third_majority
+    - absolute_majority
+    default: no_majority
+    restriction_mode: B
   motion_poll_default_group_ids:
     type: relation-list
     to: group/used_as_motion_poll_default_id
     restriction_mode: B
   motion_poll_default_backend:
     type: string
-    enum: &id003
+    enum: &id004
     - long
     - fast
     default: fast
@@ -1491,13 +1503,18 @@ meeting:
     enum: *id002
     default: valid
     restriction_mode: B
+  assignment_poll_default_required_majority:
+    type: string
+    enum: *id003
+    default: no_majority
+    restriction_mode: B
   assignment_poll_default_group_ids:
     type: relation-list
     to: group/used_as_assignment_poll_default_id
     restriction_mode: B
   assignment_poll_default_backend:
     type: string
-    enum: *id003
+    enum: *id004
     default: fast
     restriction_mode: B
   poll_ballot_paper_selection:
@@ -1528,7 +1545,7 @@ meeting:
     restriction_mode: B
   poll_default_backend:
     type: string
-    enum: *id003
+    enum: *id004
     default: fast
     restriction_mode: B
   poll_default_live_voting_enabled:
@@ -3336,6 +3353,14 @@ poll:
     - entitled_present
     - disabled
     default: disabled
+    restriction_mode: A
+  required_majority:
+    type: string
+    enum:
+    - no_majority
+    - two_third_majority
+    - absolute_majority
+    default: no_majority
     restriction_mode: A
   votesvalid:
     type: decimal(6)

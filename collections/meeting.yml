@@ -566,6 +566,14 @@ motion_poll_default_onehundred_percent_base:
   - "disabled"
   default: YNA
   restriction_mode: B
+motion_poll_default_required_majority:
+  type: string
+  enum: &required_majority
+    - "no_majority"
+    - "two_third_majority"
+    - "absolute_majority"
+  default: no_majority
+  restriction_mode: B
 motion_poll_default_group_ids:
   type: relation-list
   to: group/used_as_motion_poll_default_id
@@ -731,6 +739,11 @@ assignment_poll_default_onehundred_percent_base:
   type: string
   enum: *onehundred_percent_bases
   default: valid
+  restriction_mode: B
+assignment_poll_default_required_majority:
+  type: string
+  enum: *required_majority
+  default: no_majority
   restriction_mode: B
 assignment_poll_default_group_ids:
   type: relation-list
