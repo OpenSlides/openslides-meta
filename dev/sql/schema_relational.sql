@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'c5c0626cd87e25cfdd66535efb0c49fc'
+-- MODELS_YML_CHECKSUM = '7e3dd8d30611888f255758630085b6a3'
 
 
 -- Function and meta table definitions
@@ -2029,27 +2029,26 @@ CREATE VIEW "user" AS SELECT *,
   SELECT array_remove(array_agg(DISTINCT committee_id ORDER BY committee_id),NULL)
   FROM (
     -- Select committee_ids from meetings the user is part of
-    SELECT(m.committee_id)
+    SELECT m.committee_id
     FROM user_t u
-        JOIN meeting_user_t mu ON u.id = mu.user_id
-        JOIN meeting_t m ON mu.meeting_id = m.id
-    WHERE u.id = 1
-    GROUP BY u.id, m.committee_id
+        INNER JOIN meeting_user_t mu ON u.id = mu.user_id
+        INNER JOIN meeting_t m ON mu.meeting_id = m.id
+    WHERE u.id = u.id
     
     UNION
 
     -- Select committee_ids from committee managers
     SELECT cmu.committee_id
     FROM nm_committee_manager_ids_user_t
-    WHERE cmu.user_id 0 u.id
+    WHERE cmu.user_id = u.id
 
     UNION
 
     -- Select home_committee_id from user
-    SELECT u1.home_committee_id
-    FROM user_t u1
-    WHERE u1.id = 1
-  ) AS committee_id;
+    SELECT home_committee_id
+    FROM user_t
+    WHERE home_committee_id IS NOT NULL
+  ) AS committee_id
 ) AS committee_ids
 ,
 (select array_agg(n.committee_id ORDER BY n.committee_id) from nm_committee_manager_ids_user_t n where n.user_id = u.id) as committee_management_ids,
