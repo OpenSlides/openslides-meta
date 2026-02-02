@@ -113,7 +113,7 @@ committee_ids:
 
         -- Select committee_ids from committee managers
         SELECT cmu.committee_id
-        FROM nm_committee_manager_ids_user_t
+        FROM nm_committee_manager_ids_user_t cmu
         WHERE cmu.user_id = u.id
 
         UNION
