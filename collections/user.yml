@@ -100,30 +100,23 @@ committee_ids:
   description: "Calculated field: Returns committee_ids, where the user is manager or member in a meeting"
   sql: |
     (
-      SELECT array_agg(DISTINCT committee_id ORDER BY committee_id)
+      SELECT array_remove(array_agg(DISTINCT committee_id ORDER BY committee_id),NULL)
       FROM (
-        -- Select committee_ids from meetings the user is part of
-        SELECT m.committee_id
-        FROM meeting_user_t AS mu
-        INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
-        INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
-        WHERE mu.user_id = u.id
+        SELECT(m.committee_id)
+        FROM user_t u
+            JOIN meeting_user_t mu ON u.id = mu.user_id
+            JOIN meeting_t m ON mu.meeting_id = m.id
+            JOIN nm_committee_manager_ids_user_t ncm ON ncm.user_id = u.id
+        WHERE u.id = 1
+        GROUP BY u.id, m.committee_id
 
         UNION
 
-        -- Select committee_ids from committee managers
-        SELECT cmu.committee_id
-        FROM nm_committee_manager_ids_user_t cmu
-        WHERE cmu.user_id = u.id
-
-        UNION
-
-        -- Select home_committee_id from user
-        SELECT u.home_committee_id
-        WHERE u.home_committee_id IS NOT NULL
-      ) _
+        SELECT u1.home_committee_id
+        FROM user_t u1
+        WHERE u1.id = 1
+      ) AS committee_id;
     ) AS committee_ids
-
   # committee specific permissions
 committee_management_ids:
   type: relation-list
@@ -176,13 +169,12 @@ history_entry_ids:
 
 meeting_ids:
   type: relation-list
-  description: Calculated. All ids from meetings calculated via meeting_user and group_ids as integers.
+  description: Calculated. All ids from meetings calculated via meeting_user.
   read_only: true
   sql: |
     (
       SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id)
       FROM meeting_user_t mu
-      INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
       WHERE mu.user_id = u.id
     ) AS meeting_ids
   to: meeting/user_ids
