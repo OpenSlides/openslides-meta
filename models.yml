@@ -4484,12 +4484,14 @@ user:
     description: 'Calculated field: Returns committee_ids, where the user is manager
       or member in a meeting'
     sql: "(\n  SELECT array_remove(array_agg(DISTINCT committee_id ORDER BY committee_id),NULL)\n\
-      \  FROM (\n    SELECT(m.committee_id)\n    FROM user_t u\n        JOIN meeting_user_t\
-      \ mu ON u.id = mu.user_id\n        JOIN meeting_t m ON mu.meeting_id = m.id\n\
-      \        JOIN nm_committee_manager_ids_user_t ncm ON ncm.user_id = u.id\n  \
-      \  WHERE u.id = 1\n    GROUP BY u.id, m.committee_id\n\n    UNION\n\n    SELECT\
-      \ u1.home_committee_id\n    FROM user_t u1\n    WHERE u1.id = 1\n  ) AS committee_id;\n\
-      ) AS committee_ids\n"
+      \  FROM (\n    -- Select committee_ids from meetings the user is part of\n \
+      \   SELECT(m.committee_id)\n    FROM user_t u\n        JOIN meeting_user_t mu\
+      \ ON u.id = mu.user_id\n        JOIN meeting_t m ON mu.meeting_id = m.id\n \
+      \   WHERE u.id = 1\n    GROUP BY u.id, m.committee_id\n    \n    UNION\n\n \
+      \   -- Select committee_ids from committee managers\n    SELECT cmu.committee_id\n\
+      \    FROM nm_committee_manager_ids_user_t\n    WHERE cmu.user_id 0 u.id\n\n\
+      \    UNION\n\n    -- Select home_committee_id from user\n    SELECT u1.home_committee_id\n\
+      \    FROM user_t u1\n    WHERE u1.id = 1\n  ) AS committee_id;\n) AS committee_ids\n"
   committee_management_ids:
     type: relation-list
     to: committee/manager_ids

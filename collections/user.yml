@@ -102,16 +102,24 @@ committee_ids:
     (
       SELECT array_remove(array_agg(DISTINCT committee_id ORDER BY committee_id),NULL)
       FROM (
+        -- Select committee_ids from meetings the user is part of
         SELECT(m.committee_id)
         FROM user_t u
-            JOIN meeting_user_t mu ON u.id = mu.user_id
-            JOIN meeting_t m ON mu.meeting_id = m.id
-            JOIN nm_committee_manager_ids_user_t ncm ON ncm.user_id = u.id
+            INNER JOIN meeting_user_t mu ON u.id = mu.user_id
+            INNER JOIN meeting_t m ON mu.meeting_id = m.id
         WHERE u.id = 1
         GROUP BY u.id, m.committee_id
+        
+        UNION
+
+        -- Select committee_ids from committee managers
+        SELECT cmu.committee_id
+        FROM nm_committee_manager_ids_user_t
+        WHERE cmu.user_id 0 u.id
 
         UNION
 
+        -- Select home_committee_id from user
         SELECT u1.home_committee_id
         FROM user_t u1
         WHERE u1.id = 1
