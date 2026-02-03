@@ -646,10 +646,10 @@ class GenerateCodeBlocks:
     def get_trigger_check_not_null_for_n_m(
         cls, own_table_field: TableFieldType, foreign_table_field: TableFieldType
     ) -> str:
-        own_table = own_table_field.table
+        own_collection = own_table_field.table
         own_column = own_table_field.column
-        own_table_t = HelperGetNames.get_table_name(own_table)
-        foreign_table = foreign_table_field.table
+        own_table = HelperGetNames.get_table_name(own_collection)
+        foreign_collection = foreign_table_field.table
         foreign_column = foreign_table_field.column
         intermediate_table_name = HelperGetNames.get_nm_table_name(
             own_table_field, foreign_table_field
@@ -662,12 +662,12 @@ class GenerateCodeBlocks:
         )
         return dedent(
             f"""
-            -- definition trigger not null for {own_table}.{own_column} against {foreign_table}.{foreign_column} through {intermediate_table_name}
-            CREATE CONSTRAINT TRIGGER tr_i_{own_table}_{own_column} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
+            -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column} through {intermediate_table_name}
+            CREATE CONSTRAINT TRIGGER tr_i_{own_collection}_{own_column} AFTER INSERT ON {own_table} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}');
 
-            CREATE CONSTRAINT TRIGGER tr_d_{own_table}_{own_column} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}', '{intermediate_table_foreign_key}', '{foreign_table}', '{foreign_column}', '{own_table_t}');
+            CREATE CONSTRAINT TRIGGER tr_d_{own_collection}_{own_column} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}', '{intermediate_table_foreign_key}', '{foreign_collection}', '{foreign_column}');
 
             """
         )
@@ -1026,24 +1026,23 @@ class Helper:
     CREATE FUNCTION check_not_null_for_n_m() RETURNS trigger AS $not_null_trigger$
     -- Parameters required for both INSERT and DELETE operations
     --   0. intermediate_table_name – name of the n:m table
-    --   1. own_collection – name of the table on which the trigger is defined
-    --   2. own_column – column in `own_collection` referencing
+    --   1. own_table – name of the table on which the trigger is defined
+    --   2. own_column – column in `own_table` referencing
     --      `foreign_collection`
     --   3. intermediate_table_own_key – column in the n:m table referencing
-    --      `own_collection`
+    --      `own_table`
     --
     -- Parameters needed for extended error message generation for 'DELETE'
     -- (can be empty on INSERT)
     --   4. intermediate_table_foreign_key – column in the n:m table referencing
-    --      `foreign_collection`
-    --   5. foreign_collection – name of the foreign table
+    --      the foreign table
+    --   5. foreign_collection – name of the collection of the foreign table
     --   6. foreign_column – column in the foreign table referencing
     --      `own_collection`
-    --   7. own_table – name of the table on which the trigger is defined
     DECLARE
         -- Always required
         intermediate_table_name TEXT := TG_ARGV[0];
-        own_collection TEXT := TG_ARGV[1];
+        own_table TEXT := TG_ARGV[1];
         own_column TEXT := TG_ARGV[2];
         intermediate_table_own_key TEXT := TG_ARGV[3];
 
@@ -1051,9 +1050,9 @@ class Helper:
         intermediate_table_foreign_key TEXT := TG_ARGV[4];
         foreign_collection TEXT := TG_ARGV[5];
         foreign_column TEXT := TG_ARGV[6];
-        own_table TEXT := TG_ARGV[7];
 
         -- Calculated
+        own_collection TEXT := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
         own_id INTEGER;
         foreign_id INTEGER;
         counted INTEGER;
