@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '9163d47c35714018ebeba7cd55b1f886'
+-- MODELS_YML_CHECKSUM = '7754f03ad789364dca4d64971e3dd586'
 
 
 -- Function and meta table definitions
@@ -2039,8 +2039,9 @@ CREATE VIEW "user" AS SELECT *,
 
     -- Select committee_ids from committee managers
     SELECT cmu.committee_id
-    FROM nm_committee_manager_ids_user_t cmu
-    WHERE cmu.user_id = u.id
+    FROM  user_t u_1
+        INNER JOIN nm_committee_manager_ids_user_t cmu ON cmu.user_id = u_1.id
+    WHERE cmu.user_id = u_1.id
 
     UNION
 
