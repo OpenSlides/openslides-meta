@@ -3224,6 +3224,35 @@ organization:
   saml_private_key:
     type: text
     restriction_mode: D
+  oidc_enabled:
+    type: boolean
+    restriction_mode: A
+  oidc_provider_url:
+    type: string
+    restriction_mode: A
+    description: Keycloak realm URL (e.g. https://keycloak/realms/openslides)
+  oidc_client_id:
+    type: string
+    restriction_mode: A
+  oidc_client_secret:
+    type: string
+    restriction_mode: G
+  oidc_login_button_text:
+    type: string
+    default: OIDC login
+    restriction_mode: A
+  oidc_attr_mapping:
+    type: JSON
+    restriction_mode: D
+    description: Mapping of User-Info fields to OpenSlides User fields
+  oidc_admin_api_enabled:
+    type: boolean
+    restriction_mode: D
+    description: Enable syncing user changes to Keycloak Admin API
+  oidc_admin_api_url:
+    type: string
+    restriction_mode: D
+    description: Keycloak Admin API URL (e.g. https://keycloak/admin/realms/openslides)
   committee_ids:
     type: relation-list
     to: committee/organization_id
@@ -4407,6 +4436,11 @@ user:
     minLength: 1
     restriction_mode: B
     description: unique-key from IdP for SAML login
+  keycloak_id:
+    type: string
+    minLength: 1
+    restriction_mode: B
+    description: unique-key from Keycloak for OIDC login (sub claim)
   pronoun:
     type: string
     maxLength: 32

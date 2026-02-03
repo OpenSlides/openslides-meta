@@ -1005,6 +1005,14 @@ CREATE TABLE organization_t (
     saml_metadata_idp text,
     saml_metadata_sp text,
     saml_private_key text,
+    oidc_enabled boolean,
+    oidc_provider_url varchar(256),
+    oidc_client_id varchar(256),
+    oidc_client_secret varchar(256),
+    oidc_login_button_text varchar(256) DEFAULT 'OIDC login',
+    oidc_attr_mapping jsonb,
+    oidc_admin_api_enabled boolean,
+    oidc_admin_api_url varchar(256),
     theme_id integer NOT NULL UNIQUE,
     users_email_sender varchar(256) DEFAULT 'OpenSlides',
     users_email_replyto varchar(256),
@@ -1362,6 +1370,7 @@ CREATE TABLE user_t (
     username varchar(256) NOT NULL,
     member_number varchar(256),
     saml_id varchar(256) CONSTRAINT minlength_saml_id CHECK (char_length(saml_id) >= 1),
+    keycloak_id varchar(256) CONSTRAINT minlength_keycloak_id CHECK (char_length(keycloak_id) >= 1),
     pronoun varchar(32),
     title varchar(256),
     first_name varchar(256),
@@ -1386,6 +1395,7 @@ CREATE TABLE user_t (
 
 
 comment on column user_t.saml_id is 'unique-key from IdP for SAML login';
+comment on column user_t.keycloak_id is 'unique-key from Keycloak for OIDC login (sub claim)';
 comment on column user_t.organization_management_level is 'Hierarchical permission level for the whole organization.';
 
 
