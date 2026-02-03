@@ -4490,9 +4490,9 @@ user:
       \ m.id\n    WHERE u.id = u.id\n    \n    UNION\n\n    -- Select committee_ids\
       \ from committee managers\n    SELECT cmu.committee_id\n    FROM  user_t u_1\n\
       \        INNER JOIN nm_committee_manager_ids_user_t cmu ON cmu.user_id = u_1.id\n\
-      \    WHERE cmu.user_id = u_1.id\n\n    UNION\n\n    -- Select home_committee_id\
-      \ from user\n    SELECT home_committee_id\n    FROM user_t\n    WHERE home_committee_id\
-      \ IS NOT NULL\n  ) AS committee_id\n) AS committee_ids\n"
+      \n    UNION\n\n    -- Select home_committee_id from user\n    SELECT home_committee_id\n\
+      \    FROM user_t\n    WHERE home_committee_id IS NOT NULL\n  ) AS committee_id\n\
+      ) AS committee_ids\n"
   committee_management_ids:
     type: relation-list
     to: committee/manager_ids

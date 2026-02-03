@@ -115,7 +115,6 @@ committee_ids:
         SELECT cmu.committee_id
         FROM  user_t u_1
             INNER JOIN nm_committee_manager_ids_user_t cmu ON cmu.user_id = u_1.id
-        WHERE cmu.user_id = u_1.id
 
         UNION
 
