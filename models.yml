@@ -3224,19 +3224,6 @@ organization:
   saml_private_key:
     type: text
     restriction_mode: D
-  oidc_enabled:
-    type: boolean
-    restriction_mode: A
-  oidc_provider_url:
-    type: string
-    restriction_mode: A
-    description: Keycloak realm URL (e.g. https://keycloak/realms/openslides)
-  oidc_client_id:
-    type: string
-    restriction_mode: A
-  oidc_client_secret:
-    type: string
-    restriction_mode: G
   oidc_login_button_text:
     type: string
     default: OIDC login
