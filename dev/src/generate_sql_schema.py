@@ -1174,6 +1174,8 @@ class Helper:
                 ${field2} integer NOT NULL REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
                 PRIMARY KEY (${list_of_keys})
             );
+            CREATE INDEX ON ${table_name} (${field1});
+            CREATE INDEX ON ${table_name} (${field2});
         """
         )
     )
@@ -1187,6 +1189,8 @@ class Helper:
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
                 CONSTRAINT ${unique_constraint_name} UNIQUE (${own_table_name_with_ref_column}, ${own_table_column})
             );
+            CREATE INDEX ON ${table_name} (${own_table_name_with_ref_column});
+            CREATE INDEX ON ${table_name} (${own_table_column});
         """
         )
     )
@@ -1305,38 +1309,34 @@ class Helper:
     def get_foreign_key_table_constraint_as_alter_table(
         table_name: str,
         foreign_table: str,
-        own_columns: list[str] | str,
-        fk_columns: list[str] | str,
+        own_column: str,
+        fk_column: str,
         initially_deferred: bool = False,
         delete_action: str = "",
         update_action: str = "",
     ) -> str:
         FOREIGN_KEY_TABLE_CONSTRAINT_TEMPLATE = string.Template(
-            "ALTER TABLE ${own_table} ADD FOREIGN KEY(${own_columns}) REFERENCES ${foreign_table}(${fk_columns})${initially_deferred}"
+            "ALTER TABLE ${own_table} ADD FOREIGN KEY(${own_column}) REFERENCES ${foreign_table}(${fk_column})${initially_deferred}${delete_action}${update_action};\n"
+            "CREATE INDEX ON ${own_table} (${own_column});\n"
         )
 
         if initially_deferred:
             text_initially_deferred = " INITIALLY DEFERRED"
         else:
             text_initially_deferred = ""
-        if isinstance(own_columns, list):
-            own_columns = "(" + ", ".join(own_columns) + ")"
-        if isinstance(fk_columns, list):
-            fk_columns = "(" + ", ".join(fk_columns) + ")"
         own_table = HelperGetNames.get_table_name(table_name)
         foreign_table = HelperGetNames.get_table_name(foreign_table)
         result = FOREIGN_KEY_TABLE_CONSTRAINT_TEMPLATE.substitute(
             {
                 "own_table": own_table,
                 "foreign_table": foreign_table,
-                "own_columns": own_columns,
-                "fk_columns": fk_columns,
+                "own_column": own_column,
+                "fk_column": fk_column,
                 "initially_deferred": text_initially_deferred,
+                "delete_action": Helper.get_on_action_mode(delete_action, True),
+                "update_action": Helper.get_on_action_mode(update_action, False),
             }
         )
-        result += Helper.get_on_action_mode(delete_action, True)
-        result += Helper.get_on_action_mode(update_action, False)
-        result += ";\n"
         return result
 
     @staticmethod

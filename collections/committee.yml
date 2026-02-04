@@ -39,7 +39,6 @@ user_ids:
         SELECT mu.user_id
         FROM meeting_t AS m
         INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id
-        INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
         WHERE m.committee_id = c.id
 
         UNION
