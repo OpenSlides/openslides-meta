@@ -2030,24 +2030,23 @@ CREATE VIEW "user" AS SELECT *,
   FROM (
     -- Select committee_ids from meetings the user is part of
     SELECT m.committee_id
-    FROM user_t u
+    FROM user_t
         INNER JOIN meeting_user_t mu ON u.id = mu.user_id
         INNER JOIN meeting_t m ON mu.meeting_id = m.id
-    WHERE u.id = u.id
-    
+
     UNION
 
     -- Select committee_ids from committee managers
     SELECT cmu.committee_id
-    FROM nm_committee_manager_ids_user_t cmu
-    WHERE cmu.user_id = u.id
+    FROM  user_t
+        INNER JOIN nm_committee_manager_ids_user_t cmu ON cmu.user_id = u.id
 
     UNION
 
     -- Select home_committee_id from user
-    SELECT home_committee_id
-    FROM user_t
-    WHERE home_committee_id IS NOT NULL
+    SELECT u_hc.home_committee_id
+    FROM user_t u_hc
+    WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
   ) AS committee_id
 ) AS committee_ids
 ,
