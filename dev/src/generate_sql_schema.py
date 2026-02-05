@@ -609,34 +609,42 @@ class GenerateCodeBlocks:
 
     @classmethod
     def get_trigger_check_not_null_for_1_1_relation(
-        cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
+        cls,
+        own_collection: str,
+        own_column: str,
+        foreign_collection: str,
+        foreign_column: str,
     ) -> str:
-        own_table_t = HelperGetNames.get_table_name(own_table)
-        foreign_table_t = HelperGetNames.get_table_name(foreign_table)
+        own_table_t = HelperGetNames.get_table_name(own_collection)
+        foreign_table_t = HelperGetNames.get_table_name(foreign_collection)
         return dedent(
             f"""
-            -- definition trigger not null for {own_table}.{own_column} against {foreign_table}.{foreign_column}
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
+            -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column}
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_insert_trigger_name(own_collection, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_table_t}', '{own_column}');
 
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_table_t}', '{own_column}', '{foreign_table}', '{foreign_column}');
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_upd_del_trigger_name(own_collection, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_table_t}', '{own_column}', '{foreign_collection}', '{foreign_column}');
             """
         )
 
     @classmethod
     def get_trigger_check_not_null_for_1_n(
-        cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
+        cls,
+        own_collection: str,
+        own_column: str,
+        foreign_collection: str,
+        foreign_column: str,
     ) -> str:
-        own_table_t = HelperGetNames.get_table_name(own_table)
-        foreign_table_t = HelperGetNames.get_table_name(foreign_table)
+        own_table_t = HelperGetNames.get_table_name(own_collection)
+        foreign_table_t = HelperGetNames.get_table_name(foreign_collection)
         return dedent(
             f"""
-            -- definition trigger not null for {own_table}.{own_column} against {foreign_table_t}.{foreign_column}
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
+            -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column}
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_collection, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table_t}', '{own_column}', '{foreign_table_t}', '{foreign_column}');
 
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_collection, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table_t}', '{own_column}', '{foreign_table_t}', '{foreign_column}');
 
             """
