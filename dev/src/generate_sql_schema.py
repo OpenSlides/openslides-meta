@@ -972,7 +972,7 @@ class Helper:
         $read_only_trigger$ LANGUAGE plpgsql;
         """
     )
-    NOT_NULL_TRIGGER_TEMPLATE = string.Template(
+    NOT_NULL_TRIGGER_FUNCTION_TEMPLATE = string.Template(
         dedent(
             """
             CREATE FUNCTION check_not_null_for_${trigger_type}() RETURNS trigger AS $$not_null_trigger$$
@@ -1159,8 +1159,10 @@ class Helper:
         }
 
     for type_ in ["1_1", "1_n", "n_m"]:
-        FILE_TEMPLATE_CONSTANT_DEFINITIONS += NOT_NULL_TRIGGER_TEMPLATE.substitute(
-            get_not_null_trigger_params(type_)
+        FILE_TEMPLATE_CONSTANT_DEFINITIONS += (
+            NOT_NULL_TRIGGER_FUNCTION_TEMPLATE.substitute(
+                get_not_null_trigger_params(type_)
+            )
         )
 
     FIELD_TEMPLATE = string.Template(
