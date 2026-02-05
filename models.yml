@@ -3224,22 +3224,6 @@ organization:
   saml_private_key:
     type: text
     restriction_mode: D
-  oidc_login_button_text:
-    type: string
-    default: OIDC login
-    restriction_mode: A
-  oidc_attr_mapping:
-    type: JSON
-    restriction_mode: D
-    description: Mapping of User-Info fields to OpenSlides User fields
-  oidc_admin_api_enabled:
-    type: boolean
-    restriction_mode: D
-    description: Enable syncing user changes to Keycloak Admin API
-  oidc_admin_api_url:
-    type: string
-    restriction_mode: D
-    description: Keycloak Admin API URL (e.g. https://keycloak/admin/realms/openslides)
   committee_ids:
     type: relation-list
     to: committee/organization_id
