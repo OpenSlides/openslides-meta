@@ -4487,8 +4487,8 @@ user:
       \  FROM (\n    -- Select committee_ids from meetings the user is part of\n \
       \   SELECT m.committee_id\n    FROM user_t u\n        INNER JOIN meeting_user_t\
       \ mu ON u.id = mu.user_id\n        INNER JOIN meeting_t m ON mu.meeting_id =\
-      \ m.id\n    WHERE u.id = u.id\n\n    UNION\n\n    -- Select committee_ids\
-      \ from committee managers\n    SELECT cmu.committee_id\n    FROM nm_committee_manager_ids_user_t\
+      \ m.id\n    WHERE u.id = u.id\n\n    UNION\n\n    -- Select committee_ids from\
+      \ committee managers\n    SELECT cmu.committee_id\n    FROM nm_committee_manager_ids_user_t\
       \ cmu\n    WHERE cmu.user_id = u.id\n\n    UNION\n\n    -- Select home_committee_id\
       \ from user\n    SELECT home_committee_id\n    FROM user_t\n    WHERE home_committee_id\
       \ IS NOT NULL\n  ) AS committee_id\n) AS committee_ids\n"
