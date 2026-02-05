@@ -108,7 +108,7 @@ committee_ids:
             INNER JOIN meeting_user_t mu ON u.id = mu.user_id
             INNER JOIN meeting_t m ON mu.meeting_id = m.id
         WHERE u.id = u.id
-        
+
         UNION
 
         -- Select committee_ids from committee managers
