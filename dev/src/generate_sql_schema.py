@@ -83,7 +83,7 @@ class GenerateCodeBlocks:
     ]:
         """
         Return values:
-          pre_code: Type definitions etc., which should all appear before first table definitions
+          pre_code: Type definitions, generated trigger definitions etc., which should all appear before first table definitions
           table_name_code: All table definitions
           view_name_code: All view definitions, after all views, because of view field definition by sql
           alter_table_final_code: Changes on tables defining relations after, which should appear after all table/views definition to be sequence independant
@@ -135,6 +135,11 @@ class GenerateCodeBlocks:
         missing_handled_attributes = []
         im_table_code = ""
         errors: list[str] = []
+
+        for type_ in ["1_1", "1_n", "n_m"]:
+            pre_code += Helper.NOT_NULL_TRIGGER_FUNCTION_TEMPLATE.substitute(
+                cls.get_not_null_trigger_params(type_)
+            )
 
         for table_name, fields in InternalHelper.MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
@@ -219,6 +224,158 @@ class GenerateCodeBlocks:
             create_trigger_notify_code,
             errors,
         )
+
+    @staticmethod
+    def get_not_null_trigger_params(type_: str) -> dict[str, str]:
+        if type_ == "1_1":
+            docstring = dedent(
+                """\
+            -- Parameters required for all operation types
+            --   0. own_table – name of the table on which the trigger is defined
+            --   1. own_column – column in `own_table` referencing
+            --      `foreign_table`
+            --
+            -- Parameter needed for extended error message generation for 'UPDATE' and
+            -- 'DELETE' (can be empty on INSERT)
+            --   2. foreign_collection – name of collection of the triggered table that
+            --      will be used to SELECT
+            --   3. foreign_column – column in the foreign table referencing
+            --      `own_table`"""
+            )
+            parameters_declaration = indent(
+                dedent(
+                    """\
+                    -- Parameters from TRIGGER DEFINITION
+                    -- Always required
+                    own_table TEXT := TG_ARGV[0];
+                    own_column TEXT := TG_ARGV[1];
+
+                    -- Only for TG_OP in ('UPDATE', 'DELETE')
+                    foreign_collection TEXT := TG_ARGV[2];
+                    foreign_column TEXT := TG_ARGV[3];
+
+                    -- Calculated parameters
+                    own_collection TEXT;
+                    own_id INTEGER;
+                    foreign_id INTEGER;
+                    counted INTEGER;
+                    error_message TEXT;"""
+                ),
+                "    ",
+            )
+            select_expression = dedent(
+                f"""\
+                    {Helper.COLLECTION_FROM_TABLE_TEMPLATE.substitute({'parameter': 'own_collection', 'table_t': 'own_table'})}
+                        EXECUTE format('SELECT %I FROM %I WHERE id = %s', own_column, own_collection, own_id) INTO counted;"""
+            )
+
+        elif type_ == "1_n":
+            docstring = dedent(
+                """\
+            -- Parameters required for all operation types
+            --   0. own_table – name of the table on which the trigger is defined
+            --   1. own_column – column in `own_table` referencing
+            --      `foreign_table`
+            --   2. foreign_table – name of the triggered table, that will be used to SELECT
+            --   3. foreign_column – column in the foreign table referencing
+            --      `own_table`"""
+            )
+            parameters_declaration = indent(
+                dedent(
+                    """\
+                    -- Parameters from TRIGGER DEFINITION
+                    -- Always required
+                    own_table TEXT := TG_ARGV[0];
+                    own_column TEXT := TG_ARGV[1];
+                    foreign_table TEXT := TG_ARGV[2];
+                    foreign_column TEXT := TG_ARGV[3];
+
+                    -- Calculated parameters
+                    own_collection TEXT;
+                    foreign_collection TEXT;
+                    own_id INTEGER;
+                    foreign_id INTEGER;
+                    counted INTEGER;
+                    error_message TEXT;"""
+                ),
+                "    ",
+            )
+            select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', foreign_table, foreign_column, own_id) INTO counted;"
+
+        else:
+            docstring = dedent(
+                """\
+            -- Parameters required for both INSERT and DELETE operations
+            --   0. intermediate_table_name – name of the n:m table
+            --   1. own_table – name of the table on which the trigger is defined
+            --   2. own_column – column in `own_table` referencing
+            --      `foreign_collection`
+            --   3. intermediate_table_own_key – column in the n:m table referencing
+            --      `own_table`
+            --
+            -- Parameters needed for extended error message generation for 'DELETE'
+            -- (can be empty on INSERT)
+            --   4. intermediate_table_foreign_key – column in the n:m table referencing
+            --      the foreign table
+            --   5. foreign_collection – name of the collection of the foreign table
+            --   6. foreign_column – column in the foreign table referencing
+            --      `own_collection`"""
+            )
+            parameters_declaration = indent(
+                dedent(
+                    """\
+                    -- Parameters from TRIGGER DEFINITION
+                    -- Always required
+                    intermediate_table_name TEXT := TG_ARGV[0];
+                    own_table TEXT := TG_ARGV[1];
+                    own_column TEXT := TG_ARGV[2];
+                    intermediate_table_own_key TEXT := TG_ARGV[3];
+
+                    -- Only for TG_OP = 'DELETE'
+                    intermediate_table_foreign_key TEXT := TG_ARGV[4];
+                    foreign_collection TEXT := TG_ARGV[5];
+                    foreign_column TEXT := TG_ARGV[6];
+
+                    -- Calculated parameters
+                    own_collection TEXT;
+                    own_id INTEGER;
+                    foreign_id INTEGER;
+                    counted INTEGER;
+                    error_message TEXT;"""
+                ),
+                "    ",
+            )
+            select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', intermediate_table_name, intermediate_table_own_key, own_id) INTO counted;"
+
+        return {
+            "trigger_type": type_,
+            "docstring": docstring,
+            "parameters_declaration": parameters_declaration,
+            "foreign_column": (
+                "intermediate_table_own_key" if type_ == "n_m" else "foreign_column"
+            ),
+            "select_expression": select_expression,
+            "own_collection_definition": (
+                ""
+                if type_ == "1_1"
+                else f"\n        {Helper.COLLECTION_FROM_TABLE_TEMPLATE.substitute({'parameter': 'own_collection', 'table_t': 'own_table'})}"
+            ),
+            "ud_operations_filter": (
+                "(TG_OP = 'DELETE')"
+                if type_ == "n_m"
+                else "TG_OP IN ('UPDATE', 'DELETE')"
+            ),
+            "foreign_collection_definition": (
+                f"\n            {Helper.COLLECTION_FROM_TABLE_TEMPLATE.substitute({'parameter': 'foreign_collection', 'table_t': 'foreign_table'})}"
+                if type_ == "1_n"
+                else ""
+            ),
+            "foreign_id": (
+                "hstore(OLD) -> intermediate_table_foreign_key"
+                if type_ == "n_m"
+                else "OLD.id"
+            ),
+        }
 
     @classmethod
     def get_method(
@@ -1015,166 +1172,9 @@ class Helper:
         """
         )
     )
-
-    @staticmethod
-    def get_not_null_trigger_params(type_: str) -> dict[str, str]:
-        if type_ == "1_1":
-            docstring = dedent(
-                """\
-            -- Parameters required for all operation types
-            --   0. own_table – name of the table on which the trigger is defined
-            --   1. own_column – column in `own_table` referencing
-            --      `foreign_table`
-            --
-            -- Parameter needed for extended error message generation for 'UPDATE' and
-            -- 'DELETE' (can be empty on INSERT)
-            --   2. foreign_collection – name of collection of the triggered table that
-            --      will be used to SELECT
-            --   3. foreign_column – column in the foreign table referencing
-            --      `own_table`"""
-            )
-            parameters_declaration = indent(
-                dedent(
-                    """\
-                    -- Parameters from TRIGGER DEFINITION
-                    -- Always required
-                    own_table TEXT := TG_ARGV[0];
-                    own_column TEXT := TG_ARGV[1];
-
-                    -- Only for TG_OP in ('UPDATE', 'DELETE')
-                    foreign_collection TEXT := TG_ARGV[2];
-                    foreign_column TEXT := TG_ARGV[3];
-
-                    -- Calculated parameters
-                    own_collection TEXT;
-                    own_id INTEGER;
-                    foreign_id INTEGER;
-                    counted INTEGER;
-                    error_message TEXT;"""
-                ),
-                "    ",
-            )
-            select_expression = dedent(
-                """\
-                    own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
-                        EXECUTE format('SELECT %I FROM %I WHERE id = %s', own_column, own_collection, own_id) INTO counted;"""
-            )
-
-        elif type_ == "1_n":
-            docstring = dedent(
-                """\
-            -- Parameters required for all operation types
-            --   0. own_table – name of the table on which the trigger is defined
-            --   1. own_column – column in `own_table` referencing
-            --      `foreign_table`
-            --   2. foreign_table – name of the triggered table, that will be used to SELECT
-            --   3. foreign_column – column in the foreign table referencing
-            --      `own_table`"""
-            )
-            parameters_declaration = indent(
-                dedent(
-                    """\
-                    -- Parameters from TRIGGER DEFINITION
-                    -- Always required
-                    own_table TEXT := TG_ARGV[0];
-                    own_column TEXT := TG_ARGV[1];
-                    foreign_table TEXT := TG_ARGV[2];
-                    foreign_column TEXT := TG_ARGV[3];
-
-                    -- Calculated parameters
-                    own_collection TEXT;
-                    foreign_collection TEXT;
-                    own_id INTEGER;
-                    foreign_id INTEGER;
-                    counted INTEGER;
-                    error_message TEXT;"""
-                ),
-                "    ",
-            )
-            select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', foreign_table, foreign_column, own_id) INTO counted;"
-
-        else:
-            docstring = dedent(
-                """\
-            -- Parameters required for both INSERT and DELETE operations
-            --   0. intermediate_table_name – name of the n:m table
-            --   1. own_table – name of the table on which the trigger is defined
-            --   2. own_column – column in `own_table` referencing
-            --      `foreign_collection`
-            --   3. intermediate_table_own_key – column in the n:m table referencing
-            --      `own_table`
-            --
-            -- Parameters needed for extended error message generation for 'DELETE'
-            -- (can be empty on INSERT)
-            --   4. intermediate_table_foreign_key – column in the n:m table referencing
-            --      the foreign table
-            --   5. foreign_collection – name of the collection of the foreign table
-            --   6. foreign_column – column in the foreign table referencing
-            --      `own_collection`"""
-            )
-            parameters_declaration = indent(
-                dedent(
-                    """\
-                    -- Parameters from TRIGGER DEFINITION
-                    -- Always required
-                    intermediate_table_name TEXT := TG_ARGV[0];
-                    own_table TEXT := TG_ARGV[1];
-                    own_column TEXT := TG_ARGV[2];
-                    intermediate_table_own_key TEXT := TG_ARGV[3];
-
-                    -- Only for TG_OP = 'DELETE'
-                    intermediate_table_foreign_key TEXT := TG_ARGV[4];
-                    foreign_collection TEXT := TG_ARGV[5];
-                    foreign_column TEXT := TG_ARGV[6];
-
-                    -- Calculated parameters
-                    own_collection TEXT;
-                    own_id INTEGER;
-                    foreign_id INTEGER;
-                    counted INTEGER;
-                    error_message TEXT;"""
-                ),
-                "    ",
-            )
-            select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', intermediate_table_name, intermediate_table_own_key, own_id) INTO counted;"
-
-        return {
-            "trigger_type": type_,
-            "docstring": docstring,
-            "parameters_declaration": parameters_declaration,
-            "foreign_column": (
-                "intermediate_table_own_key" if type_ == "n_m" else "foreign_column"
-            ),
-            "select_expression": select_expression,
-            "own_collection_definition": (
-                ""
-                if type_ == "1_1"
-                else "\n        own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);"
-            ),
-            "ud_operations_filter": (
-                "(TG_OP = 'DELETE')"
-                if type_ == "n_m"
-                else "TG_OP IN ('UPDATE', 'DELETE')"
-            ),
-            "foreign_collection_definition": (
-                "\n            foreign_collection := SUBSTRING(foreign_table FOR LENGTH(foreign_table) - 2);"
-                if type_ == "1_n"
-                else ""
-            ),
-            "foreign_id": (
-                "hstore(OLD) -> intermediate_table_foreign_key"
-                if type_ == "n_m"
-                else "OLD.id"
-            ),
-        }
-
-    for type_ in ["1_1", "1_n", "n_m"]:
-        FILE_TEMPLATE_CONSTANT_DEFINITIONS += (
-            NOT_NULL_TRIGGER_FUNCTION_TEMPLATE.substitute(
-                get_not_null_trigger_params(type_)
-            )
-        )
-
+    COLLECTION_FROM_TABLE_TEMPLATE = string.Template(
+        "${parameter} := SUBSTRING(${table_t} FOR LENGTH(${table_t}) - 2);"
+    )
     FIELD_TEMPLATE = string.Template(
         "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${minimum}${minLength}${default},\n"
     )
@@ -1754,7 +1754,6 @@ def main() -> None:
         dest.write("-- MODELS_YML_CHECKSUM = " + repr(checksum) + "\n")
         dest.write("\n\n-- Function and meta table definitions\n")
         dest.write(Helper.FILE_TEMPLATE_CONSTANT_DEFINITIONS)
-        dest.write("\n\n-- Type definitions\n")
         dest.write(pre_code)
         dest.write("\n\n-- Table definitions\n")
         dest.write(table_name_code)

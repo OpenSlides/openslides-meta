@@ -339,9 +339,6 @@ END;
 $not_null_trigger$ language plpgsql;
 
 
--- Type definitions
-
-
 -- Table definitions
 
 CREATE TABLE action_worker_t (
