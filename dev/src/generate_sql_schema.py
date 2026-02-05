@@ -1000,12 +1000,11 @@ class Helper:
                     END IF;
                 END IF;
 
-                own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
-                foreign_id := ${foreign_id};
-                EXECUTE format('SELECT ${select_expression}', ${tables_for_select_expression}, own_id) INTO counted;
-                IF (counted is NULL) THEN
+                ${select_expression}
+                IF (counted is NULL) THEN${own_collection_definition}
                     error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, own_collection, own_id, own_column);
                     IF ${ud_operations_filter} THEN${foreign_collection_definition}
+                        foreign_id := ${foreign_id};
                         error_message := error_message || format(' from relationship before %s/%s/%s', foreign_collection, foreign_id, foreign_column);
                     END IF;
                     RAISE EXCEPTION '%', error_message;
@@ -1055,7 +1054,11 @@ class Helper:
                 ),
                 "    ",
             )
-            tables_for_select_expression = "own_column, own_collection"
+            select_expression = dedent(
+                """\
+                    own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
+                        EXECUTE format('SELECT %I FROM %I WHERE id = %s', own_column, own_collection, own_id) INTO counted;"""
+            )
 
         elif type_ == "1_n":
             docstring = dedent(
@@ -1088,7 +1091,7 @@ class Helper:
                 ),
                 "    ",
             )
-            tables_for_select_expression = "foreign_table, foreign_column"
+            select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', foreign_table, foreign_column, own_id) INTO counted;"
 
         else:
             docstring = dedent(
@@ -1133,9 +1136,8 @@ class Helper:
                 ),
                 "    ",
             )
-            tables_for_select_expression = (
-                "intermediate_table_name, intermediate_table_own_key"
-            )
+            select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', intermediate_table_name, intermediate_table_own_key, own_id) INTO counted;"
+
         return {
             "trigger_type": type_,
             "docstring": docstring,
@@ -1143,17 +1145,12 @@ class Helper:
             "foreign_column": (
                 "intermediate_table_own_key" if type_ == "n_m" else "foreign_column"
             ),
-            "foreign_id": (
-                "hstore(OLD) -> intermediate_table_foreign_key"
-                if type_ == "n_m"
-                else "OLD.id"
-            ),
-            "select_expression": (
-                "%I FROM %I WHERE id = %s"
+            "select_expression": select_expression,
+            "own_collection_definition": (
+                ""
                 if type_ == "1_1"
-                else "1 FROM %I WHERE %I = %L"
+                else "\n        own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);"
             ),
-            "tables_for_select_expression": tables_for_select_expression,
             "ud_operations_filter": (
                 "(TG_OP = 'DELETE')"
                 if type_ == "n_m"
@@ -1163,6 +1160,11 @@ class Helper:
                 "\n            foreign_collection := SUBSTRING(foreign_table FOR LENGTH(foreign_table) - 2);"
                 if type_ == "1_n"
                 else ""
+            ),
+            "foreign_id": (
+                "hstore(OLD) -> intermediate_table_foreign_key"
+                if type_ == "n_m"
+                else "OLD.id"
             ),
         }
 

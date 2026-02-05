@@ -212,11 +212,11 @@ BEGIN
     END IF;
 
     own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
-    foreign_id := OLD.id;
     EXECUTE format('SELECT %I FROM %I WHERE id = %s', own_column, own_collection, own_id) INTO counted;
     IF (counted is NULL) THEN
         error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, own_collection, own_id, own_column);
         IF TG_OP IN ('UPDATE', 'DELETE') THEN
+            foreign_id := OLD.id;
             error_message := error_message || format(' from relationship before %s/%s/%s', foreign_collection, foreign_id, foreign_column);
         END IF;
         RAISE EXCEPTION '%', error_message;
@@ -261,13 +261,13 @@ BEGIN
         END IF;
     END IF;
 
-    own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
-    foreign_id := OLD.id;
     EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', foreign_table, foreign_column, own_id) INTO counted;
     IF (counted is NULL) THEN
+        own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
         error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, own_collection, own_id, own_column);
         IF TG_OP IN ('UPDATE', 'DELETE') THEN
             foreign_collection := SUBSTRING(foreign_table FOR LENGTH(foreign_table) - 2);
+            foreign_id := OLD.id;
             error_message := error_message || format(' from relationship before %s/%s/%s', foreign_collection, foreign_id, foreign_column);
         END IF;
         RAISE EXCEPTION '%', error_message;
@@ -324,12 +324,12 @@ BEGIN
         END IF;
     END IF;
 
-    own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
-    foreign_id := hstore(OLD) -> intermediate_table_foreign_key;
     EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', intermediate_table_name, intermediate_table_own_key, own_id) INTO counted;
     IF (counted is NULL) THEN
+        own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
         error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, own_collection, own_id, own_column);
         IF (TG_OP = 'DELETE') THEN
+            foreign_id := hstore(OLD) -> intermediate_table_foreign_key;
             error_message := error_message || format(' from relationship before %s/%s/%s', foreign_collection, foreign_id, foreign_column);
         END IF;
         RAISE EXCEPTION '%', error_message;
