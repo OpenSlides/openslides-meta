@@ -100,28 +100,28 @@ committee_ids:
   description: "Calculated field: Returns committee_ids, where the user is manager or member in a meeting"
   sql: |
     (
-      SELECT array_agg(DISTINCT ci ORDER BY ci)
-      FROM (
-        -- Select committee_ids from meetings the user is part of
-        SELECT m.committee_id
-        FROM meeting_user_t AS mu
-        INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
-        WHERE mu.user_id = u.id
+      SELECT array_agg(DISTINCT ci ORDER BY ci)
+        FROM (
+        -- Select committee_ids from meetings the user is part of
+        SELECT m.committee_id
+        FROM meeting_user_t AS mu
+        INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
+        WHERE mu.user_id = u.id
 
-        UNION
+        UNION
 
-        -- Select committee_ids from committee managers
-        SELECT cmu.committee_id
-        FROM nm_committee_manager_ids_user_t cmu
-        WHERE cmu.user_id = u.id
+        -- Select committee_ids from committee managers
+        SELECT cmu.committee_id
+        FROM nm_committee_manager_ids_user_t cmu
+        WHERE cmu.user_id = u.id
 
-        UNION
+        UNION
 
-        -- Select home_committee_id from user
-        SELECT u_hc.home_committee_id
-        FROM user_t u_hc
-        WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
-      ) AS ci
+        -- Select home_committee_id from user
+        SELECT u_hc.home_committee_id
+        FROM user_t u_hc
+        WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
+      ) AS ci
     ) AS committee_ids
   # committee specific permissions
 committee_management_ids:
