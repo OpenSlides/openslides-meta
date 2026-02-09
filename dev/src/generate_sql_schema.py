@@ -6,7 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from string import Formatter
-from textwrap import dedent
+from textwrap import dedent, indent
 from typing import Any, TypedDict, cast
 
 from sqlfluff import fix
@@ -83,7 +83,7 @@ class GenerateCodeBlocks:
     ]:
         """
         Return values:
-          pre_code: Type definitions etc., which should all appear before first table definitions
+          pre_code: Type definitions, generated trigger definitions etc., which should all appear before first table definitions
           table_name_code: All table definitions
           view_name_code: All view definitions, after all views, because of view field definition by sql
           alter_table_final_code: Changes on tables defining relations after, which should appear after all table/views definition to be sequence independant
@@ -135,6 +135,11 @@ class GenerateCodeBlocks:
         missing_handled_attributes = []
         im_table_code = ""
         errors: list[str] = []
+
+        for type_ in ["1_1", "1_n", "n_m"]:
+            pre_code += Helper.NOT_NULL_TRIGGER_FUNCTION_TEMPLATE.substitute(
+                cls.get_not_null_trigger_params(type_)
+            )
 
         for table_name, fields in InternalHelper.MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
@@ -219,6 +224,154 @@ class GenerateCodeBlocks:
             create_trigger_notify_code,
             errors,
         )
+
+    @staticmethod
+    def get_not_null_trigger_params(type_: str) -> dict[str, str]:
+        if type_ == "1_1":
+            docstring = dedent(
+                """\
+            -- Parameters required for all operation types
+            --   0. own_collection – name of the view on which the trigger is defined
+            --   1. own_column – column in `own_table` referencing
+            --      `foreign_table`
+            --
+            -- Parameter needed for extended error message generation for 'UPDATE' and
+            -- 'DELETE' (can be empty on INSERT)
+            --   2. foreign_collection – name of collection of the triggered table that
+            --      will be used to SELECT
+            --   3. foreign_column – column in the foreign table referencing
+            --      `own_table`"""
+            )
+            parameters_declaration = indent(
+                dedent(
+                    """\
+                    -- Parameters from TRIGGER DEFINITION
+                    -- Always required
+                    own_collection TEXT := TG_ARGV[0];
+                    own_column TEXT := TG_ARGV[1];
+
+                    -- Only for TG_OP in ('UPDATE', 'DELETE')
+                    foreign_collection TEXT := TG_ARGV[2];
+                    foreign_column TEXT := TG_ARGV[3];
+
+                    -- Calculated parameters
+                    own_id INTEGER;
+                    foreign_id INTEGER;
+                    counted INTEGER;
+                    error_message TEXT;"""
+                ),
+                "    ",
+            )
+            select_expression = "EXECUTE format('SELECT %I FROM %I WHERE id = %L', own_column, own_collection, own_id) INTO counted;"
+
+        elif type_ == "1_n":
+            docstring = dedent(
+                """\
+            -- Parameters required for all operation types
+            --   0. own_table – name of the table on which the trigger is defined
+            --   1. own_column – column in `own_table` referencing
+            --      `foreign_table`
+            --   2. foreign_table – name of the triggered table, that will be used to SELECT
+            --   3. foreign_column – column in the foreign table referencing
+            --      `own_table`"""
+            )
+            parameters_declaration = indent(
+                dedent(
+                    """\
+                    -- Parameters from TRIGGER DEFINITION
+                    -- Always required
+                    own_table TEXT := TG_ARGV[0];
+                    own_column TEXT := TG_ARGV[1];
+                    foreign_table TEXT := TG_ARGV[2];
+                    foreign_column TEXT := TG_ARGV[3];
+
+                    -- Calculated parameters
+                    own_collection TEXT;
+                    foreign_collection TEXT;
+                    own_id INTEGER;
+                    foreign_id INTEGER;
+                    counted INTEGER;
+                    error_message TEXT;"""
+                ),
+                "    ",
+            )
+            select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', foreign_table, foreign_column, own_id) INTO counted;"
+
+        else:
+            docstring = dedent(
+                """\
+            -- Parameters required for both INSERT and DELETE operations
+            --   0. intermediate_table_name – name of the n:m table
+            --   1. own_table – name of the table on which the trigger is defined
+            --   2. own_column – column in `own_table` referencing
+            --      `foreign_collection`
+            --   3. intermediate_table_own_key – column in the n:m table referencing
+            --      `own_table`
+            --
+            -- Parameters needed for extended error message generation for 'DELETE'
+            -- (can be empty on INSERT)
+            --   4. intermediate_table_foreign_key – column in the n:m table referencing
+            --      the foreign table
+            --   5. foreign_collection – name of the collection of the foreign table
+            --   6. foreign_column – column in the foreign table referencing
+            --      `own_collection`"""
+            )
+            parameters_declaration = indent(
+                dedent(
+                    """\
+                    -- Parameters from TRIGGER DEFINITION
+                    -- Always required
+                    intermediate_table_name TEXT := TG_ARGV[0];
+                    own_table TEXT := TG_ARGV[1];
+                    own_column TEXT := TG_ARGV[2];
+                    intermediate_table_own_key TEXT := TG_ARGV[3];
+
+                    -- Only for TG_OP = 'DELETE'
+                    intermediate_table_foreign_key TEXT := TG_ARGV[4];
+                    foreign_collection TEXT := TG_ARGV[5];
+                    foreign_column TEXT := TG_ARGV[6];
+
+                    -- Calculated parameters
+                    own_collection TEXT;
+                    own_id INTEGER;
+                    foreign_id INTEGER;
+                    counted INTEGER;
+                    error_message TEXT;"""
+                ),
+                "    ",
+            )
+            select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', intermediate_table_name, intermediate_table_own_key, own_id) INTO counted;"
+
+        return {
+            "trigger_type": type_,
+            "docstring": docstring,
+            "parameters_declaration": parameters_declaration,
+            "foreign_column": (
+                "intermediate_table_own_key" if type_ == "n_m" else "foreign_column"
+            ),
+            "query_relation": "own_collection" if type_ == "1_1" else "own_table",
+            "select_expression": select_expression,
+            "own_collection_definition": (
+                ""
+                if type_ == "1_1"
+                else f"\n        {Helper.COLLECTION_FROM_TABLE_TEMPLATE.substitute({'parameter': 'own_collection', 'table_t': 'own_table'})}"
+            ),
+            "ud_operations_filter": (
+                "(TG_OP = 'DELETE')"
+                if type_ == "n_m"
+                else "TG_OP IN ('UPDATE', 'DELETE')"
+            ),
+            "foreign_collection_definition": (
+                f"\n            {Helper.COLLECTION_FROM_TABLE_TEMPLATE.substitute({'parameter': 'foreign_collection', 'table_t': 'foreign_table'})}"
+                if type_ == "1_n"
+                else ""
+            ),
+            "foreign_id": (
+                "hstore(OLD) -> intermediate_table_foreign_key"
+                if type_ == "n_m"
+                else "OLD.id"
+            ),
+        }
 
     @classmethod
     def get_method(
@@ -609,35 +762,43 @@ class GenerateCodeBlocks:
 
     @classmethod
     def get_trigger_check_not_null_for_1_1_relation(
-        cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
+        cls,
+        own_collection: str,
+        own_column: str,
+        foreign_collection: str,
+        foreign_column: str,
     ) -> str:
-        own_table_t = HelperGetNames.get_table_name(own_table)
-        foreign_table_t = HelperGetNames.get_table_name(foreign_table)
+        own_table_t = HelperGetNames.get_table_name(own_collection)
+        foreign_table_t = HelperGetNames.get_table_name(foreign_collection)
         return dedent(
             f"""
-            -- definition trigger not null for {own_table}.{own_column} against {foreign_table}.{foreign_column}
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_table}', '{own_column}', '');
+            -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column}
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_insert_trigger_name(own_collection, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_collection}', '{own_column}');
 
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_table}', '{own_column}', '{foreign_column}');
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_upd_del_trigger_name(own_collection, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_collection}', '{own_column}', '{foreign_collection}', '{foreign_column}');
             """
         )
 
     @classmethod
     def get_trigger_check_not_null_for_1_n(
-        cls, own_table: str, own_column: str, foreign_table: str, foreign_column: str
+        cls,
+        own_collection: str,
+        own_column: str,
+        foreign_collection: str,
+        foreign_column: str,
     ) -> str:
-        own_table_t = HelperGetNames.get_table_name(own_table)
-        foreign_table_t = HelperGetNames.get_table_name(foreign_table)
+        own_table_t = HelperGetNames.get_table_name(own_collection)
+        foreign_table_t = HelperGetNames.get_table_name(foreign_collection)
         return dedent(
             f"""
-            -- definition trigger not null for {own_table}.{own_column} against {foreign_table_t}.{foreign_column}
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_table, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table}', '{own_column}', '');
+            -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column}
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_collection, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table_t}', '{own_column}', '{foreign_table_t}', '{foreign_column}');
 
-            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_table, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table}', '{own_column}', '{foreign_column}');
+            CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_collection, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table_t}', '{own_column}', '{foreign_table_t}', '{foreign_column}');
 
             """
         )
@@ -646,10 +807,10 @@ class GenerateCodeBlocks:
     def get_trigger_check_not_null_for_n_m(
         cls, own_table_field: TableFieldType, foreign_table_field: TableFieldType
     ) -> str:
-        own_table = own_table_field.table
+        own_collection = own_table_field.table
         own_column = own_table_field.column
-        own_table_t = HelperGetNames.get_table_name(own_table)
-        foreign_table = foreign_table_field.table
+        own_table = HelperGetNames.get_table_name(own_collection)
+        foreign_collection = foreign_table_field.table
         foreign_column = foreign_table_field.column
         intermediate_table_name = HelperGetNames.get_nm_table_name(
             own_table_field, foreign_table_field
@@ -662,12 +823,12 @@ class GenerateCodeBlocks:
         )
         return dedent(
             f"""
-            -- definition trigger not null for {own_table}.{own_column} against {foreign_table}.{foreign_column} through {intermediate_table_name}
-            CREATE CONSTRAINT TRIGGER tr_i_{own_table}_{own_column} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
+            -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column} through {intermediate_table_name}
+            CREATE CONSTRAINT TRIGGER tr_i_{own_collection}_{own_column} AFTER INSERT ON {own_table} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}');
 
-            CREATE CONSTRAINT TRIGGER tr_d_{own_table}_{own_column} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}', '{intermediate_table_foreign_key}', '{foreign_table}', '{foreign_column}');
+            CREATE CONSTRAINT TRIGGER tr_d_{own_collection}_{own_column} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}', '{intermediate_table_foreign_key}', '{foreign_collection}', '{foreign_column}');
 
             """
         )
@@ -972,112 +1133,44 @@ class Helper:
         $read_only_trigger$ LANGUAGE plpgsql;
         """
     )
-
-    for type_, field_check in {
-        "1_1": "%I",
-        "1_n": "array_length(%I, 1)",
-    }.items():
-        FILE_TEMPLATE_CONSTANT_DEFINITIONS += dedent(
-            f"""
-        CREATE FUNCTION check_not_null_for_{type_}() RETURNS trigger AS $not_null_trigger$
-        -- usage with 3 parameters IN TRIGGER DEFINITION:
-        -- table_name: relation to check, usually a view
-        -- column_name: field to check, usually a field in a view
-        -- foreign_key: field name of triggered table, that will be used to SELECT
-        -- the values to check the not null. Can be empty on INSERT as then unused.
-        DECLARE
-            table_name TEXT := TG_ARGV[0];
-            column_name TEXT := TG_ARGV[1];
-            foreign_key TEXT := TG_ARGV[2];
-            foreign_id INTEGER;
-            counted INTEGER;
-            error_message TEXT;
-        BEGIN
-            IF (TG_OP = 'INSERT') THEN
-                -- in case of INSERT the view is checked on itself so the own id is applicable
-                foreign_id := NEW.id;
-            ELSIF TG_OP IN ('UPDATE', 'DELETE') THEN
-                foreign_id := hstore(OLD) -> foreign_key;
-                EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', table_name, foreign_id) INTO counted;
-                IF (counted IS NULL) THEN
-                    -- if the earlier referenced row was deleted (in the same transaction) we can quit.
-                    RETURN NULL;
+    NOT_NULL_TRIGGER_FUNCTION_TEMPLATE = string.Template(
+        dedent(
+            """
+            CREATE FUNCTION check_not_null_for_${trigger_type}() RETURNS trigger AS $$not_null_trigger$$
+            ${docstring}
+            DECLARE
+            ${parameters_declaration}
+            BEGIN
+                IF (TG_OP = 'INSERT') THEN
+                    -- in case of INSERT the view is checked on itself so the own id is applicable
+                    own_id := NEW.id;
+                ELSE
+                    own_id := hstore(OLD) -> ${foreign_column};
+                    EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', ${query_relation}, own_id) INTO counted;
+                    IF (counted IS NULL) THEN
+                        -- if the earlier referenced row was deleted (in the same transaction) we can quit.
+                        RETURN NULL;
+                    END IF;
                 END IF;
-            END IF;
 
-            IF (foreign_id IS NOT NULL) THEN
-                EXECUTE format('SELECT {field_check} FROM %I WHERE id = %s', column_name, table_name, foreign_id) INTO counted;
-                IF (counted is NULL) THEN
-                    error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, table_name, foreign_id, column_name);
-                    IF TG_OP IN ('UPDATE', 'DELETE') THEN
-                        error_message := error_message || format(' from relationship before %s/%s', OLD.id, foreign_key);
+                ${select_expression}
+                IF (counted is NULL) THEN${own_collection_definition}
+                    error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, own_collection, own_id, own_column);
+                    IF ${ud_operations_filter} THEN${foreign_collection_definition}
+                        foreign_id := ${foreign_id};
+                        error_message := error_message || format(' from relationship before %s/%s/%s', foreign_collection, foreign_id, foreign_column);
                     END IF;
                     RAISE EXCEPTION '%', error_message;
                 END IF;
-            END IF;
-            RETURN NULL;  -- AFTER TRIGGER needs no return
-        END;
-        $not_null_trigger$ language plpgsql;
+                RETURN NULL;  -- AFTER TRIGGER needs no return
+            END;
+            $$not_null_trigger$$ language plpgsql;
         """
         )
-
-    FILE_TEMPLATE_CONSTANT_DEFINITIONS += dedent(
-        """
-    CREATE FUNCTION check_not_null_for_n_m() RETURNS trigger AS $not_null_trigger$
-    -- Parameters required for both INSERT and DELETE operations
-    --   0. intermediate_table_name – name of the n:m table
-    --   1. own_collection – name of the table on which the trigger is defined
-    --   2. own_column – column in `own_collection` referencing
-    --      `foreign_collection`
-    --   3. intermediate_table_own_key – column in the n:m table referencing
-    --      `own_collection`
-    --
-    -- Parameters needed for extended error message generation for 'DELETE'
-    -- (can be empty on INSERT)
-    --   4. intermediate_table_foreign_key – column in the n:m table referencing
-    --      `foreign_collection`
-    --   5. foreign_collection – name of the foreign table
-    --   6. foreign_column – column in the foreign table referencing
-    --      `own_collection`
-    DECLARE
-        -- Always required
-        intermediate_table_name TEXT := TG_ARGV[0];
-        own_collection TEXT := TG_ARGV[1];
-        own_column TEXT := TG_ARGV[2];
-        intermediate_table_own_key TEXT := TG_ARGV[3];
-
-        -- Only for TG_OP = 'DELETE'
-        intermediate_table_foreign_key TEXT := TG_ARGV[4];
-        foreign_collection TEXT := TG_ARGV[5];
-        foreign_column TEXT := TG_ARGV[6];
-
-        -- Calculated
-        own_id INTEGER;
-        foreign_id INTEGER;
-        counted INTEGER;
-        error_message TEXT;
-    BEGIN
-        IF (TG_OP = 'INSERT') THEN
-            own_id := NEW.id;
-        ELSE
-            own_id := hstore(OLD) -> intermediate_table_own_key;
-            foreign_id := hstore(OLD) -> intermediate_table_foreign_key;
-        END IF;
-
-        EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', intermediate_table_name, intermediate_table_own_key, own_id) INTO counted;
-        IF (counted is NULL) THEN
-            error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, own_collection, own_id, own_column);
-            IF (TG_OP = 'DELETE') THEN
-                error_message := error_message || format(' from relationship before %s/%s/%s', foreign_collection, foreign_id, foreign_column);
-            END IF;
-            RAISE EXCEPTION '%', error_message;
-        END IF;
-        RETURN NULL;
-    END;
-    $not_null_trigger$ language plpgsql;
-    """
     )
-
+    COLLECTION_FROM_TABLE_TEMPLATE = string.Template(
+        "${parameter} := SUBSTRING(${table_t} FOR LENGTH(${table_t}) - 2);"
+    )
     FIELD_TEMPLATE = string.Template(
         "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${minimum}${minLength}${default},\n"
     )
@@ -1657,7 +1750,6 @@ def main() -> None:
         dest.write("-- MODELS_YML_CHECKSUM = " + repr(checksum) + "\n")
         dest.write("\n\n-- Function and meta table definitions\n")
         dest.write(Helper.FILE_TEMPLATE_CONSTANT_DEFINITIONS)
-        dest.write("\n\n-- Type definitions\n")
         dest.write(pre_code)
         dest.write("\n\n-- Table definitions\n")
         dest.write(table_name_code)
