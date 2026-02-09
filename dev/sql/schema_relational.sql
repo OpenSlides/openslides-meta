@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'b52a9c77f6f21bec0a04f7b7a30f4ffb'
+-- MODELS_YML_CHECKSUM = 'e0d5579236d105d49e687ac5999f0184'
 
 
 -- Function and meta table definitions
@@ -2026,8 +2026,8 @@ FROM topic_t t;
 CREATE VIEW "user" AS SELECT *,
 (select array_agg(n.meeting_id ORDER BY n.meeting_id) from nm_meeting_present_user_ids_user_t n where n.user_id = u.id) as is_present_in_meeting_ids,
 (
-  SELECT array_agg(DISTINCT ci ORDER BY ci)
-    FROM (
+  SELECT array_agg(DISTINCT ci.committee_id ORDER BY ci.committee_id)
+  FROM (
     -- Select committee_ids from meetings the user is part of
     SELECT m.committee_id
     FROM meeting_user_t AS mu
