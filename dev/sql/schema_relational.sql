@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'dc5c896ab1a27a1d24d2b74d35167cff'
+-- MODELS_YML_CHECKSUM = '70d875293a2d83c994af88245cd89ee5'
 
 
 -- Function and meta table definitions
@@ -172,7 +172,7 @@ $read_only_trigger$ LANGUAGE plpgsql;
 
 CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger AS $not_null_trigger$
 -- Parameters required for all operation types
---   0. own_table – name of the table on which the trigger is defined
+--   0. own_collection – name of the view on which the trigger is defined
 --   1. own_column – column in `own_table` referencing
 --      `foreign_table`
 --
@@ -185,7 +185,7 @@ CREATE FUNCTION check_not_null_for_1_1() RETURNS trigger AS $not_null_trigger$
 DECLARE
     -- Parameters from TRIGGER DEFINITION
     -- Always required
-    own_table TEXT := TG_ARGV[0];
+    own_collection TEXT := TG_ARGV[0];
     own_column TEXT := TG_ARGV[1];
 
     -- Only for TG_OP in ('UPDATE', 'DELETE')
@@ -193,7 +193,6 @@ DECLARE
     foreign_column TEXT := TG_ARGV[3];
 
     -- Calculated parameters
-    own_collection TEXT;
     own_id INTEGER;
     foreign_id INTEGER;
     counted INTEGER;
@@ -204,15 +203,14 @@ BEGIN
         own_id := NEW.id;
     ELSE
         own_id := hstore(OLD) -> foreign_column;
-        EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', own_table, own_id) INTO counted;
+        EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', own_collection, own_id) INTO counted;
         IF (counted IS NULL) THEN
             -- if the earlier referenced row was deleted (in the same transaction) we can quit.
             RETURN NULL;
         END IF;
     END IF;
 
-    own_collection := SUBSTRING(own_table FOR LENGTH(own_table) - 2);
-    EXECUTE format('SELECT %I FROM %I WHERE id = %s', own_column, own_collection, own_id) INTO counted;
+    EXECUTE format('SELECT %I FROM %I WHERE id = %L', own_column, own_collection, own_id) INTO counted;
     IF (counted is NULL) THEN
         error_message := format('Trigger %s: NOT NULL CONSTRAINT VIOLATED for %s/%s/%s', TG_NAME, own_collection, own_id, own_column);
         IF TG_OP IN ('UPDATE', 'DELETE') THEN
@@ -2559,49 +2557,49 @@ FOR EACH ROW EXECUTE FUNCTION generate_sequence('topic_t', 'sequential_number', 
 
 -- definition trigger not null for assignment.list_of_speakers_id against list_of_speakers.content_object_id_assignment_id
 CREATE CONSTRAINT TRIGGER tr_i_assignment_list_of_speakers_id AFTER INSERT ON assignment_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('assignment_t', 'list_of_speakers_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('assignment', 'list_of_speakers_id');
 
 CREATE CONSTRAINT TRIGGER tr_ud_assignment_list_of_speakers_id AFTER UPDATE OF content_object_id_assignment_id OR DELETE ON list_of_speakers_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('assignment_t', 'list_of_speakers_id', 'list_of_speakers', 'content_object_id_assignment_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('assignment', 'list_of_speakers_id', 'list_of_speakers', 'content_object_id_assignment_id');
 
 
 -- definition trigger not null for motion.list_of_speakers_id against list_of_speakers.content_object_id_motion_id
 CREATE CONSTRAINT TRIGGER tr_i_motion_list_of_speakers_id AFTER INSERT ON motion_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('motion_t', 'list_of_speakers_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('motion', 'list_of_speakers_id');
 
 CREATE CONSTRAINT TRIGGER tr_ud_motion_list_of_speakers_id AFTER UPDATE OF content_object_id_motion_id OR DELETE ON list_of_speakers_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('motion_t', 'list_of_speakers_id', 'list_of_speakers', 'content_object_id_motion_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('motion', 'list_of_speakers_id', 'list_of_speakers', 'content_object_id_motion_id');
 
 
 -- definition trigger not null for motion_block.list_of_speakers_id against list_of_speakers.content_object_id_motion_block_id
 CREATE CONSTRAINT TRIGGER tr_i_motion_block_list_of_speakers_id AFTER INSERT ON motion_block_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('motion_block_t', 'list_of_speakers_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('motion_block', 'list_of_speakers_id');
 
 CREATE CONSTRAINT TRIGGER tr_ud_motion_block_list_of_speakers_id AFTER UPDATE OF content_object_id_motion_block_id OR DELETE ON list_of_speakers_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('motion_block_t', 'list_of_speakers_id', 'list_of_speakers', 'content_object_id_motion_block_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('motion_block', 'list_of_speakers_id', 'list_of_speakers', 'content_object_id_motion_block_id');
 
 
 -- definition trigger not null for poll_candidate_list.option_id against option.content_object_id_poll_candidate_list_id
 CREATE CONSTRAINT TRIGGER tr_i_poll_candidate_list_option_id AFTER INSERT ON poll_candidate_list_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_candidate_list_t', 'option_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_candidate_list', 'option_id');
 
 CREATE CONSTRAINT TRIGGER tr_ud_poll_candidate_list_option_id AFTER UPDATE OF content_object_id_poll_candidate_list_id OR DELETE ON option_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_candidate_list_t', 'option_id', 'option', 'content_object_id_poll_candidate_list_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_candidate_list', 'option_id', 'option', 'content_object_id_poll_candidate_list_id');
 
 
 -- definition trigger not null for topic.agenda_item_id against agenda_item.content_object_id_topic_id
 CREATE CONSTRAINT TRIGGER tr_i_topic_agenda_item_id AFTER INSERT ON topic_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('topic_t', 'agenda_item_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('topic', 'agenda_item_id');
 
 CREATE CONSTRAINT TRIGGER tr_ud_topic_agenda_item_id AFTER UPDATE OF content_object_id_topic_id OR DELETE ON agenda_item_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('topic_t', 'agenda_item_id', 'agenda_item', 'content_object_id_topic_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('topic', 'agenda_item_id', 'agenda_item', 'content_object_id_topic_id');
 
 -- definition trigger not null for topic.list_of_speakers_id against list_of_speakers.content_object_id_topic_id
 CREATE CONSTRAINT TRIGGER tr_i_topic_list_of_speakers_id AFTER INSERT ON topic_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('topic_t', 'list_of_speakers_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('topic', 'list_of_speakers_id');
 
 CREATE CONSTRAINT TRIGGER tr_ud_topic_list_of_speakers_id AFTER UPDATE OF content_object_id_topic_id OR DELETE ON list_of_speakers_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('topic_t', 'list_of_speakers_id', 'list_of_speakers', 'content_object_id_topic_id');
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('topic', 'list_of_speakers_id', 'list_of_speakers', 'content_object_id_topic_id');
 
 
 

@@ -231,7 +231,7 @@ class GenerateCodeBlocks:
             docstring = dedent(
                 """\
             -- Parameters required for all operation types
-            --   0. own_table – name of the table on which the trigger is defined
+            --   0. own_collection – name of the view on which the trigger is defined
             --   1. own_column – column in `own_table` referencing
             --      `foreign_table`
             --
@@ -247,7 +247,7 @@ class GenerateCodeBlocks:
                     """\
                     -- Parameters from TRIGGER DEFINITION
                     -- Always required
-                    own_table TEXT := TG_ARGV[0];
+                    own_collection TEXT := TG_ARGV[0];
                     own_column TEXT := TG_ARGV[1];
 
                     -- Only for TG_OP in ('UPDATE', 'DELETE')
@@ -255,7 +255,6 @@ class GenerateCodeBlocks:
                     foreign_column TEXT := TG_ARGV[3];
 
                     -- Calculated parameters
-                    own_collection TEXT;
                     own_id INTEGER;
                     foreign_id INTEGER;
                     counted INTEGER;
@@ -263,11 +262,7 @@ class GenerateCodeBlocks:
                 ),
                 "    ",
             )
-            select_expression = dedent(
-                f"""\
-                    {Helper.COLLECTION_FROM_TABLE_TEMPLATE.substitute({'parameter': 'own_collection', 'table_t': 'own_table'})}
-                        EXECUTE format('SELECT %I FROM %I WHERE id = %s', own_column, own_collection, own_id) INTO counted;"""
-            )
+            select_expression = "EXECUTE format('SELECT %I FROM %I WHERE id = %L', own_column, own_collection, own_id) INTO counted;"
 
         elif type_ == "1_n":
             docstring = dedent(
@@ -354,6 +349,7 @@ class GenerateCodeBlocks:
             "foreign_column": (
                 "intermediate_table_own_key" if type_ == "n_m" else "foreign_column"
             ),
+            "own_table": "own_collection" if type_ == "1_1" else "own_table",
             "select_expression": select_expression,
             "own_collection_definition": (
                 ""
@@ -778,10 +774,10 @@ class GenerateCodeBlocks:
             f"""
             -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column}
             CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_insert_trigger_name(own_collection, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_table_t}', '{own_column}');
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_collection}', '{own_column}');
 
             CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_upd_del_trigger_name(own_collection, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
-            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_table_t}', '{own_column}', '{foreign_collection}', '{foreign_column}');
+            FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_collection}', '{own_column}', '{foreign_collection}', '{foreign_column}');
             """
         )
 
@@ -1150,7 +1146,7 @@ class Helper:
                     own_id := NEW.id;
                 ELSE
                     own_id := hstore(OLD) -> ${foreign_column};
-                    EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', own_table, own_id) INTO counted;
+                    EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', ${own_table}, own_id) INTO counted;
                     IF (counted IS NULL) THEN
                         -- if the earlier referenced row was deleted (in the same transaction) we can quit.
                         RETURN NULL;
