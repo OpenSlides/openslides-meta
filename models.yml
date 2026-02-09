@@ -4483,15 +4483,15 @@ user:
     read_only: true
     description: 'Calculated field: Returns committee_ids, where the user is manager
       or member in a meeting'
-    sql: "(\n  SELECT array_remove(array_agg(DISTINCT committee_id ORDER BY committee_id),NULL)\n\
+    sql: "(\n  SELECT array_agg(DISTINCT ci.committee_id ORDER BY ci.committee_id)\n\
       \  FROM (\n    -- Select committee_ids from meetings the user is part of\n \
-      \   SELECT m.committee_id\n    FROM user_t u\n        INNER JOIN meeting_user_t\
-      \ mu ON u.id = mu.user_id\n        INNER JOIN meeting_t m ON mu.meeting_id =\
-      \ m.id\n    WHERE u.id = u.id\n\n    UNION\n\n    -- Select committee_ids from\
-      \ committee managers\n    SELECT cmu.committee_id\n    FROM nm_committee_manager_ids_user_t\
-      \ cmu\n    WHERE cmu.user_id = u.id\n\n    UNION\n\n    -- Select home_committee_id\
-      \ from user\n    SELECT home_committee_id\n    FROM user_t\n    WHERE home_committee_id\
-      \ IS NOT NULL\n  ) AS committee_id\n) AS committee_ids\n"
+      \   SELECT m.committee_id\n    FROM meeting_user_t AS mu\n    INNER JOIN meeting_t\
+      \ AS m ON m.id = mu.meeting_id\n    WHERE mu.user_id = u.id\n\n    UNION\n\n\
+      \    -- Select committee_ids from committee managers\n    SELECT cmu.committee_id\n\
+      \    FROM nm_committee_manager_ids_user_t cmu\n    WHERE cmu.user_id = u.id\n\
+      \n    UNION\n\n    -- Select home_committee_id from user\n    SELECT u_hc.home_committee_id\n\
+      \    FROM user_t u_hc\n    WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id\
+      \ = u.id\n  ) AS ci\n) AS committee_ids\n"
   committee_management_ids:
     type: relation-list
     to: committee/manager_ids
