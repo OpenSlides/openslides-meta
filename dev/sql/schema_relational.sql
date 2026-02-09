@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '9163d47c35714018ebeba7cd55b1f886'
+-- MODELS_YML_CHECKSUM = '09a935e300c247962d6bcfaabfda65d2'
 
 
 -- Function and meta table definitions
@@ -2026,28 +2026,28 @@ FROM topic_t t;
 CREATE VIEW "user" AS SELECT *,
 (select array_agg(n.meeting_id ORDER BY n.meeting_id) from nm_meeting_present_user_ids_user_t n where n.user_id = u.id) as is_present_in_meeting_ids,
 (
-  SELECT array_remove(array_agg(DISTINCT committee_id ORDER BY committee_id),NULL)
-  FROM (
-    -- Select committee_ids from meetings the user is part of
-    SELECT m.committee_id
-    FROM user_t
-        INNER JOIN meeting_user_t mu ON u.id = mu.user_id
-        INNER JOIN meeting_t m ON mu.meeting_id = m.id
+  SELECT array_agg(DISTINCT ci ORDER BY ci)
+  FROM (
+    -- Select committee_ids from meetings the user is part of
+    SELECT m.committee_id
+    FROM meeting_user_t AS mu
+    INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
+    WHERE mu.user_id = u.id
 
-    UNION
+    UNION
 
-    -- Select committee_ids from committee managers
-    SELECT cmu.committee_id
-    FROM  user_t
-        INNER JOIN nm_committee_manager_ids_user_t cmu ON cmu.user_id = u.id
+    -- Select committee_ids from committee managers
+    SELECT cmu.committee_id
+    FROM nm_committee_manager_ids_user_t cmu
+    WHERE cmu.user_id = u.id
 
-    UNION
+    UNION
 
-    -- Select home_committee_id from user
-    SELECT u_hc.home_committee_id
-    FROM user_t u_hc
-    WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
-  ) AS committee_id
+    -- Select home_committee_id from user
+    SELECT u_hc.home_committee_id
+    FROM user_t u_hc
+    WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
+  ) AS ci
 ) AS committee_ids
 ,
 (select array_agg(n.committee_id ORDER BY n.committee_id) from nm_committee_manager_ids_user_t n where n.user_id = u.id) as committee_management_ids,
