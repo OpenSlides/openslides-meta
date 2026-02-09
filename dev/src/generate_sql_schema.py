@@ -1146,7 +1146,7 @@ class Helper:
                     own_id := NEW.id;
                 ELSE
                     own_id := hstore(OLD) -> ${foreign_column};
-                    EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', ${own_table}, own_id) INTO counted;
+                    EXECUTE format('SELECT 1 FROM %I WHERE "id" = %L', ${query_relation}, own_id) INTO counted;
                     IF (counted IS NULL) THEN
                         -- if the earlier referenced row was deleted (in the same transaction) we can quit.
                         RETURN NULL;
