@@ -349,7 +349,7 @@ class GenerateCodeBlocks:
             "foreign_column": (
                 "intermediate_table_own_key" if type_ == "n_m" else "foreign_column"
             ),
-            "own_table": "own_collection" if type_ == "1_1" else "own_table",
+            "query_relation": "own_collection" if type_ == "1_1" else "own_table",
             "select_expression": select_expression,
             "own_collection_definition": (
                 ""
