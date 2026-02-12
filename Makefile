@@ -1,3 +1,5 @@
+override DEV_SOURCE_DIR=./dev/src/
+
 # Commands inside the container
 
 all: pyupgrade black autoflake isort flake8 mypy
@@ -9,28 +11,28 @@ check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
 
 black:
-	black src/
+	black $(dev_source_dir)
 
 check-black:
-	black --check --diff src/
+	black --check --diff $(dev_source_dir)
 
 autoflake:
-	autoflake src/
+	autoflake $(dev_source_dir)
 
 isort:
-	isort src/
+	isort $(dev_source_dir)
 
 check-isort:
-	isort --check-only --diff src/
+	isort --check-only --diff $(dev_source_dir)
 
 flake8:
-	flake8 src/
+	flake8 $(dev_source_dir)
 
 mypy:
-	mypy src/
+	mypy $(dev_source_dir)
 
 validate-models:
-	python src/validate.py
+	python $(dev_source_dir)validate.py
 
 # Docker manage commands
 
