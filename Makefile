@@ -46,11 +46,11 @@ create-database:
 	createdb -e -h ${DATABASE_HOST} -p ${DATABASE_PORT} -U ${DATABASE_USER} ${DATABASE_NAME}
 
 apply-db-schema:
-	scripts/apply_db_schema.sh
+	dev/scripts/apply_db_schema.sh
 
 apply-test-data:
-	scripts/apply_data.sh base_data.sql
-	scripts/apply_data.sh test_data.sql
+	dev/scripts/apply_data.sh base_data.sql
+	dev/scripts/apply_data.sh test_data.sql
 
 create-database-with-schema: drop-database create-database apply-db-schema
 
