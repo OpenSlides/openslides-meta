@@ -11,28 +11,28 @@ check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
 
 black:
-	black $(dev_source_dir)
+	black $(DEV_SOURCE_DIR)
 
 check-black:
-	black --check --diff $(dev_source_dir)
+	black --check --diff $(DEV_SOURCE_DIR)
 
 autoflake:
-	autoflake $(dev_source_dir)
+	autoflake $(DEV_SOURCE_DIR)
 
 isort:
-	isort $(dev_source_dir)
+	isort $(DEV_SOURCE_DIR)
 
 check-isort:
-	isort --check-only --diff $(dev_source_dir)
+	isort --check-only --diff $(DEV_SOURCE_DIR)
 
 flake8:
-	flake8 $(dev_source_dir)
+	flake8 $(DEV_SOURCE_DIR)
 
 mypy:
-	mypy $(dev_source_dir)
+	mypy $(DEV_SOURCE_DIR)
 
 validate-models:
-	python $(dev_source_dir)validate.py
+	python $(DEV_SOURCE_DIR)validate.py
 
 # Docker manage commands
 
