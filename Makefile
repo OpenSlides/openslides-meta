@@ -28,16 +28,16 @@ flake8:
 	flake8 $(paths)
 
 mypy:
-	mypy src/
+	mypy dev/src/
 
 sqlfluff:
 	sqlfluff fix --dialect postgres --verbose
 
 validate-models:
-	python -m src.validate
+	python -m dev/src.validate
 
 generate-relational-schema:
-	python -m src.generate_sql_schema
+	python -m dev/src.generate_sql_schema
 
 drop-database:
 	dropdb -f -e --if-exists -h ${DATABASE_HOST} -p ${DATABASE_PORT} -U ${DATABASE_USER} ${DATABASE_NAME}
