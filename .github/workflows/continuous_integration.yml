@@ -31,27 +31,27 @@ jobs:
 
       - name: Check black
         if: always()
-        run: make check-black
+        run: make -C .. check-black
 
       - name: Check isort
         if: always()
-        run: make check-isort
+        run: make -C .. check-isort
 
       - name: Check flake8
         if: always()
-        run: make flake8
+        run: make -C .. flake8
 
       - name: Check mypy
         if: always()
-        run: make mypy
+        run: make -C .. mypy
 
       - name: Check pyupgrade
         if: always()
-        run: make pyupgrade
+        run: make -C .. pyupgrade
 
       - name: Validate models.yml
         if: always()
-        run: make validate-models
+        run: make -C .. validate-models
 
       - name: Generate models.yml from collections
         run: python src/join_models_yml.py

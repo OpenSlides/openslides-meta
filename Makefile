@@ -1,5 +1,5 @@
 # Commands inside the container
-paths = src/ tests/
+paths = dev/src/ dev/tests/
 
 all: pyupgrade black autoflake isort flake8 mypy sqlfluff
 
