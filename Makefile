@@ -66,4 +66,4 @@ run-dev:
 	docker compose -f dev/docker-compose.yml exec models bash --rcfile /etc/bash_completion
 
 stop-dev:
-	docker compose down
+	docker compose -f dev/docker-compose.yml down
