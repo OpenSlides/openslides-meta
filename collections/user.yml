@@ -100,12 +100,11 @@ committee_ids:
   description: "Calculated field: Returns committee_ids, where the user is manager or member in a meeting"
   sql: |
     (
-      SELECT array_agg(DISTINCT committee_id ORDER BY committee_id)
+      SELECT array_agg(DISTINCT ci.committee_id ORDER BY ci.committee_id)
       FROM (
         -- Select committee_ids from meetings the user is part of
         SELECT m.committee_id
         FROM meeting_user_t AS mu
-        INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
         INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
         WHERE mu.user_id = u.id
 
@@ -119,11 +118,11 @@ committee_ids:
         UNION
 
         -- Select home_committee_id from user
-        SELECT u.home_committee_id
-        WHERE u.home_committee_id IS NOT NULL
-      ) _
+        SELECT u_hc.home_committee_id
+        FROM user_t u_hc
+        WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
+      ) AS ci
     ) AS committee_ids
-
   # committee specific permissions
 committee_management_ids:
   type: relation-list
@@ -152,13 +151,12 @@ history_entry_ids:
 
 meeting_ids:
   type: relation-list
-  description: Calculated. All ids from meetings calculated via meeting_user and group_ids as integers.
+  description: Calculated. All ids from meetings calculated via meeting_user.
   read_only: true
   sql: |
     (
       SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id)
       FROM meeting_user_t mu
-      INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
       WHERE mu.user_id = u.id
     ) AS meeting_ids
   to: meeting/user_ids

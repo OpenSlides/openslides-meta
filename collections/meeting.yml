@@ -20,7 +20,7 @@ welcome_text:
   # General
 name:
   type: string
-  maxLength: 100
+  maxLength: 200
   default: OpenSlides
   restriction_mode: A
   required: true
@@ -1072,7 +1072,6 @@ user_ids:
     (
       SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id)
       FROM meeting_user_t mu
-      INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id
       WHERE mu.meeting_id = m.id
     ) AS user_ids
   to: user/meeting_ids

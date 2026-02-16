@@ -432,7 +432,6 @@ committee:
     sql: "(\n  SELECT array_agg(DISTINCT user_id ORDER BY user_id)\n  FROM (\n   \
       \ -- Select user_ids from committees meetings\n    SELECT mu.user_id\n    FROM\
       \ meeting_t AS m\n    INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id\n\
-      \    INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id = gmu.meeting_user_id\n\
       \    WHERE m.committee_id = c.id\n\n    UNION\n\n    -- Select user_ids from\
       \ committee managers\n    SELECT cmu.user_id\n    FROM nm_committee_manager_ids_user_t\
       \ cmu\n    WHERE cmu.committee_id = c.id\n\n    UNION\n\n    -- Select user_id\
@@ -899,7 +898,7 @@ meeting:
     restriction_mode: C
   name:
     type: string
-    maxLength: 100
+    maxLength: 200
     default: OpenSlides
     restriction_mode: A
     required: true
@@ -1916,8 +1915,7 @@ meeting:
       meeting.
     read_only: true
     sql: "(\n  SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id)\n  FROM meeting_user_t\
-      \ mu\n  INNER JOIN nm_group_meeting_user_ids_meeting_user_t AS gmu ON mu.id\
-      \ = gmu.meeting_user_id\n  WHERE mu.meeting_id = m.id\n) AS user_ids\n"
+      \ mu\n  WHERE mu.meeting_id = m.id\n) AS user_ids\n"
     to: user/meeting_ids
     restriction_mode: A
   reference_projector_id:
@@ -2266,6 +2264,7 @@ meeting_user:
   group_ids:
     type: relation-list
     to: group/meeting_user_ids
+    required: true
     equal_fields: meeting_id
     restriction_mode: A
   structure_level_ids:
@@ -3130,6 +3129,9 @@ organization:
   disable_forward_with_attachments:
     type: boolean
     restriction_mode: A
+  restrict_edit_forward_committees:
+    type: boolean
+    restriction_mode: A
   enable_electronic_voting:
     type: boolean
     restriction_mode: B
@@ -3166,6 +3168,9 @@ organization:
     type: boolean
     restriction_mode: A
   enable_anonymous:
+    type: boolean
+    restriction_mode: A
+  restrict_editing_same_level_committee_admins:
     type: boolean
     restriction_mode: A
   saml_enabled:
@@ -4495,15 +4500,15 @@ user:
     read_only: true
     description: 'Calculated field: Returns committee_ids, where the user is manager
       or member in a meeting'
-    sql: "(\n  SELECT array_agg(DISTINCT committee_id ORDER BY committee_id)\n  FROM\
-      \ (\n    -- Select committee_ids from meetings the user is part of\n    SELECT\
-      \ m.committee_id\n    FROM meeting_user_t AS mu\n    INNER JOIN nm_group_meeting_user_ids_meeting_user_t\
-      \ AS gmu ON mu.id = gmu.meeting_user_id\n    INNER JOIN meeting_t AS m ON m.id\
-      \ = mu.meeting_id\n    WHERE mu.user_id = u.id\n\n    UNION\n\n    -- Select\
-      \ committee_ids from committee managers\n    SELECT cmu.committee_id\n    FROM\
-      \ nm_committee_manager_ids_user_t cmu\n    WHERE cmu.user_id = u.id\n\n    UNION\n\
-      \n    -- Select home_committee_id from user\n    SELECT u.home_committee_id\n\
-      \    WHERE u.home_committee_id IS NOT NULL\n  ) _\n) AS committee_ids\n"
+    sql: "(\n  SELECT array_agg(DISTINCT ci.committee_id ORDER BY ci.committee_id)\n\
+      \  FROM (\n    -- Select committee_ids from meetings the user is part of\n \
+      \   SELECT m.committee_id\n    FROM meeting_user_t AS mu\n    INNER JOIN meeting_t\
+      \ AS m ON m.id = mu.meeting_id\n    WHERE mu.user_id = u.id\n\n    UNION\n\n\
+      \    -- Select committee_ids from committee managers\n    SELECT cmu.committee_id\n\
+      \    FROM nm_committee_manager_ids_user_t cmu\n    WHERE cmu.user_id = u.id\n\
+      \n    UNION\n\n    -- Select home_committee_id from user\n    SELECT u_hc.home_committee_id\n\
+      \    FROM user_t u_hc\n    WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id\
+      \ = u.id\n  ) AS ci\n) AS committee_ids\n"
   committee_management_ids:
     type: relation-list
     to: committee/manager_ids
@@ -4528,12 +4533,10 @@ user:
     restriction_mode: A
   meeting_ids:
     type: relation-list
-    description: Calculated. All ids from meetings calculated via meeting_user and
-      group_ids as integers.
+    description: Calculated. All ids from meetings calculated via meeting_user.
     read_only: true
     sql: "(\n  SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id)\n \
-      \ FROM meeting_user_t mu\n  INNER JOIN nm_group_meeting_user_ids_meeting_user_t\
-      \ AS gmu ON mu.id = gmu.meeting_user_id\n  WHERE mu.user_id = u.id\n) AS meeting_ids\n"
+      \ FROM meeting_user_t mu\n  WHERE mu.user_id = u.id\n) AS meeting_ids\n"
     to: meeting/user_ids
     restriction_mode: E
   organization_id:
