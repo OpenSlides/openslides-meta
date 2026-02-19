@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 from pathlib import Path
@@ -19,9 +20,10 @@ COLLECTIONFIELD_REGEX = re.compile(f"^{_collection_regex}{KEYSEPARATOR}{_field_r
 DECIMAL_REGEX = re.compile(r"^-?(\d|[1-9]\d+)\.\d{6}$")
 COLOR_REGEX = re.compile(r"^#[0-9a-f]{6}$")
 
-DEFAULT_COLLECTIONS_DIR = str(
-    (Path(__file__).parent / ".." / ".." / "collections").resolve()
-)
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+DEFAULT_COLLECTION_META = os.path.join(ROOT, "collection-meta.yml")
+DEFAULT_COLLECTIONS_DIR = os.path.join(ROOT, "collections")
+
 
 RELATION_TYPES = (
     "relation",
