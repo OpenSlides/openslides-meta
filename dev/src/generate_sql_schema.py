@@ -1178,12 +1178,12 @@ class Helper:
         dedent(
             """
             CREATE TABLE ${table_name} (
-                ${field1} integer NOT NULL REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
-                ${field2} integer NOT NULL REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field1} integer NOT NULL CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field2} integer NOT NULL CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
                 PRIMARY KEY (${list_of_keys})
             );
-            CREATE INDEX ON ${table_name} (${field1});
-            CREATE INDEX ON ${table_name} (${field2});
+            CREATE INDEX ${index_1} ON ${table_name} (${field1});
+            CREATE INDEX ${index_2} ON ${table_name} (${field2});
         """
         )
     )
@@ -1191,19 +1191,23 @@ class Helper:
         dedent(
             """
             CREATE TABLE ${table_name} (
-                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${own_table_name_with_ref_column} integer NOT NULL CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
                 CONSTRAINT ${unique_constraint_name} UNIQUE (${own_table_name_with_ref_column}, ${own_table_column})
             );
-            CREATE INDEX ON ${table_name} (${own_table_name_with_ref_column});
-            CREATE INDEX ON ${table_name} (${own_table_column});
+            CREATE INDEX ${index_1} ON ${table_name} (${own_table_name_with_ref_column});
+            CREATE INDEX ${index_2} ON ${table_name} (${own_table_column});
+            ${content_field_indices}
         """
         )
     )
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
+        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
+    )
+    GM_INDEX_LINE_TEMPLATE = string.Template(
+        "CREATE INDEX ${index} ON ${table_name} (${gm_content_field});"
     )
 
     RELATION_LIST_AGENDA = dedent(
@@ -1324,8 +1328,8 @@ class Helper:
         update_action: str = "",
     ) -> str:
         FOREIGN_KEY_TABLE_CONSTRAINT_TEMPLATE = string.Template(
-            "ALTER TABLE ${own_table} ADD FOREIGN KEY(${own_column}) REFERENCES ${foreign_table}(${fk_column})${initially_deferred}${delete_action}${update_action};\n"
-            "CREATE INDEX ON ${own_table} (${own_column});\n"
+            "ALTER TABLE ${own_table} ADD CONSTRAINT ${fk_name} FOREIGN KEY(${own_column}) REFERENCES ${foreign_table}(${fk_column})${initially_deferred}${delete_action}${update_action};\n"
+            "CREATE INDEX ${index} ON ${own_table} (${own_column});\n"
         )
 
         if initially_deferred:
@@ -1334,9 +1338,14 @@ class Helper:
             text_initially_deferred = ""
         own_table = HelperGetNames.get_table_name(table_name)
         foreign_table = HelperGetNames.get_table_name(foreign_table)
+        fk_idx = HelperGetNames.get_fk_and_index_name(
+            own_table, own_column, foreign_table, fk_column
+        )
         result = FOREIGN_KEY_TABLE_CONSTRAINT_TEMPLATE.substitute(
             {
                 "own_table": own_table,
+                "fk_name": fk_idx[0],
+                "index": fk_idx[1],
                 "foreign_table": foreign_table,
                 "own_column": own_column,
                 "fk_column": fk_column,
@@ -1390,13 +1399,21 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             field1 += "_1"
             field2 += "_2"
         table_name = HelperGetNames.get_table_name(nm_table_name)
+        table1 = HelperGetNames.get_table_name(own_table_field.table)
+        table2 = HelperGetNames.get_table_name(foreign_table_field.table)
+        fk_idx1 = HelperGetNames.get_fk_and_index_name(table_name, field1, table1, "id")
+        fk_idx2 = HelperGetNames.get_fk_and_index_name(table_name, field2, table1, "id")
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
             {
                 "table_name": table_name,
                 "field1": field1,
-                "table1": HelperGetNames.get_table_name(own_table_field.table),
+                "fk_name_1": fk_idx1[0],
+                "index_1": fk_idx1[1],
+                "table1": table1,
                 "field2": field2,
-                "table2": HelperGetNames.get_table_name(foreign_table_field.table),
+                "fk_name_2": fk_idx2[0],
+                "index_2": fk_idx2[1],
+                "table2": table2,
                 "list_of_keys": ", ".join([field1, field2]),
             }
         )
@@ -1418,27 +1435,55 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             + "')"
         )
         foreign_table_ref_lines = []
+        indices_lines = []
         own_table_column = own_table_field.intermediate_column
         for foreign_table_field in foreign_table_fields:
             foreign_table_name = foreign_table_field.table
+            gm_content_field = HelperGetNames.get_gm_content_field(
+                own_table_column, foreign_table_name
+            )
+            fk_idx = HelperGetNames.get_fk_and_index_name(
+                gm_table_name, gm_content_field, foreign_table_name, "id"
+            )
             subst_dict = {
                 "own_table_column": own_table_column,
+                "fk_name": fk_idx[0],
                 "foreign_table_name": HelperGetNames.get_table_name(foreign_table_name),
                 "foreign_view_name": foreign_table_name,
-                "gm_content_field": HelperGetNames.get_gm_content_field(
-                    own_table_column, foreign_table_name
-                ),
+                "gm_content_field": gm_content_field,
             }
             foreign_table_ref_lines.append(
                 Helper.GM_FOREIGN_TABLE_LINE_TEMPLATE.substitute(subst_dict)
             )
+            indices_lines.append(
+                Helper.GM_INDEX_LINE_TEMPLATE.substitute(
+                    {
+                        "index": fk_idx[1],
+                        "table_name": gm_table_name,
+                        "gm_content_field": gm_content_field,
+                    }
+                )
+            )
 
+        own_table_name = HelperGetNames.get_table_name(own_table_field.table)
+        own_table_name_with_ref_column = (
+            f"{own_table_field.table}_{own_table_field.ref_column}"
+        )
+        fk_idx = HelperGetNames.get_fk_and_index_name(
+            gm_table_name,
+            own_table_name_with_ref_column,
+            own_table_name,
+            own_table_field.ref_column,
+        )
         text = Helper.INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE.substitute(
             {
                 "table_name": gm_table_name,
-                "own_table_name": HelperGetNames.get_table_name(own_table_field.table),
-                "own_table_name_with_ref_column": (
-                    own_table_name_with_ref_column := f"{own_table_field.table}_{own_table_field.ref_column}"
+                "own_table_name": own_table_name,
+                "own_table_name_with_ref_column": own_table_name_with_ref_column,
+                "fk_name": fk_idx[0],
+                "index_1": fk_idx[1],
+                "index_2": HelperGetNames.get_index_name(
+                    gm_table_name, own_table_column
                 ),
                 "own_table_ref_column": own_table_field.ref_column,
                 "own_table_column": own_table_column,
@@ -1450,6 +1495,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "unique_constraint_name": HelperGetNames.get_generic_unique_constraint_name(
                     own_table_name_with_ref_column, own_table_column
                 ),
+                "content_field_indices": "\n".join(indices_lines),
             }
         )
         return gm_table_name, text

@@ -90,6 +90,16 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_shortened_name(name: str) -> str:
+        """
+        Gets the name shortened to 57 characters plus 6 characters of its md5 hash.
+        """
+        if len(name) > HelperGetNames.MAX_LEN:
+            name = f"{name[:57]}{hashlib.md5(name.encode()).hexdigest()[-6:]}"
+        return name
+
+    @staticmethod
+    @max_length
     def get_table_name(table_name: str, migration: bool = False) -> str:
         """
         Gets the table name as old collection name with suffix '_t'.
@@ -193,6 +203,43 @@ class HelperGetNames:
     ) -> str:
         """gets the name of minLength constraint"""
         return f"minlength_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_fk_constraint_name(
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        fk_column: str,
+    ) -> str:
+        """gets the name of a foreign key constraint."""
+        return HelperGetNames.get_shortened_name(
+            f"fk_{own_table}_{own_column}_{foreign_table}_{fk_column}"
+        )
+
+    @staticmethod
+    @max_length
+    def get_index_name(
+        own_table: str,
+        own_column: str,
+    ) -> str:
+        """gets the name of a foreign key constraint."""
+        return HelperGetNames.get_shortened_name(f"idx_{own_table}_{own_column}")
+
+    @staticmethod
+    def get_fk_and_index_name(
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        fk_column: str,
+    ) -> tuple[str, str]:
+        """gets the tuple of a foreign key constraint and index (FK, IDX)."""
+        return (
+            HelperGetNames.get_fk_constraint_name(
+                own_table, own_column, foreign_table, fk_column
+            ),
+            HelperGetNames.get_index_name(own_table, own_column),
+        )
 
     @staticmethod
     @max_length
