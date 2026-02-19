@@ -5,8 +5,9 @@ from enum import Enum
 from typing import Any, TypedDict, cast
 
 import yaml
-from meta.dev.src.join_models_yml import build_models_yaml_content  # type: ignore
-from meta.dev.src.validate import KEYSEPARATOR
+
+from .join_models_yml import build_models_yaml_content
+from .validate import KEYSEPARATOR
 
 
 class TableFieldType:
