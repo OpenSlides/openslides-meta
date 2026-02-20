@@ -9,10 +9,12 @@ weight:
   restriction_mode: A
 meeting_user_id:
   type: relation
+  reference: meeting_user
   to: meeting_user/motion_working_group_speaker_ids
   restriction_mode: A
 motion_id:
   type: relation
+  reference: motion
   to: motion/working_group_speaker_ids
   equal_fields: meeting_id
   restriction_mode: A
@@ -20,6 +22,7 @@ motion_id:
   constant: true
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/motion_working_group_speaker_ids
   required: true
   restriction_mode: A

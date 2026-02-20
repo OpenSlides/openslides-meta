@@ -3,14 +3,25 @@ services:
     models:
         build: .
         user: $USER_ID:$GROUP_ID
+        ports:
+            - 5678:5678
         volumes:
             - ..:/app
+        environment:
+            - DATABASE_HOST=postgres
+            - DATABASE_PORT=5432
+            - DATABASE_USER=openslides
+            - DATABASE_NAME=openslides
+            - PGPASSWORD=openslides
+
         depends_on:
             - postgres
         networks:
             - postgres
     postgres:
-        image: postgres:15
+        build:
+            context: .
+            dockerfile: Dockerfile-postgres
         environment:
             - POSTGRES_USER=openslides
             - POSTGRES_PASSWORD=openslides

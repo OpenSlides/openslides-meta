@@ -72,6 +72,7 @@ gender_id:
   type: relation
   to: gender/user_ids
   restriction_mode: A
+  reference: gender
 
   # Organization, meeting and committee
 organization_management_level:
@@ -89,14 +90,39 @@ is_present_in_meeting_ids:
 
   # Calculates all committee's where the user is
   # - committee-manager (= committees in committee_management_ids)
-  # - is member (= has group-rights) of a meeting in the committee
+  # - is member (= is in a group) of a meeting in the committee
+  # - or has his home committee
 committee_ids:
   type: relation-list
   to: committee/user_ids
   restriction_mode: E
   read_only: true
-  description: "Calculated field."
+  description: "Calculated field: Returns committee_ids, where the user is manager or member in a meeting"
+  sql: |
+    (
+      SELECT array_agg(DISTINCT ci.committee_id ORDER BY ci.committee_id)
+      FROM (
+        -- Select committee_ids from meetings the user is part of
+        SELECT m.committee_id
+        FROM meeting_user_t AS mu
+        INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
+        WHERE mu.user_id = u.id
 
+        UNION
+
+        -- Select committee_ids from committee managers
+        SELECT cmu.committee_id
+        FROM nm_committee_manager_ids_user_t cmu
+        WHERE cmu.user_id = u.id
+
+        UNION
+
+        -- Select home_committee_id from user
+        SELECT u_hc.home_committee_id
+        FROM user_t u_hc
+        WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
+      ) AS ci
+    ) AS committee_ids
   # committee specific permissions
 committee_management_ids:
   type: relation-list
@@ -115,23 +141,28 @@ poll_voted_ids:
 option_ids:
   type: relation-list
   to: option/content_object_id
+  reference: option
   restriction_mode: A
 vote_ids:
   type: relation-list
   to: vote/user_id
+  reference: vote
   restriction_mode: A
 delegated_vote_ids:
   type: relation-list
   to: vote/delegated_user_id
+  reference: vote
   restriction_mode: A
 poll_candidate_ids:
   type: relation-list
   to: poll_candidate/user_id
+  reference: poll_candidate
   restriction_mode: A
 home_committee_id:
   type: relation
   to: committee/native_user_ids
   restriction_mode: E
+  reference: committee
 
 history_position_ids:
   type: relation-list
@@ -143,12 +174,20 @@ history_entry_ids:
   restriction_mode: A
 
 meeting_ids:
-  type: number[]
-  description: Calculated. All ids from meetings calculated via meeting_user and group_ids as integers.
+  type: relation-list
+  description: Calculated. All ids from meetings calculated via meeting_user.
   read_only: true
+  sql: |
+    (
+      SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id)
+      FROM meeting_user_t mu
+      WHERE mu.user_id = u.id
+    ) AS meeting_ids
+  to: meeting/user_ids
   restriction_mode: E
 organization_id:
   type: relation
+  reference: organization
   to: organization/user_ids
   required: true
   restriction_mode: F

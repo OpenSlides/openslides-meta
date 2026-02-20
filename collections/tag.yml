@@ -21,6 +21,7 @@ tagged_ids:
   restriction_mode: A
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/tag_ids
   required: true
   restriction_mode: A

@@ -154,9 +154,9 @@ theme_for_organization_id:
   to: organization/theme_id
   type: relation
 organization_id:
-  required: true
-  restriction_mode: A
-  to: organization/theme_ids
   type: relation
-  constant: true
+  reference: organization
+  to: organization/theme_ids
+  restriction_mode: A
+  required: true
 

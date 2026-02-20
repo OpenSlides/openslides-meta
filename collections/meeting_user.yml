@@ -24,12 +24,14 @@ locked_out:
 
 user_id:
   type: relation
+  reference: user
   to: user/meeting_user_ids
   required: true
   restriction_mode: C
   constant: true
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/meeting_user_ids
   required: true
   restriction_mode: C
@@ -73,6 +75,7 @@ assignment_candidate_ids:
   restriction_mode: A
 vote_delegated_to_id:
   type: relation
+  reference: meeting_user
   to: meeting_user/vote_delegations_from_ids
   equal_fields: meeting_id
   restriction_mode: A
@@ -89,8 +92,8 @@ chat_message_ids:
 group_ids:
   type: relation-list
   to: group/meeting_user_ids
-  equal_fields: meeting_id
   required: true
+  equal_fields: meeting_id
   restriction_mode: A
 structure_level_ids:
   type: relation-list

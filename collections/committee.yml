@@ -23,13 +23,37 @@ meeting_ids:
 default_meeting_id:
   type: relation
   to: meeting/default_meeting_for_committee_id
+  reference: meeting
   restriction_mode: A
 user_ids:
   type: relation-list
   to: user/committee_ids
   restriction_mode: A
   read_only: true
-  description: "Calculated field."
+  description: "Calculated field: All users which are in a group of a meeting, belonging to the committee or beeing manager of the committee"
+  sql: |
+    (
+      SELECT array_agg(DISTINCT user_id ORDER BY user_id)
+      FROM (
+        -- Select user_ids from committees meetings
+        SELECT mu.user_id
+        FROM meeting_t AS m
+        INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id
+        WHERE m.committee_id = c.id
+
+        UNION
+
+        -- Select user_ids from committee managers
+        SELECT cmu.user_id
+        FROM nm_committee_manager_ids_user_t cmu
+        WHERE cmu.committee_id = c.id
+
+        UNION
+
+        -- Select user_id from home committees
+        SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
+      ) _
+    ) AS user_ids
 manager_ids:
   type: relation-list
   to: user/committee_management_ids
@@ -39,6 +63,7 @@ parent_id:
   type: relation
   to: committee/child_ids
   restriction_mode: A
+  reference: committee
 child_ids:
   type: relation-list
   to: committee/parent_id
@@ -69,6 +94,7 @@ organization_tag_ids:
   restriction_mode: A
 organization_id:
   type: relation
+  reference: organization
   to: organization/committee_ids
   required: true
   restriction_mode: A

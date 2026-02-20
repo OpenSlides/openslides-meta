@@ -13,6 +13,7 @@ star:
 
 meeting_user_id:
   type: relation
+  reference: meeting_user
   to: meeting_user/personal_note_ids
   equal_fields: meeting_id
   restriction_mode: A
@@ -20,6 +21,8 @@ meeting_user_id:
   constant: true
 content_object_id:
   type: generic-relation
+  reference:
+  - motion
   to:
     collections:
     - motion
@@ -29,6 +32,7 @@ content_object_id:
   constant: true
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/personal_note_ids
   required: true
   restriction_mode: A

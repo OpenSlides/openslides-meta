@@ -11,6 +11,7 @@ weight:
 
 assignment_id:
   type: relation
+  reference: assignment
   to: assignment/candidate_ids
   equal_fields: meeting_id
   restriction_mode: A
@@ -18,11 +19,13 @@ assignment_id:
   constant: true
 meeting_user_id:
   type: relation
+  reference: meeting_user
   to: meeting_user/assignment_candidate_ids
   restriction_mode: A
   constant: true
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/assignment_candidate_ids
   required: true
   restriction_mode: A

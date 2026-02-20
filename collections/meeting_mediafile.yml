@@ -7,11 +7,13 @@ id:
 mediafile_id:
   type: relation
   to: mediafile/meeting_mediafile_ids
+  reference: mediafile
   required: true
   restriction_mode: A
 meeting_id:
   type: relation
   to: meeting/meeting_mediafile_ids
+  reference: meeting
   required: true
   restriction_mode: A
 is_public:

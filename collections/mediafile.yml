@@ -35,9 +35,11 @@ token:
 published_to_meetings_in_organization_id:
   type: relation
   to: organization/published_mediafile_ids
+  reference: organization
   restriction_mode: A
 parent_id:
   type: relation
+  reference: mediafile
   to: mediafile/child_ids
   equal_fields: owner_id
   restriction_mode: A
@@ -51,6 +53,9 @@ owner_id:
   to:
   - meeting/mediafile_ids
   - organization/mediafile_ids
+  reference:
+  - meeting
+  - organization
   restriction_mode: A
   required: true
   constant: true

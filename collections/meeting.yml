@@ -20,17 +20,19 @@ welcome_text:
   # General
 name:
   type: string
-  maxLength: 100
+  maxLength: 200
   default: OpenSlides
   restriction_mode: A
   required: true
 is_active_in_organization_id:
   type: relation
+  reference: organization
   to: organization/active_meeting_ids
   restriction_mode: F
   description: Backrelation and boolean flag at once
 is_archived_in_organization_id:
   type: relation
+  reference: organization
   to: organization/archived_meeting_ids
   restriction_mode: F
   description: Backrelation and boolean flag at once
@@ -81,6 +83,7 @@ jitsi_room_password:
   # System
 template_for_organization_id:
   type: relation
+  reference: organization
   to: organization/template_meeting_ids
   restriction_mode: B
 enable_anonymous:
@@ -363,11 +366,13 @@ list_of_speakers_intervention_time:
   # Motions
 motions_default_workflow_id:
   type: relation
+  reference: motion_workflow
   to: motion_workflow/default_workflow_meeting_id
   required: true
   restriction_mode: B
 motions_default_amendment_workflow_id:
   type: relation
+  reference: motion_workflow
   to: motion_workflow/default_amendment_workflow_meeting_id
   required: true
   restriction_mode: B
@@ -595,10 +600,12 @@ motion_poll_projection_max_columns:
 poll_candidate_list_ids:
   type: relation-list
   to: poll_candidate_list/meeting_id
+  reference: poll_candidate_list
   restriction_mode: B
 poll_candidate_ids:
   type: relation-list
   to: poll_candidate/meeting_id
+  reference: poll_candidate
   restriction_mode: B
 
   # Users
@@ -929,16 +936,19 @@ motion_state_ids:
 poll_ids:
   type: relation-list
   to: poll/meeting_id
+  reference: poll
   on_delete: CASCADE
   restriction_mode: B
 option_ids:
   type: relation-list
   to: option/meeting_id
+  reference: option
   on_delete: CASCADE
   restriction_mode: B
 vote_ids:
   type: relation-list
   to: vote/meeting_id
+  reference: vote
   on_delete: CASCADE
   restriction_mode: B
 assignment_ids:
@@ -976,70 +986,87 @@ structure_level_ids:
 logo_projector_main_id:
   type: relation
   to: meeting_mediafile/used_as_logo_projector_main_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 logo_projector_header_id:
   type: relation
   to: meeting_mediafile/used_as_logo_projector_header_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 logo_web_header_id:
   type: relation
   to: meeting_mediafile/used_as_logo_web_header_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 logo_pdf_header_l_id:
   type: relation
   to: meeting_mediafile/used_as_logo_pdf_header_l_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 logo_pdf_header_r_id:
   type: relation
   to: meeting_mediafile/used_as_logo_pdf_header_r_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 logo_pdf_footer_l_id:
   type: relation
   to: meeting_mediafile/used_as_logo_pdf_footer_l_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 logo_pdf_footer_r_id:
   type: relation
   to: meeting_mediafile/used_as_logo_pdf_footer_r_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 logo_pdf_ballot_paper_id:
   type: relation
   to: meeting_mediafile/used_as_logo_pdf_ballot_paper_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 font_regular_id:
   type: relation
   to: meeting_mediafile/used_as_font_regular_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 font_italic_id:
   type: relation
   to: meeting_mediafile/used_as_font_italic_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 font_bold_id:
   type: relation
   to: meeting_mediafile/used_as_font_bold_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 font_bold_italic_id:
   type: relation
   to: meeting_mediafile/used_as_font_bold_italic_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 font_monospace_id:
   type: relation
   to: meeting_mediafile/used_as_font_monospace_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 font_chyron_speaker_name_id:
   type: relation
   to: meeting_mediafile/used_as_font_chyron_speaker_name_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 font_projector_h1_id:
   type: relation
   to: meeting_mediafile/used_as_font_projector_h1_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
 font_projector_h2_id:
   type: relation
   to: meeting_mediafile/used_as_font_projector_h2_in_meeting_id
+  reference: meeting_mediafile
   restriction_mode: B
   # Other relations
 committee_id:
   type: relation
+  reference: committee
   to: committee/meeting_ids
   required: true
   restriction_mode: A
@@ -1057,22 +1084,32 @@ present_user_ids:
   to: user/is_present_in_meeting_ids
   restriction_mode: B
 user_ids:
-  type: number[]
+  type: relation-list
   description: Calculated. All user ids from all users assigned to groups of this meeting.
   read_only: true
+  sql: |
+    (
+      SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id)
+      FROM meeting_user_t mu
+      WHERE mu.meeting_id = m.id
+    ) AS user_ids
+  to: user/meeting_ids
   restriction_mode: A
 reference_projector_id:
   type: relation
+  reference: projector
   to: projector/used_as_reference_projector_meeting_id
   required: true
   restriction_mode: B
 list_of_speakers_countdown_id:
   type: relation
   to: projector_countdown/used_as_list_of_speakers_countdown_meeting_id
+  reference: projector_countdown
   restriction_mode: B
 poll_countdown_id:
   type: relation
   to: projector_countdown/used_as_poll_countdown_meeting_id
+  reference: projector_countdown
   restriction_mode: B
 projection_ids:
   type: relation-list
@@ -1151,16 +1188,19 @@ default_projector_poll_ids:
   required: true
 default_group_id:
   type: relation
+  reference: group
   to: group/default_group_for_meeting_id
   required: true
   restriction_mode: B
 admin_group_id:
   type: relation
   to: group/admin_group_for_meeting_id
+  reference: group
   restriction_mode: A
 anonymous_group_id:
   type: relation
   to: group/anonymous_group_for_meeting_id
+  reference: group
   restriction_mode: B
 relevant_history_entry_ids:
   type: relation-list

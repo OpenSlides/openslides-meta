@@ -25,21 +25,36 @@ content:
 
 current_projector_id:
   type: relation
+  reference: projector
   to: projector/current_projection_ids
   equal_fields: meeting_id
   restriction_mode: A
 preview_projector_id:
   type: relation
+  reference: projector
   to: projector/preview_projection_ids
   equal_fields: meeting_id
   restriction_mode: A
 history_projector_id:
   type: relation
+  reference: projector
   to: projector/history_projection_ids
   equal_fields: meeting_id
   restriction_mode: A
 content_object_id:
   type: generic-relation
+  reference:
+  - meeting
+  - motion
+  - meeting_mediafile
+  - list_of_speakers
+  - motion_block
+  - assignment
+  - agenda_item
+  - topic
+  - poll
+  - projector_message
+  - projector_countdown
   to:
   - meeting/projection_ids
   - motion/projection_ids
@@ -58,6 +73,7 @@ content_object_id:
   constant: true
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/all_projection_ids
   required: true
   restriction_mode: A

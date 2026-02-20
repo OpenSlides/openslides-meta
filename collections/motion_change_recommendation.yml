@@ -42,6 +42,7 @@ creation_time:
 
 motion_id:
   type: relation
+  reference: motion
   to: motion/change_recommendation_ids
   required: true
   equal_fields: meeting_id
@@ -49,6 +50,7 @@ motion_id:
   constant: true
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/motion_change_recommendation_ids
   required: true
   restriction_mode: A

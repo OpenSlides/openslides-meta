@@ -87,6 +87,7 @@ state_button_label:
   restriction_mode: A
 submitter_withdraw_state_id:
   type: relation
+  reference: motion_state
   to: motion_state/submitter_withdraw_back_ids
   equal_fields:
   - meeting_id
@@ -127,6 +128,7 @@ motion_recommendation_ids:
   restriction_mode: A
 workflow_id:
   type: relation
+  reference: motion_workflow
   to: motion_workflow/state_ids
   required: true
   equal_fields: meeting_id
@@ -139,8 +141,10 @@ first_state_of_workflow_id:
   restriction_mode: A
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/motion_state_ids
   required: true
   restriction_mode: A
   constant: true
+  deferred: true
 

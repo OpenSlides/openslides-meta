@@ -16,6 +16,7 @@ projection_ids:
   restriction_mode: A
 meeting_id:
   type: relation
+  reference: meeting
   to: meeting/projector_message_ids
   restriction_mode: A
   required: true
