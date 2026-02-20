@@ -64,7 +64,6 @@ class FieldSqlErrorType(Enum):
 
 class HelperGetNames:
     MAX_LEN = 63
-    trigger_unique_list: list[str] = []
 
     @staticmethod
     def max_length(func: Callable) -> Callable:
@@ -247,11 +246,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null"""
-        name = HelperGetNames.get_shortened_name(f"tr_i_{table_name}_{column_name}")
-        if name in HelperGetNames.trigger_unique_list:
-            raise Exception(f"trigger {name} is not unique!")
-        HelperGetNames.trigger_unique_list.append(name)
-        return name
+        return HelperGetNames.get_shortened_name(f"tr_i_{table_name}_{column_name}")
 
     @staticmethod
     @max_length
@@ -260,11 +255,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null"""
-        name = HelperGetNames.get_shortened_name(f"tr_ud_{table_name}_{column_name}")
-        if name in HelperGetNames.trigger_unique_list:
-            raise Exception(f"trigger {name} is not unique!")
-        HelperGetNames.trigger_unique_list.append(name)
-        return name
+        return HelperGetNames.get_shortened_name(f"tr_ud_{table_name}_{column_name}")
 
     @staticmethod
     @max_length
@@ -316,11 +307,7 @@ class HelperGetNames:
         table_name: str,
     ) -> str:
         """gets the name of the trigger for logging changes on models"""
-        name = HelperGetNames.get_shortened_name(f"tr_log_{table_name}")
-        if name in HelperGetNames.trigger_unique_list:
-            raise Exception(f"trigger {name} is not unique!")
-        HelperGetNames.trigger_unique_list.append(name)
-        return name
+        return HelperGetNames.get_shortened_name(f"tr_log_{table_name}")
 
     @staticmethod
     @max_length
@@ -329,11 +316,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the trigger for logging changes on related models"""
-        name = HelperGetNames.get_shortened_name(f"tr_log_{table_name}_{column_name}")
-        if name in HelperGetNames.trigger_unique_list:
-            raise Exception(f"trigger {name} is not unique!")
-        HelperGetNames.trigger_unique_list.append(name)
-        return name
+        return HelperGetNames.get_shortened_name(f"tr_log_{table_name}_{column_name}")
 
 
 class InternalHelper:
