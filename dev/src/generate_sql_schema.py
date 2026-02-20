@@ -1402,7 +1402,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         table1 = HelperGetNames.get_table_name(own_table_field.table)
         table2 = HelperGetNames.get_table_name(foreign_table_field.table)
         fk_idx1 = HelperGetNames.get_fk_and_index_name(table_name, field1, table1, "id")
-        fk_idx2 = HelperGetNames.get_fk_and_index_name(table_name, field2, table1, "id")
+        fk_idx2 = HelperGetNames.get_fk_and_index_name(table_name, field2, table2, "id")
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
             {
                 "table_name": table_name,

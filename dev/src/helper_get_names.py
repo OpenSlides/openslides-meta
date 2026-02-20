@@ -92,10 +92,10 @@ class HelperGetNames:
     @max_length
     def get_shortened_name(name: str) -> str:
         """
-        Gets the name shortened to 57 characters plus 6 characters of its md5 hash.
+        Gets the name shortened to 56 characters plus 7 characters of its md5 hash.
         """
         if len(name) > HelperGetNames.MAX_LEN:
-            name = f"{name[:57]}{hashlib.md5(name.encode()).hexdigest()[-6:]}"
+            name = f"{name[:56]}{hashlib.md5(name.encode()).hexdigest()[:7]}"
         return name
 
     @staticmethod
@@ -248,7 +248,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null"""
-        name = f"tr_i_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
+        name = HelperGetNames.get_shortened_name(f"tr_i_{table_name}_{column_name}")
         if name in HelperGetNames.trigger_unique_list:
             raise Exception(f"trigger {name} is not unique!")
         HelperGetNames.trigger_unique_list.append(name)
@@ -261,7 +261,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null"""
-        name = f"tr_ud_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
+        name = HelperGetNames.get_shortened_name(f"tr_ud_{table_name}_{column_name}")
         if name in HelperGetNames.trigger_unique_list:
             raise Exception(f"trigger {name} is not unique!")
         HelperGetNames.trigger_unique_list.append(name)
@@ -317,7 +317,7 @@ class HelperGetNames:
         table_name: str,
     ) -> str:
         """gets the name of the trigger for logging changes on models"""
-        name = f"tr_log_{table_name}"[: HelperGetNames.MAX_LEN]
+        name = HelperGetNames.get_shortened_name(f"tr_log_{table_name}")
         if name in HelperGetNames.trigger_unique_list:
             raise Exception(f"trigger {name} is not unique!")
         HelperGetNames.trigger_unique_list.append(name)
@@ -330,7 +330,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the trigger for logging changes on related models"""
-        name = f"tr_log_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
+        name = HelperGetNames.get_shortened_name(f"tr_log_{table_name}_{column_name}")
         if name in HelperGetNames.trigger_unique_list:
             raise Exception(f"trigger {name} is not unique!")
         HelperGetNames.trigger_unique_list.append(name)
