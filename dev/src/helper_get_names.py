@@ -64,7 +64,6 @@ class FieldSqlErrorType(Enum):
 
 class HelperGetNames:
     MAX_LEN = 63
-    trigger_unique_list: list[str] = []
 
     @staticmethod
     def max_length(func: Callable) -> Callable:
@@ -86,6 +85,16 @@ class HelperGetNames:
             return "".join([word[0] for word in words.split("_")])
         else:
             return words
+
+    @staticmethod
+    @max_length
+    def get_shortened_name(name: str) -> str:
+        """
+        Gets the name shortened to 56 characters plus 7 characters of its md5 hash.
+        """
+        if len(name) > HelperGetNames.MAX_LEN:
+            name = f"{name[:56]}{hashlib.md5(name.encode()).hexdigest()[:7]}"
+        return name
 
     @staticmethod
     @max_length
@@ -195,16 +204,49 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_fk_constraint_name(
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        fk_column: str,
+    ) -> str:
+        """gets the name of a foreign key constraint."""
+        return HelperGetNames.get_shortened_name(
+            f"fk_{own_table}_{own_column}_{foreign_table}_{fk_column}"
+        )
+
+    @staticmethod
+    @max_length
+    def get_index_name(
+        own_table: str,
+        own_column: str,
+    ) -> str:
+        """gets the name of a foreign key constraint."""
+        return HelperGetNames.get_shortened_name(f"idx_{own_table}_{own_column}")
+
+    @staticmethod
+    def get_fk_and_index_name(
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        fk_column: str,
+    ) -> tuple[str, str]:
+        """gets the tuple of a foreign key constraint and index (FK, IDX)."""
+        return (
+            HelperGetNames.get_fk_constraint_name(
+                own_table, own_column, foreign_table, fk_column
+            ),
+            HelperGetNames.get_index_name(own_table, own_column),
+        )
+
+    @staticmethod
+    @max_length
     def get_not_null_insert_trigger_name_base(
         table_name: str,
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null"""
-        name = f"tr_i_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
-        if name in HelperGetNames.trigger_unique_list:
-            raise Exception(f"trigger {name} is not unique!")
-        HelperGetNames.trigger_unique_list.append(name)
-        return name
+        return HelperGetNames.get_shortened_name(f"tr_i_{table_name}_{column_name}")
 
     @staticmethod
     @max_length
@@ -213,11 +255,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null"""
-        name = f"tr_ud_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
-        if name in HelperGetNames.trigger_unique_list:
-            raise Exception(f"trigger {name} is not unique!")
-        HelperGetNames.trigger_unique_list.append(name)
-        return name
+        return HelperGetNames.get_shortened_name(f"tr_ud_{table_name}_{column_name}")
 
     @staticmethod
     @max_length
@@ -269,11 +307,7 @@ class HelperGetNames:
         table_name: str,
     ) -> str:
         """gets the name of the trigger for logging changes on models"""
-        name = f"tr_log_{table_name}"[: HelperGetNames.MAX_LEN]
-        if name in HelperGetNames.trigger_unique_list:
-            raise Exception(f"trigger {name} is not unique!")
-        HelperGetNames.trigger_unique_list.append(name)
-        return name
+        return HelperGetNames.get_shortened_name(f"tr_log_{table_name}")
 
     @staticmethod
     @max_length
@@ -282,11 +316,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the trigger for logging changes on related models"""
-        name = f"tr_log_{table_name}_{column_name}"[: HelperGetNames.MAX_LEN]
-        if name in HelperGetNames.trigger_unique_list:
-            raise Exception(f"trigger {name} is not unique!")
-        HelperGetNames.trigger_unique_list.append(name)
-        return name
+        return HelperGetNames.get_shortened_name(f"tr_log_{table_name}_{column_name}")
 
 
 class InternalHelper:
