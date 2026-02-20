@@ -1,5 +1,4 @@
 import string
-import sys
 from collections import defaultdict
 from collections.abc import Callable
 from decimal import Decimal
@@ -12,14 +11,13 @@ from typing import Any, TypedDict, cast
 from sqlfluff import fix
 
 from .helper_get_names import (
-    KEYSEPARATOR,
     FieldSqlErrorType,
     HelperGetNames,
     InternalHelper,
     TableFieldType,
 )
+from .validate import DEFAULT_COLLECTION_META, DEFAULT_COLLECTIONS_DIR, KEYSEPARATOR
 
-SOURCE = (Path(__file__).parent / ".." / ".." / "models.yml").resolve()
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 MODELS: dict[str, dict[str, Any]] = {}
 
@@ -70,7 +68,7 @@ class GenerateCodeBlocks:
     """Main work is done here by recursing the models and their fields and determine the method to use"""
 
     if not InternalHelper.MODELS:
-        InternalHelper.read_models_yml(SOURCE.as_posix())
+        InternalHelper.read_models_yml(DEFAULT_COLLECTION_META, DEFAULT_COLLECTIONS_DIR)
     intermediate_tables: dict[str, str] = (
         {}
     )  # Key=Name, data: collected content of table
@@ -1764,16 +1762,12 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
 
 def main() -> None:
     """
-    Main entry point for this script to generate the schema_relational.sql from models.yml.
+    Main entry point for this script to generate the schema_relational.sql from the collections files.
     """
 
-    # Retrieve models.yml from call-parameter for testing purposes, local file or GitHub
-    if len(sys.argv) > 1:
-        file = sys.argv[1]
-    else:
-        file = str(SOURCE)
-
-    _, checksum = InternalHelper.read_models_yml(file)
+    _, checksum = InternalHelper.read_models_yml(
+        DEFAULT_COLLECTION_META, DEFAULT_COLLECTIONS_DIR
+    )
 
     (
         pre_code,

@@ -1,14 +1,13 @@
 import hashlib
-import os
 import re
 from collections.abc import Callable
 from enum import Enum
 from typing import Any, TypedDict, cast
 
-import requests
 import yaml
 
-KEYSEPARATOR = "/"
+from .join_models_yml import build_models_yaml_content
+from .validate import KEYSEPARATOR
 
 
 class TableFieldType:
@@ -343,20 +342,14 @@ class InternalHelper:
     ref_compiled = compiled = re.compile(r"(^\w+\b).*?\((.*?)\)")
 
     @classmethod
-    def read_models_yml(cls, file: str) -> tuple[dict[str, Any], str]:
-        """method reads models.yml from file or web and returns MODELS and it's checksum"""
-        if os.path.isfile(file):
-            with open(file, "rb") as x:
-                models_yml = x.read()
-        else:
-            models_yml = requests.get(file).content
+    def read_models_yml(
+        cls, meta_file: str, collections_dir: str
+    ) -> tuple[dict[str, Any], str]:
+        """method reads from the collections files and returns MODELS and it's checksum"""
+        models_yml = build_models_yaml_content(meta_file, collections_dir)
 
         # calc checksum to assert the schema.sql is up-to-date
         checksum = hashlib.md5(models_yml).hexdigest()
-
-        # Fix broken keys
-        models_yml = models_yml.replace(b" yes:", b' "yes":')
-        models_yml = models_yml.replace(b" no:", b' "no":')
 
         # Load and parse models.yml
         cls.MODELS = yaml.safe_load(models_yml)
