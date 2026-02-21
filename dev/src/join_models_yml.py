@@ -1,6 +1,7 @@
 # join_models_yml.py is a temporary script to create the old models.yml until
 # all services are able to work with the new separat collections.
 
+
 from pathlib import Path
 
 from .helper_get_names import build_models_yaml_content
