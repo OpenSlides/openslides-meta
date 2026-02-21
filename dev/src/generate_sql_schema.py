@@ -11,12 +11,12 @@ from typing import Any, TypedDict, cast
 from sqlfluff import fix
 
 from .helper_get_names import (
+    KEYSEPARATOR,
     FieldSqlErrorType,
     HelperGetNames,
     InternalHelper,
     TableFieldType,
 )
-from .validate import DEFAULT_COLLECTION_META, DEFAULT_COLLECTIONS_DIR, KEYSEPARATOR
 
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 MODELS: dict[str, dict[str, Any]] = {}
@@ -68,7 +68,7 @@ class GenerateCodeBlocks:
     """Main work is done here by recursing the models and their fields and determine the method to use"""
 
     if not InternalHelper.MODELS:
-        InternalHelper.read_models_yml(DEFAULT_COLLECTION_META, DEFAULT_COLLECTIONS_DIR)
+        InternalHelper.read_models_yml()
     intermediate_tables: dict[str, str] = (
         {}
     )  # Key=Name, data: collected content of table
@@ -1765,9 +1765,7 @@ def main() -> None:
     Main entry point for this script to generate the schema_relational.sql from the collections files.
     """
 
-    _, checksum = InternalHelper.read_models_yml(
-        DEFAULT_COLLECTION_META, DEFAULT_COLLECTIONS_DIR
-    )
+    _, checksum = InternalHelper.read_models_yml()
 
     (
         pre_code,

@@ -21,7 +21,6 @@ DECIMAL_REGEX = re.compile(r"^-?(\d|[1-9]\d+)\.\d{6}$")
 COLOR_REGEX = re.compile(r"^#[0-9a-f]{6}$")
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-DEFAULT_COLLECTION_META = os.path.join(ROOT, "collection-meta.yml")
 DEFAULT_COLLECTIONS_DIR = os.path.join(ROOT, "collections")
 
 
