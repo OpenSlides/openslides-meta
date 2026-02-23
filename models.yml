@@ -3388,7 +3388,7 @@ poll:
     - poll_config_rating_score
     - poll_config_rating_approval
     - poll_config_stv_scottish
-    required: true
+    required: false
     restriction_mode: A
   visibility:
     type: string
