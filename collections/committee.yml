@@ -31,29 +31,30 @@ user_ids:
   restriction_mode: A
   read_only: true
   description: "Calculated field: All users which are in a group of a meeting, belonging to the committee or beeing manager of the committee"
-  sql: |
-    (
-      SELECT array_agg(DISTINCT user_id ORDER BY user_id)
-      FROM (
-        -- Select user_ids from committees meetings
-        SELECT mu.user_id
-        FROM meeting_t AS m
-        INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id
-        WHERE m.committee_id = c.id
+  sql:
+    view: |
+      (
+        SELECT array_agg(DISTINCT user_id ORDER BY user_id)
+        FROM (
+          -- Select user_ids from committees meetings
+          SELECT mu.user_id
+          FROM meeting_t AS m
+          INNER JOIN meeting_user_t AS mu ON mu.meeting_id = m.id
+          WHERE m.committee_id = c.id
 
-        UNION
+          UNION
 
-        -- Select user_ids from committee managers
-        SELECT cmu.user_id
-        FROM nm_committee_manager_ids_user_t cmu
-        WHERE cmu.committee_id = c.id
+          -- Select user_ids from committee managers
+          SELECT cmu.user_id
+          FROM nm_committee_manager_ids_user_t cmu
+          WHERE cmu.committee_id = c.id
 
-        UNION
+          UNION
 
-        -- Select user_id from home committees
-        SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
-      ) _
-    ) AS user_ids
+          -- Select user_id from home committees
+          SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
+        ) _
+      ) AS user_ids
 manager_ids:
   type: relation-list
   to: user/committee_management_ids

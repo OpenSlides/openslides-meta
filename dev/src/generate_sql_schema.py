@@ -117,7 +117,7 @@ class GenerateCodeBlocks:
             # "on_delete", # must have other name then the key-value-store one
             "sql",
             # "equal_fields", # Seems we need, see example_transactional.sql between meeting and groups?
-            # "unique",  # TODO: still to design
+            "unique",
         }
         pre_code: str = ""
         table_name_code: str = ""
@@ -404,8 +404,13 @@ class GenerateCodeBlocks:
             )
             text[
                 "table"
-            ] += f"    CONSTRAINT unique_{table_name}_{fname} UNIQUE ({fname}, {depend_field}),\n"
+            ] += f"    CONSTRAINT {cls.get_unique_constraint(table_name, [fname])} UNIQUE ({fname}, {depend_field}),\n"
         return text, ""
+
+    @classmethod
+    def get_unique_constraint(table: str, fields: list[str]) -> str:
+        return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE ({', '.join(fields)}),\n"
+
 
     @classmethod
     def get_schema_relation_1_1(
@@ -1144,8 +1149,8 @@ class Helper:
     )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${field1} integer NOT NULL CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
-                ${field2} integer NOT NULL CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field1} integer NOT NULL CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED${unique1},
+                ${field2} integer NOT NULL CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED${unique2},
                 PRIMARY KEY (${list_of_keys})
             );
             CREATE INDEX ${index_1} ON ${table_name} (${field1});
@@ -1153,7 +1158,7 @@ class Helper:
         """))
     INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${own_table_name_with_ref_column} integer NOT NULL CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${own_table_name_with_ref_column} integer NOT NULL CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED${unique},
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
@@ -1164,7 +1169,7 @@ class Helper:
             ${content_field_indices}
         """))
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
+        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED${unique},"
     )
     GM_INDEX_LINE_TEMPLATE = string.Template(
         "CREATE INDEX ${index} ON ${table_name} (${gm_content_field});"
@@ -1368,14 +1373,20 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "fk_name_1": fk_idx1[0],
                 "index_1": fk_idx1[1],
                 "table1": table1,
+                "unique1": Helper.get_unique_param(own_table_field.field_def),
                 "field2": field2,
                 "fk_name_2": fk_idx2[0],
                 "index_2": fk_idx2[1],
                 "table2": table2,
+                "unique2": Helper.get_unique_param(foreign_table_field.field_def),
                 "list_of_keys": ", ".join([field1, field2]),
             }
         )
         return nm_table_name, text
+
+    @staticmethod
+    def get_unique_param(fdata: dict[str, Any]) -> str:
+        return " UNIQUE" if fdata.get("unique") else ""
 
     @staticmethod
     def get_gm_table_for_gm_nm_relation_lists(
@@ -1406,6 +1417,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             subst_dict = {
                 "own_table_column": own_table_column,
                 "fk_name": fk_idx[0],
+                "unique": Helper.get_unique_param(foreign_table_field),
                 "foreign_table_name": HelperGetNames.get_table_name(foreign_table_name),
                 "foreign_view_name": foreign_table_name,
                 "gm_content_field": gm_content_field,
@@ -1438,6 +1450,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "table_name": gm_table_name,
                 "own_table_name": own_table_name,
                 "own_table_name_with_ref_column": own_table_name_with_ref_column,
+                "unique": Helper.get_unique_param(own_table_field.field_def),
                 "fk_name": fk_idx[0],
                 "index_1": fk_idx[1],
                 "index_2": HelperGetNames.get_index_name(
@@ -1537,6 +1550,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         subst: SubstDict = cast(SubstDict, {k: "" for k in flist})
         subst_type = FIELD_TYPES[type_]["pg_type"]
         subst.update({"field_name": fname, "type": subst_type})
+        subst["unique"] = Helper.get_unique_param(fdata)
         if fdata.get("required"):
             subst["required"] = " NOT NULL"
         if (default := fdata.get("default")) is not None:

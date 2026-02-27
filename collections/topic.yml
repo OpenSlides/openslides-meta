@@ -4,9 +4,14 @@ id:
   constant: true
   required: true
 
+___unique_together___:
+  title, meeting_id
 title:
   type: string
   required: true
+  sql:
+    table:
+      CONSTRAINT unique_topic_title UNIQUE (title, meeting_id),
   restriction_mode: A
 text:
   type: HTMLPermissive
