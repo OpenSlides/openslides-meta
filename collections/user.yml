@@ -4,8 +4,11 @@ id:
   constant: true
   required: true
 
+___unique_together___:
+  email, first_name, last_name
 username:
   type: string
+  unique: true
   required: true
   restriction_mode: B
 member_number:
@@ -13,6 +16,7 @@ member_number:
   restriction_mode: B
 saml_id:
   type: string
+  unique: true
   minLength: 1
   restriction_mode: B
   description: unique-key from IdP for SAML login
@@ -49,7 +53,11 @@ can_change_own_password:
   restriction_mode: D
 email:
   type: string
+  unique: true
   restriction_mode: B
+  sql:
+    table: |
+      CONSTRAINT unique_topic_title UNIQUE (email, first_name, last_name),
 default_vote_weight:
   type: decimal(6)
   default: "1.000000"
@@ -98,31 +106,33 @@ committee_ids:
   restriction_mode: E
   read_only: true
   description: "Calculated field: Returns committee_ids, where the user is manager or member in a meeting"
-  sql: |
-    (
-      SELECT array_agg(DISTINCT ci.committee_id ORDER BY ci.committee_id)
-      FROM (
-        -- Select committee_ids from meetings the user is part of
-        SELECT m.committee_id
-        FROM meeting_user_t AS mu
-        INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
-        WHERE mu.user_id = u.id
+  sql: 
+    view: |
+      (
+        SELECT array_agg(DISTINCT ci.committee_id ORDER BY ci.committee_id)
+        FROM (
+          -- Select committee_ids from meetings the user is part of
+          SELECT m.committee_id
+          FROM meeting_user_t AS mu
+          INNER JOIN meeting_t AS m ON m.id = mu.meeting_id
+          WHERE mu.user_id = u.id
 
-        UNION
+          UNION
 
-        -- Select committee_ids from committee managers
-        SELECT cmu.committee_id
-        FROM nm_committee_manager_ids_user_t cmu
-        WHERE cmu.user_id = u.id
+          -- Select committee_ids from committee managers
+          SELECT cmu.committee_id
+          FROM nm_committee_manager_ids_user_t cmu
+          WHERE cmu.user_id = u.id
 
-        UNION
+          UNION
 
-        -- Select home_committee_id from user
-        SELECT u_hc.home_committee_id
-        FROM user_t u_hc
-        WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
-      ) AS ci
-    ) AS committee_ids
+          -- Select home_committee_id from user
+          SELECT u_hc.home_committee_id
+          FROM user_t u_hc
+          WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
+        ) AS ci
+      ) AS committee_ids
+
   # committee specific permissions
 committee_management_ids:
   type: relation-list
@@ -177,12 +187,13 @@ meeting_ids:
   type: relation-list
   description: Calculated. All ids from meetings calculated via meeting_user.
   read_only: true
-  sql: |
-    (
-      SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id)
-      FROM meeting_user_t mu
-      WHERE mu.user_id = u.id
-    ) AS meeting_ids
+  sql:
+    view: |
+      (
+        SELECT array_agg(DISTINCT mu.meeting_id ORDER BY mu.meeting_id)
+        FROM meeting_user_t mu
+        WHERE mu.user_id = u.id
+      ) AS meeting_ids
   to: meeting/user_ids
   restriction_mode: E
 organization_id:

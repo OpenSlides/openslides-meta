@@ -214,6 +214,9 @@ class HelperGetNames:
         """
         return f"unique_${own_table_name_with_ref_column}_${own_table_column}"
 
+    def get_unique_constraint_name(table: str, fields: list[str]) -> str:
+        return f"unique_{table_name}_{'_'.join(fields)}"
+
     @staticmethod
     @max_length
     def get_check_enum_constraint_name(
