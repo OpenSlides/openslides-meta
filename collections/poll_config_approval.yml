@@ -6,7 +6,6 @@ id:
 poll_id:
   type: relation
   to: poll/config_id
-  reference: poll
   required: true
   restriction_mode: A
 option_ids:
