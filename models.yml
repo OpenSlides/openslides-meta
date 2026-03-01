@@ -3388,7 +3388,7 @@ poll:
     - poll_config_rating_score
     - poll_config_rating_approval
     - poll_config_stv_scottish
-    required: false
+    required: true
     restriction_mode: A
   visibility:
     type: string
@@ -3491,7 +3491,6 @@ poll_config_approval:
   poll_id:
     type: relation
     to: poll/config_id
-    reference: poll
     required: true
     restriction_mode: A
   option_ids:
@@ -3546,7 +3545,6 @@ poll_config_rating_approval:
   poll_id:
     type: relation
     to: poll/config_id
-    reference: poll
     required: true
     restriction_mode: A
   option_ids:
@@ -3575,7 +3573,6 @@ poll_config_rating_score:
   poll_id:
     type: relation
     to: poll/config_id
-    reference: poll
     required: true
     restriction_mode: A
   option_ids:
@@ -3612,7 +3609,6 @@ poll_config_selection:
   poll_id:
     type: relation
     to: poll/config_id
-    reference: poll
     required: true
     restriction_mode: A
   option_ids:
@@ -3641,7 +3637,6 @@ poll_config_stv_scottish:
   poll_id:
     type: relation
     to: poll/config_id
-    reference: poll
     required: true
     restriction_mode: A
   option_ids:
