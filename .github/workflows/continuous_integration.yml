@@ -54,7 +54,7 @@ jobs:
         run: make validate-models
 
       - name: Generate models.yml from collections
-        run: python src/join_models_yml.py
+        run: python -m src.join_models_yml
 
       - name: Check if models.yml is up-to-date
         run: |
