@@ -1,5 +1,4 @@
 import string
-import sys
 from collections import defaultdict
 from collections.abc import Callable
 from decimal import Decimal
@@ -19,7 +18,6 @@ from .helper_get_names import (
     TableFieldType,
 )
 
-SOURCE = (Path(__file__).parent / ".." / ".." / "models.yml").resolve()
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 MODELS: dict[str, dict[str, Any]] = {}
 
@@ -70,7 +68,7 @@ class GenerateCodeBlocks:
     """Main work is done here by recursing the models and their fields and determine the method to use"""
 
     if not InternalHelper.MODELS:
-        InternalHelper.read_models_yml(SOURCE.as_posix())
+        InternalHelper.read_models_yml()
     intermediate_tables: dict[str, str] = (
         {}
     )  # Key=Name, data: collected content of table
@@ -228,8 +226,7 @@ class GenerateCodeBlocks:
     @staticmethod
     def get_not_null_trigger_params(type_: str) -> dict[str, str]:
         if type_ == "1_1":
-            docstring = dedent(
-                """\
+            docstring = dedent("""\
             -- Parameters required for all operation types
             --   0. own_collection – name of the view on which the trigger is defined
             --   1. own_column – column in `own_table` referencing
@@ -240,11 +237,9 @@ class GenerateCodeBlocks:
             --   2. foreign_collection – name of collection of the triggered table that
             --      will be used to SELECT
             --   3. foreign_column – column in the foreign table referencing
-            --      `own_table`"""
-            )
+            --      `own_table`""")
             parameters_declaration = indent(
-                dedent(
-                    """\
+                dedent("""\
                     -- Parameters from TRIGGER DEFINITION
                     -- Always required
                     own_collection TEXT := TG_ARGV[0];
@@ -258,26 +253,22 @@ class GenerateCodeBlocks:
                     own_id INTEGER;
                     foreign_id INTEGER;
                     counted INTEGER;
-                    error_message TEXT;"""
-                ),
+                    error_message TEXT;"""),
                 "    ",
             )
             select_expression = "EXECUTE format('SELECT %I FROM %I WHERE id = %L', own_column, own_collection, own_id) INTO counted;"
 
         elif type_ == "1_n":
-            docstring = dedent(
-                """\
+            docstring = dedent("""\
             -- Parameters required for all operation types
             --   0. own_table – name of the table on which the trigger is defined
             --   1. own_column – column in `own_table` referencing
             --      `foreign_table`
             --   2. foreign_table – name of the triggered table, that will be used to SELECT
             --   3. foreign_column – column in the foreign table referencing
-            --      `own_table`"""
-            )
+            --      `own_table`""")
             parameters_declaration = indent(
-                dedent(
-                    """\
+                dedent("""\
                     -- Parameters from TRIGGER DEFINITION
                     -- Always required
                     own_table TEXT := TG_ARGV[0];
@@ -291,15 +282,13 @@ class GenerateCodeBlocks:
                     own_id INTEGER;
                     foreign_id INTEGER;
                     counted INTEGER;
-                    error_message TEXT;"""
-                ),
+                    error_message TEXT;"""),
                 "    ",
             )
             select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', foreign_table, foreign_column, own_id) INTO counted;"
 
         else:
-            docstring = dedent(
-                """\
+            docstring = dedent("""\
             -- Parameters required for both INSERT and DELETE operations
             --   0. intermediate_table_name – name of the n:m table
             --   1. own_table – name of the table on which the trigger is defined
@@ -314,11 +303,9 @@ class GenerateCodeBlocks:
             --      the foreign table
             --   5. foreign_collection – name of the collection of the foreign table
             --   6. foreign_column – column in the foreign table referencing
-            --      `own_collection`"""
-            )
+            --      `own_collection`""")
             parameters_declaration = indent(
-                dedent(
-                    """\
+                dedent("""\
                     -- Parameters from TRIGGER DEFINITION
                     -- Always required
                     intermediate_table_name TEXT := TG_ARGV[0];
@@ -336,8 +323,7 @@ class GenerateCodeBlocks:
                     own_id INTEGER;
                     foreign_id INTEGER;
                     counted INTEGER;
-                    error_message TEXT;"""
-                ),
+                    error_message TEXT;"""),
                 "    ",
             )
             select_expression = "EXECUTE format('SELECT 1 FROM %I WHERE %I = %L', intermediate_table_name, intermediate_table_own_key, own_id) INTO counted;"
@@ -752,13 +738,11 @@ class GenerateCodeBlocks:
         cls, view_name: str, actual_field: str, depend_field: str
     ) -> str:
         table_name = HelperGetNames.get_table_name(view_name)
-        return dedent(
-            f"""
+        return dedent(f"""
             -- definition trigger generate partitioned sequence number for {table_name}.{actual_field} partitioned by {depend_field}
             CREATE TRIGGER tr_generate_sequence_{view_name}_{actual_field} BEFORE INSERT ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION generate_sequence('{table_name}', '{actual_field}', '{depend_field}');
-            """
-        )
+            """)
 
     @classmethod
     def get_trigger_check_not_null_for_1_1_relation(
@@ -770,16 +754,14 @@ class GenerateCodeBlocks:
     ) -> str:
         own_table_t = HelperGetNames.get_table_name(own_collection)
         foreign_table_t = HelperGetNames.get_table_name(foreign_collection)
-        return dedent(
-            f"""
+        return dedent(f"""
             -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column}
             CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_insert_trigger_name(own_collection, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_collection}', '{own_column}');
 
             CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_1_1_rel_upd_del_trigger_name(own_collection, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('{own_collection}', '{own_column}', '{foreign_collection}', '{foreign_column}');
-            """
-        )
+            """)
 
     @classmethod
     def get_trigger_check_not_null_for_1_n(
@@ -791,8 +773,7 @@ class GenerateCodeBlocks:
     ) -> str:
         own_table_t = HelperGetNames.get_table_name(own_collection)
         foreign_table_t = HelperGetNames.get_table_name(foreign_collection)
-        return dedent(
-            f"""
+        return dedent(f"""
             -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column}
             CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_insert_trigger_name(own_collection, own_column)} AFTER INSERT ON {own_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table_t}', '{own_column}', '{foreign_table_t}', '{foreign_column}');
@@ -800,8 +781,7 @@ class GenerateCodeBlocks:
             CREATE CONSTRAINT TRIGGER {HelperGetNames.get_not_null_rel_list_upd_del_trigger_name(own_collection, own_column)} AFTER UPDATE OF {foreign_column} OR DELETE ON {foreign_table_t} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('{own_table_t}', '{own_column}', '{foreign_table_t}', '{foreign_column}');
 
-            """
-        )
+            """)
 
     @classmethod
     def get_trigger_check_not_null_for_n_m(
@@ -821,8 +801,7 @@ class GenerateCodeBlocks:
         intermediate_table_foreign_key = HelperGetNames.get_field_in_n_m_relation_list(
             foreign_table_field, own_table_field.table
         )
-        return dedent(
-            f"""
+        return dedent(f"""
             -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column} through {intermediate_table_name}
             CREATE CONSTRAINT TRIGGER tr_i_{own_collection}_{own_column} AFTER INSERT ON {own_table} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}');
@@ -830,8 +809,7 @@ class GenerateCodeBlocks:
             CREATE CONSTRAINT TRIGGER tr_d_{own_collection}_{own_column} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}', '{intermediate_table_foreign_key}', '{foreign_collection}', '{foreign_column}');
 
-            """
-        )
+            """)
 
     @classmethod
     def get_trigger_check_unique_ids_pair(
@@ -841,14 +819,12 @@ class GenerateCodeBlocks:
         table_name: str,
     ) -> str:
         base_column_name = column[:-1]
-        return dedent(
-            f"""
+        return dedent(f"""
             -- definition trigger unique ids pair for {view}.{column}
             CREATE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('{base_column_name}');
 
-            """
-        )
+            """)
 
     @classmethod
     def get_generic_relation_type(
@@ -960,14 +936,11 @@ class GenerateCodeBlocks:
 
 
 class Helper:
-    FILE_TEMPLATE_HEADER = dedent(
-        """
+    FILE_TEMPLATE_HEADER = dedent("""
         -- schema_relational.sql for initial database setup OpenSlides
         -- Code generated. DO NOT EDIT.
-        """
-    )
-    FILE_TEMPLATE_CONSTANT_DEFINITIONS = dedent(
-        """
+        """)
+    FILE_TEMPLATE_CONSTANT_DEFINITIONS = dedent("""
         CREATE EXTENSION hstore;  -- included in standard postgres-installations, check for alpine
 
         CREATE FUNCTION generate_sequence()
@@ -1131,11 +1104,8 @@ class Helper:
             RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
         END;
         $read_only_trigger$ LANGUAGE plpgsql;
-        """
-    )
-    NOT_NULL_TRIGGER_FUNCTION_TEMPLATE = string.Template(
-        dedent(
-            """
+        """)
+    NOT_NULL_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
             CREATE FUNCTION check_not_null_for_${trigger_type}() RETURNS trigger AS $$not_null_trigger$$
             ${docstring}
             DECLARE
@@ -1165,49 +1135,42 @@ class Helper:
                 RETURN NULL;  -- AFTER TRIGGER needs no return
             END;
             $$not_null_trigger$$ language plpgsql;
-        """
-        )
-    )
+        """))
     COLLECTION_FROM_TABLE_TEMPLATE = string.Template(
         "${parameter} := SUBSTRING(${table_t} FOR LENGTH(${table_t}) - 2);"
     )
     FIELD_TEMPLATE = string.Template(
         "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${minimum}${minLength}${default},\n"
     )
-    INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(
-        dedent(
-            """
+    INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${field1} integer NOT NULL REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
-                ${field2} integer NOT NULL REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field1} integer NOT NULL CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field2} integer NOT NULL CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
                 PRIMARY KEY (${list_of_keys})
             );
-            CREATE INDEX ON ${table_name} (${field1});
-            CREATE INDEX ON ${table_name} (${field2});
-        """
-        )
-    )
-    INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE = string.Template(
-        dedent(
-            """
+            CREATE INDEX ${index_1} ON ${table_name} (${field1});
+            CREATE INDEX ${index_2} ON ${table_name} (${field2});
+        """))
+    INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${own_table_name_with_ref_column} integer NOT NULL REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${own_table_name_with_ref_column} integer NOT NULL CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
                 ${own_table_column} varchar(100) NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
                 CONSTRAINT ${unique_constraint_name} UNIQUE (${own_table_name_with_ref_column}, ${own_table_column})
             );
-            CREATE INDEX ON ${table_name} (${own_table_name_with_ref_column});
-            CREATE INDEX ON ${table_name} (${own_table_column});
-        """
-        )
-    )
+            CREATE INDEX ${index_1} ON ${table_name} (${own_table_name_with_ref_column});
+            CREATE INDEX ${index_2} ON ${table_name} (${own_table_column});
+            ${content_field_indices}
+        """))
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
+        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
+    )
+    GM_INDEX_LINE_TEMPLATE = string.Template(
+        "CREATE INDEX ${index} ON ${table_name} (${gm_content_field});"
     )
 
-    RELATION_LIST_AGENDA = dedent(
-        """
+    RELATION_LIST_AGENDA = dedent("""
         /*   Relation-list infos
         Generated: What will be generated for left field
             FIELD: a usual Database field
@@ -1226,8 +1189,7 @@ class Helper:
             model.field names
         */
 
-        """
-    )
+        """)
 
     @staticmethod
     def get_table_letter(table_name: str, letters: list[str] = []) -> str:
@@ -1324,8 +1286,8 @@ class Helper:
         update_action: str = "",
     ) -> str:
         FOREIGN_KEY_TABLE_CONSTRAINT_TEMPLATE = string.Template(
-            "ALTER TABLE ${own_table} ADD FOREIGN KEY(${own_column}) REFERENCES ${foreign_table}(${fk_column})${initially_deferred}${delete_action}${update_action};\n"
-            "CREATE INDEX ON ${own_table} (${own_column});\n"
+            "ALTER TABLE ${own_table} ADD CONSTRAINT ${fk_name} FOREIGN KEY(${own_column}) REFERENCES ${foreign_table}(${fk_column})${initially_deferred}${delete_action}${update_action};\n"
+            "CREATE INDEX ${index} ON ${own_table} (${own_column});\n"
         )
 
         if initially_deferred:
@@ -1334,9 +1296,14 @@ class Helper:
             text_initially_deferred = ""
         own_table = HelperGetNames.get_table_name(table_name)
         foreign_table = HelperGetNames.get_table_name(foreign_table)
+        fk_idx = HelperGetNames.get_fk_and_index_name(
+            own_table, own_column, foreign_table, fk_column
+        )
         result = FOREIGN_KEY_TABLE_CONSTRAINT_TEMPLATE.substitute(
             {
                 "own_table": own_table,
+                "fk_name": fk_idx[0],
+                "index": fk_idx[1],
                 "foreign_table": foreign_table,
                 "own_column": own_column,
                 "fk_column": fk_column,
@@ -1390,13 +1357,21 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             field1 += "_1"
             field2 += "_2"
         table_name = HelperGetNames.get_table_name(nm_table_name)
+        table1 = HelperGetNames.get_table_name(own_table_field.table)
+        table2 = HelperGetNames.get_table_name(foreign_table_field.table)
+        fk_idx1 = HelperGetNames.get_fk_and_index_name(table_name, field1, table1, "id")
+        fk_idx2 = HelperGetNames.get_fk_and_index_name(table_name, field2, table2, "id")
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
             {
                 "table_name": table_name,
                 "field1": field1,
-                "table1": HelperGetNames.get_table_name(own_table_field.table),
+                "fk_name_1": fk_idx1[0],
+                "index_1": fk_idx1[1],
+                "table1": table1,
                 "field2": field2,
-                "table2": HelperGetNames.get_table_name(foreign_table_field.table),
+                "fk_name_2": fk_idx2[0],
+                "index_2": fk_idx2[1],
+                "table2": table2,
                 "list_of_keys": ", ".join([field1, field2]),
             }
         )
@@ -1418,27 +1393,55 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             + "')"
         )
         foreign_table_ref_lines = []
+        indices_lines = []
         own_table_column = own_table_field.intermediate_column
         for foreign_table_field in foreign_table_fields:
             foreign_table_name = foreign_table_field.table
+            gm_content_field = HelperGetNames.get_gm_content_field(
+                own_table_column, foreign_table_name
+            )
+            fk_idx = HelperGetNames.get_fk_and_index_name(
+                gm_table_name, gm_content_field, foreign_table_name, "id"
+            )
             subst_dict = {
                 "own_table_column": own_table_column,
+                "fk_name": fk_idx[0],
                 "foreign_table_name": HelperGetNames.get_table_name(foreign_table_name),
                 "foreign_view_name": foreign_table_name,
-                "gm_content_field": HelperGetNames.get_gm_content_field(
-                    own_table_column, foreign_table_name
-                ),
+                "gm_content_field": gm_content_field,
             }
             foreign_table_ref_lines.append(
                 Helper.GM_FOREIGN_TABLE_LINE_TEMPLATE.substitute(subst_dict)
             )
+            indices_lines.append(
+                Helper.GM_INDEX_LINE_TEMPLATE.substitute(
+                    {
+                        "index": fk_idx[1],
+                        "table_name": gm_table_name,
+                        "gm_content_field": gm_content_field,
+                    }
+                )
+            )
 
+        own_table_name = HelperGetNames.get_table_name(own_table_field.table)
+        own_table_name_with_ref_column = (
+            f"{own_table_field.table}_{own_table_field.ref_column}"
+        )
+        fk_idx = HelperGetNames.get_fk_and_index_name(
+            gm_table_name,
+            own_table_name_with_ref_column,
+            own_table_name,
+            own_table_field.ref_column,
+        )
         text = Helper.INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE.substitute(
             {
                 "table_name": gm_table_name,
-                "own_table_name": HelperGetNames.get_table_name(own_table_field.table),
-                "own_table_name_with_ref_column": (
-                    own_table_name_with_ref_column := f"{own_table_field.table}_{own_table_field.ref_column}"
+                "own_table_name": own_table_name,
+                "own_table_name_with_ref_column": own_table_name_with_ref_column,
+                "fk_name": fk_idx[0],
+                "index_1": fk_idx[1],
+                "index_2": HelperGetNames.get_index_name(
+                    gm_table_name, own_table_column
                 ),
                 "own_table_ref_column": own_table_field.ref_column,
                 "own_table_column": own_table_column,
@@ -1450,6 +1453,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "unique_constraint_name": HelperGetNames.get_generic_unique_constraint_name(
                     own_table_name_with_ref_column, own_table_column
                 ),
+                "content_field_indices": "\n".join(indices_lines),
             }
         )
         return gm_table_name, text
@@ -1718,16 +1722,10 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
 
 def main() -> None:
     """
-    Main entry point for this script to generate the schema_relational.sql from models.yml.
+    Main entry point for this script to generate the schema_relational.sql from the collections files.
     """
 
-    # Retrieve models.yml from call-parameter for testing purposes, local file or GitHub
-    if len(sys.argv) > 1:
-        file = sys.argv[1]
-    else:
-        file = str(SOURCE)
-
-    _, checksum = InternalHelper.read_models_yml(file)
+    _, checksum = InternalHelper.read_models_yml()
 
     (
         pre_code,

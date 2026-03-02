@@ -6,7 +6,8 @@ from typing import Any, cast
 import simplejson as json
 import yaml
 
-KEYSEPARATOR = "/"
+from .helper_get_names import DEFAULT_COLLECTIONS_DIR, KEYSEPARATOR
+
 MAX_FIELD_NAME_LENGTH = 63
 
 _collection_regex = r"[a-z](?:[a-z_]+[a-z]+)?"
@@ -19,9 +20,6 @@ COLLECTIONFIELD_REGEX = re.compile(f"^{_collection_regex}{KEYSEPARATOR}{_field_r
 DECIMAL_REGEX = re.compile(r"^-?(\d|[1-9]\d+)\.\d{6}$")
 COLOR_REGEX = re.compile(r"^#[0-9a-f]{6}$")
 
-DEFAULT_COLLECTIONS_DIR = str(
-    (Path(__file__).parent / ".." / ".." / "collections").resolve()
-)
 
 RELATION_TYPES = (
     "relation",

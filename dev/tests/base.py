@@ -409,7 +409,7 @@ class BaseTestCase(TestCase):
         ]
         columns, values = DbUtils.get_columns_and_values_for_insert(projector_t, data)
         curs.execute(*projector_t.insert(columns, values, returning=[projector_t.id]))
-        (result["default_projector_id"], result["secondary_projector_id"]) = (
+        result["default_projector_id"], result["secondary_projector_id"] = (
             x["id"] for x in curs
         )
 
