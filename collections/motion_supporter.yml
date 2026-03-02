@@ -8,6 +8,7 @@ meeting_user_id:
   type: relation
   reference: meeting_user
   to: meeting_user/motion_supporter_ids
+  equal_fields: meeting_id
   restriction_mode: A
 motion_id:
   type: relation

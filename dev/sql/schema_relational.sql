@@ -149,6 +149,44 @@ BEGIN
 END;
 $log_modified_related_trigger$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION check_equals()
+RETURNS trigger AS $check_equals_trigger$
+DECLARE
+    fqid_var TEXT;
+    ref_column TEXT;
+    check_column TEXT;
+    foreign_table TEXT;
+    foreign_id TEXT;
+    foreign_val TEXT;
+    own_val TEXT;
+    i INTEGER := 0;
+BEGIN
+
+    WHILE i < TG_NARGS LOOP
+        own_table := TG_ARGV[i]
+        foreign_table := TG_ARGV[i+1];
+        ref_column := TG_ARGV[i+2];
+        own_id = NEW.id
+        own_val = NEW[field]
+
+        EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
+        EXECUTE format('SELECT ($1) FROM ($2) WHERE id = $3', check_column, foreign_table, foreign_id) INTO foreign_val USING NEW;
+
+        IF foreign_id IS NOT NULL THEN
+            IF foreign_val != own_val
+                foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
+                own_fqid := own_table || '/' || own__id || '/' || check_column;
+                RAISE EXCEPTION own_fqid || ' is not equal to ' || foreign_fqid;
+            END IF;
+        END IF;
+
+        i := i + 2;
+    END LOOP;
+
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$check_equals_trigger$ LANGUAGE plpgsql;
+
 CREATE TABLE os_notify_log_t (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     operation varchar(32),
@@ -3545,6 +3583,8 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'delegated_use
 CREATE TRIGGER tr_log_vote_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON vote_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id');
 
+CREATE TRIGGER equal_meeting_id_motion_submitter_t_meeting_user BEFORE INSERT OR UPDATE OF meeting_id ON motion_submitter_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('meeting_user', 'meeting_id')
 
 /*   Relation-list infos
 Generated: What will be generated for left field

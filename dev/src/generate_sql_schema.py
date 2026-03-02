@@ -77,7 +77,7 @@ class GenerateCodeBlocks:
     def generate_the_code(
         cls,
     ) -> tuple[
-        str, str, str, str, str, list[str], str, str, str, str, str, str, str, list[str]
+        str, str, str, str, str, list[str], str, str, str, str, str, str, str, str, list[str]
     ]:
         """
         Return values:
@@ -95,6 +95,7 @@ class GenerateCodeBlocks:
           create_trigger_1_n_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_n
           create_trigger_n_m_relation_not_null_code: Definitions of triggers calling check_not_null_for_n_m
           create_trigger_unique_ids_pair_code: Definitions of triggers calling check_unique_ids_pair
+          create_trigger_equal_fields_code: Definitions of triggers checking equal_fields
           create_trigger_notify_code: Definitions of triggers calling notify_modified_models
           errors: to show
         """
@@ -116,7 +117,7 @@ class GenerateCodeBlocks:
             "sequence_scope",
             # "on_delete", # must have other name then the key-value-store one
             "sql",
-            # "equal_fields", # Seems we need, see example_transactional.sql between meeting and groups?
+            "equal_fields"
             # "unique",  # TODO: still to design
         }
         pre_code: str = ""
@@ -128,6 +129,7 @@ class GenerateCodeBlocks:
         create_trigger_1_n_relation_not_null_code: str = ""
         create_trigger_n_m_relation_not_null_code: str = ""
         create_trigger_unique_ids_pair_code: str = ""
+        create_trigger_equal_fields_code:str=""
         create_trigger_notify_code: str = ""
         final_info_code: str = ""
         missing_handled_attributes = []
@@ -190,6 +192,8 @@ class GenerateCodeBlocks:
                 create_trigger_n_m_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
                 create_trigger_unique_ids_pair_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_equal_fields_code"]:
+                create_trigger_equal_fields_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
             for im_table in cls.intermediate_tables.values():
@@ -219,6 +223,7 @@ class GenerateCodeBlocks:
             create_trigger_1_n_relation_not_null_code,
             create_trigger_n_m_relation_not_null_code,
             create_trigger_unique_ids_pair_code,
+            create_trigger_equal_fields_code,
             create_trigger_notify_code,
             errors,
         )
