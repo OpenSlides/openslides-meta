@@ -4407,6 +4407,11 @@ user:
     minLength: 1
     restriction_mode: B
     description: unique-key from IdP for SAML login
+  keycloak_id:
+    type: string
+    minLength: 1
+    restriction_mode: B
+    description: unique-key from Keycloak for OIDC login (sub claim)
   pronoun:
     type: string
     maxLength: 32
