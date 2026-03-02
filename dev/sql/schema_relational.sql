@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'e0d5579236d105d49e687ac5999f0184'
+-- MODELS_YML_CHECKSUM = '14017a938413f084ab18b4a3d4418765'
 
 
 -- Function and meta table definitions
@@ -1392,6 +1392,7 @@ CREATE TABLE user_t (
     username varchar(256) NOT NULL,
     member_number varchar(256),
     saml_id varchar(256) CONSTRAINT minlength_saml_id CHECK (char_length(saml_id) >= 1),
+    keycloak_id varchar(256) CONSTRAINT minlength_keycloak_id CHECK (char_length(keycloak_id) >= 1),
     pronoun varchar(32),
     title varchar(256),
     first_name varchar(256),
@@ -1416,6 +1417,7 @@ CREATE TABLE user_t (
 
 
 comment on column user_t.saml_id is 'unique-key from IdP for SAML login';
+comment on column user_t.keycloak_id is 'unique-key from Keycloak for OIDC login (sub claim)';
 comment on column user_t.organization_management_level is 'Hierarchical permission level for the whole organization.';
 
 
