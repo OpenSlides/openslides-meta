@@ -152,35 +152,39 @@ $log_modified_related_trigger$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION check_equals()
 RETURNS trigger AS $check_equals_trigger$
 DECLARE
-    fqid_var TEXT;
     ref_column TEXT;
     check_column TEXT;
     foreign_table TEXT;
     foreign_id TEXT;
     foreign_val TEXT;
+    foreign_fqid TEXT;
+    own_id TEXT;
     own_val TEXT;
+    own_table TEXT;
+    own_fqid TEXT;
     i INTEGER := 0;
 BEGIN
 
     WHILE i < TG_NARGS LOOP
-        own_table := TG_ARGV[i]
+        own_table := TG_ARGV[i];
         foreign_table := TG_ARGV[i+1];
         ref_column := TG_ARGV[i+2];
-        own_id = NEW.id
-        own_val = NEW[field]
+        check_column := TG_ARGV[i+3];
+        own_id = NEW.id;
 
+        EXECUTE format('SELECT ($1).%I', check_column) INTO own_val USING NEW;
         EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
-        EXECUTE format('SELECT ($1) FROM ($2) WHERE id = $3', check_column, foreign_table, foreign_id) INTO foreign_val USING NEW;
+        EXECUTE format('SELECT %I FROM %I WHERE "id" = %L', check_column, foreign_table, foreign_id) INTO foreign_val USING NEW;
 
         IF foreign_id IS NOT NULL THEN
-            IF foreign_val != own_val
+            IF foreign_val != own_val THEN
                 foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
-                own_fqid := own_table || '/' || own__id || '/' || check_column;
-                RAISE EXCEPTION own_fqid || ' is not equal to ' || foreign_fqid;
+                own_fqid := own_table || '/' || own_id || '/' || check_column;
+                RAISE EXCEPTION 'The relation %s requires the following fields to be equal:% %s: % % %s: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
             END IF;
         END IF;
 
-        i := i + 2;
+        i := i + 4;
     END LOOP;
 
     RETURN NULL;  -- AFTER TRIGGER needs no return
@@ -3583,8 +3587,20 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'delegated_use
 CREATE TRIGGER tr_log_vote_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON vote_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id');
 
-CREATE TRIGGER equal_meeting_id_motion_submitter_t_meeting_user BEFORE INSERT OR UPDATE OF meeting_id ON motion_submitter_t
-FOR EACH ROW EXECUTE FUNCTION check_equals('meeting_user', 'meeting_id')
+
+-- After triggers because generic fields
+-- Each of these needs a back-relation trigger to handle when the other side has meeting_id updated
+CREATE TRIGGER equal_meeting_id_motion_submitter_t_meeting_user AFTER INSERT OR UPDATE OF meeting_id, meeting_user_id ON motion_submitter_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_submitter', 'meeting_user', 'meeting_user_id', 'meeting_id');
+CREATE TRIGGER equal_meeting_id_motion_supporter_t_meeting_user AFTER INSERT OR UPDATE OF meeting_id, meeting_user_id ON motion_supporter_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_supporter', 'meeting_user', 'meeting_user_id', 'meeting_id');
+
+CREATE TRIGGER equal_meeting_id_poll_t_assignment AFTER INSERT OR UPDATE OF meeting_id, content_object_id_assignment_id ON poll_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'assignment', 'content_object_id_assignment_id', 'meeting_id');
+CREATE TRIGGER equal_meeting_id_poll_t_topic AFTER INSERT OR UPDATE OF meeting_id, content_object_id_topic_id ON poll_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id');
+CREATE TRIGGER equal_meeting_id_motion_t_topic AFTER INSERT OR UPDATE OF meeting_id, content_object_id_motion_id ON poll_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'assignment', 'content_object_id_motion_id', 'meeting_id');
 
 /*   Relation-list infos
 Generated: What will be generated for left field
