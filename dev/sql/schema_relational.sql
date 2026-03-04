@@ -149,6 +149,12 @@ BEGIN
 END;
 $log_modified_related_trigger$ LANGUAGE plpgsql;
 
+-- expects in this order:
+-- * own table name,
+-- * referenced table name,
+-- * field in own table for which the check was triggered
+-- * field that is supposed to be equal
+-- * if new is the back relations table
 CREATE OR REPLACE FUNCTION check_equals()
 RETURNS trigger AS $check_equals_trigger$
 DECLARE
@@ -162,6 +168,7 @@ DECLARE
     own_val TEXT;
     own_table TEXT;
     own_fqid TEXT;
+    from_back_relation BOOLEAN;
     i INTEGER := 0;
 BEGIN
 
@@ -170,10 +177,16 @@ BEGIN
         foreign_table := TG_ARGV[i+1];
         ref_column := TG_ARGV[i+2];
         check_column := TG_ARGV[i+3];
-        own_id = NEW.id;
+        from_back_relation := TG_ARGV[i+4];
+        IF from_back_relation IS TRUE THEN
+            foreign_id = NEW.id;
+            EXECUTE format('SELECT "id" FROM %I WHERE %L = %L', own_table, ref_column, foreign_id) INTO own_id USING NEW;
+        ELSE
+            own_id = NEW.id;
+            EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
+        END IF;
 
         EXECUTE format('SELECT ($1).%I', check_column) INTO own_val USING NEW;
-        EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
         EXECUTE format('SELECT %I FROM %I WHERE "id" = %L', check_column, foreign_table, foreign_id) INTO foreign_val USING NEW;
 
         IF foreign_id IS NOT NULL THEN
@@ -184,12 +197,146 @@ BEGIN
             END IF;
         END IF;
 
-        i := i + 4;
+        i := i + 5;
     END LOOP;
 
     RETURN NULL;  -- AFTER TRIGGER needs no return
 END;
 $check_equals_trigger$ LANGUAGE plpgsql;
+
+-- expects in this order:
+-- * intermediate table name,
+-- * column referencing calling table in intermediate table
+-- * calling table name
+-- * column referencing other table in intermediate table
+-- * other table name
+-- * field that is supposed to be equal
+-- * pseudofield for which the check was triggered
+CREATE OR REPLACE FUNCTION check_equals_multi()
+RETURNS trigger AS $check_equals_multi_trigger$
+DECLARE
+    ref_column TEXT;
+    check_column TEXT;
+    foreign_table_reference TEXT;
+    foreign_table TEXT;
+    foreign_id TEXT;
+    foreign_val TEXT;
+    foreign_fqid TEXT;
+    intermediate_table TEXT;
+    own_id TEXT;
+    own_val TEXT;
+    own_table_reference TEXT;
+    own_table TEXT;
+    own_fqid TEXT;
+    foreign_rows record;
+    from_intermediate BOOLEAN;
+    i INTEGER := 0;
+    r record;
+BEGIN
+
+    WHILE i < TG_NARGS LOOP
+        intermediate_table := TG_ARGV[i];
+        own_table_reference := TG_ARGV[i+1];
+        own_table := TG_ARGV[i+2];
+        foreign_table_reference := TG_ARGV[i+3];
+        foreign_table := TG_ARGV[i+4];
+        check_column := TG_ARGV[i+5];
+        ref_column := TG_ARGV[i+6];
+        
+        own_id = NEW.id;
+        EXECUTE format('SELECT ($1).%I', check_column) INTO own_val USING NEW;
+        EXECUTE format('SELECT a.id, a.%I FROM %I a JOIN %I b ON b.%I = a.id JOIN %I c ON c.id = b.%I AND c.id = %L AND c.%I != a.%I ORDER BY a.id', check_column, foreign_table, intermediate_table, foreign_table_reference, own_table, own_table_reference, own_id, check_column, check_column) INTO foreign_rows USING NEW;
+        -- EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
+
+        -- This fails with
+        -- FOREACH expression must yield an array, not type record
+        -- CONTEXT:  PL/pgSQL function check_equals_multi() line 36 at FOREACH over array
+        FOREACH r IN ARRAY foreign_rows LOOP
+            foreign_id := r.id;
+            EXECUTE format('SELECT ($1).%I', check_column) INTO foreign_val USING r;
+
+            IF foreign_id IS NOT NULL THEN
+                IF foreign_val != own_val THEN
+                    foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
+                    own_fqid := own_table || '/' || own_id || '/' || check_column;
+                    RAISE EXCEPTION 'The relation %s requires the following fields to be equal:% %s: % % %s: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
+                END IF;
+            END IF;
+        END LOOP;
+
+        i := i + 7;
+    END LOOP;
+
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$check_equals_multi_trigger$ LANGUAGE plpgsql;
+
+-- expects in this order:
+-- * intermediate table name,
+-- * column referencing table1 in intermediate table
+-- * table1 name
+-- * column referencing table2 in intermediate table
+-- * table2 name
+-- * field that is supposed to be equal
+-- * pseudofield for which the check was triggered
+CREATE OR REPLACE FUNCTION check_equals_intermediate()
+RETURNS trigger AS $check_equals_intermediate_trigger$
+DECLARE
+    ref_column TEXT;
+    check_column TEXT;
+    foreign_table_reference TEXT;
+    foreign_table TEXT;
+    foreign_id TEXT;
+    foreign_val TEXT;
+    foreign_fqid TEXT;
+    intermediate_table TEXT;
+    own_id TEXT;
+    own_val TEXT;
+    own_table_reference TEXT;
+    own_table TEXT;
+    own_fqid TEXT;
+    read_rows record;
+    from_intermediate BOOLEAN;
+    i INTEGER := 0;
+    r record;
+BEGIN
+
+    WHILE i < TG_NARGS LOOP
+        intermediate_table := TG_ARGV[i];
+        own_table_reference := TG_ARGV[i+1];
+        own_table := TG_ARGV[i+2];
+        foreign_table_reference := TG_ARGV[i+3];
+        foreign_table := TG_ARGV[i+4];
+        check_column := TG_ARGV[i+5];
+        ref_column := TG_ARGV[i+6];
+        
+        EXECUTE format('SELECT a.id, a.%I, c.id, c.I% FROM ($1) b JOIN %I a ON b.%I = a.id JOIN %I c ON b.%I = c.id', check_column, check_column, own_table, own_table_reference, foreign_table, foreign_table_reference) into own_id,own_val,foreign_id,foreign_val USING NEW;
+        -- own_id = NEW.id;
+        -- EXECUTE format('SELECT ($1).%I', check_column) INTO own_val USING NEW;
+        -- EXECUTE format('SELECT a.id, a.%I FROM %I a JOIN %I b ON b.%I = a.id JOIN %I c ON c.id = b.%I AND c.id = %L AND c.%I != a.%I ORDER BY a.id', check_column, foreign_table, intermediate_table, foreign_table_reference, own_table, own_table_reference, own_id, check_column, check_column) INTO foreign_rows USING NEW;
+        -- EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
+
+        -- FOREACH r IN ARRAY foreign_rows LOOP
+        --     foreign_id := r.id;
+        --     EXECUTE format('SELECT ($1).%I', check_column) INTO foreign_val USING r;
+
+        IF foreign_id IS NOT NULL AND own_id IS NOT NULL THEN
+            IF foreign_val != own_val THEN
+                foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
+                own_fqid := own_table || '/' || own_id || '/' || check_column;
+                RAISE EXCEPTION 'The relation %s requires the following fields to be equal:% %s: % % %s: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
+            END IF;
+        ELSE
+            RAISE EXCEPTION 'bad. bad bad. bad bad bad. bad bad bad bAD BAD BAD BAD BADBADBADBADBADBAD!!!!';
+        END IF;
+        -- END LOOP;
+
+        i := i + 7;
+    END LOOP;
+
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$check_equals_intermediate_trigger$ LANGUAGE plpgsql;
 
 CREATE TABLE os_notify_log_t (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -3591,16 +3738,43 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id
 -- After triggers because generic fields
 -- Each of these needs a back-relation trigger to handle when the other side has meeting_id updated
 CREATE TRIGGER equal_meeting_id_motion_submitter_t_meeting_user AFTER INSERT OR UPDATE OF meeting_id, meeting_user_id ON motion_submitter_t
-FOR EACH ROW EXECUTE FUNCTION check_equals('motion_submitter', 'meeting_user', 'meeting_user_id', 'meeting_id');
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_submitter', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
+CREATE TRIGGER equal_meeting_id_motion_submitter_t_meeting_user_back AFTER INSERT OR UPDATE OF meeting_id ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_submitter', 'meeting_user', 'meeting_user_id', 'meeting_id', TRUE);
+
 CREATE TRIGGER equal_meeting_id_motion_supporter_t_meeting_user AFTER INSERT OR UPDATE OF meeting_id, meeting_user_id ON motion_supporter_t
-FOR EACH ROW EXECUTE FUNCTION check_equals('motion_supporter', 'meeting_user', 'meeting_user_id', 'meeting_id');
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_supporter', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
+CREATE TRIGGER equal_meeting_id_motion_supporter_t_meeting_user_back AFTER INSERT OR UPDATE OF meeting_id ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_supporter', 'meeting_user', 'meeting_user_id', 'meeting_id', TRUE);
+
 
 CREATE TRIGGER equal_meeting_id_poll_t_assignment AFTER INSERT OR UPDATE OF meeting_id, content_object_id_assignment_id ON poll_t
-FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'assignment', 'content_object_id_assignment_id', 'meeting_id');
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'assignment', 'content_object_id_assignment_id', 'meeting_id', FALSE);
+CREATE TRIGGER equal_meeting_id_poll_t_assignment_back AFTER INSERT OR UPDATE OF meeting_id ON assignment_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'assignment', 'content_object_id_assignment_id', 'meeting_id', TRUE);
+
 CREATE TRIGGER equal_meeting_id_poll_t_topic AFTER INSERT OR UPDATE OF meeting_id, content_object_id_topic_id ON poll_t
-FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id');
-CREATE TRIGGER equal_meeting_id_motion_t_topic AFTER INSERT OR UPDATE OF meeting_id, content_object_id_motion_id ON poll_t
-FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'assignment', 'content_object_id_motion_id', 'meeting_id');
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id', FALSE);
+CREATE TRIGGER equal_meeting_id_poll_t_topic_back AFTER INSERT OR UPDATE OF meeting_id ON topic_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id', TRUE);
+
+CREATE TRIGGER equal_meeting_id_motion_t_motion AFTER INSERT OR UPDATE OF meeting_id, content_object_id_motion_id ON poll_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'motion', 'content_object_id_motion_id', 'meeting_id', FALSE);
+CREATE TRIGGER equal_meeting_id_motion_t_motion_back AFTER INSERT OR UPDATE OF meeting_id ON motion_t
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'motion', 'content_object_id_motion_id', 'meeting_id', TRUE);
+
+-- tags n:m
+-- tag_t -tag_id- gm_tag_tagged_ids_t -tagged_id_agenda_item_id,tagged_id_assignment_id,tagged_id_motion_id- agenda_t,assignment_t,motion_t
+
+-- chat_group - group n:m
+-- chat_group_t -chat_group_id- nm_chat_group_read_group_ids_group_t -group_id- group_t
+
+CREATE TRIGGER equal_meeting_id_chat_group_t_read_group_ids AFTER INSERT OR UPDATE OF meeting_id ON chat_group_t
+FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_chat_group_read_group_ids_group_t', 'chat_group_id', 'chat_group', 'group_id', 'group', 'meeting_id', 'read_group_ids');
+CREATE TRIGGER equal_meeting_id_group_t_read_chat_group_ids AFTER INSERT OR UPDATE OF meeting_id ON group_t
+FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_chat_group_read_group_ids_group_t', 'group_id', 'group', 'chat_group_id', 'chat_group', 'meeting_id', 'read_chat_group_ids');
+CREATE TRIGGER equal_meeting_id_group_t_read_chat_group_ids_intermediate AFTER INSERT OR UPDATE ON nm_chat_group_read_group_ids_group_t
+FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('nm_chat_group_read_group_ids_group_t', 'group_id', 'group', 'chat_group_id', 'chat_group', 'meeting_id', 'read_chat_group_ids');
 
 /*   Relation-list infos
 Generated: What will be generated for left field
