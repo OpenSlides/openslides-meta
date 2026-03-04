@@ -23,6 +23,10 @@ onehundred_percent_bases: &onehundred_percent_bases
   - "entitled"
   - "entitled_present"
   - "disabled"
+required_majority: &required_majority
+  - "no_majority"
+  - "two_third_majority"
+  - "absolute_majority"
 id_field: &id_field
   type: number
   restriction_mode: A
