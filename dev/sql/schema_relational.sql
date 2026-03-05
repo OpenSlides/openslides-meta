@@ -149,6 +149,22 @@ BEGIN
 END;
 $log_modified_related_trigger$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION raise_equality_exception(check_column TEXT, ref_column TEXT, own_table TEXT, own_id INTEGER, own_val TEXT, foreign_table TEXT, foreign_id INTEGER, foreign_val TEXT)
+RETURNS void AS $equality_exception$
+DECLARE
+    own_fqid TEXT;
+    foreign_fqid TEXT;
+BEGIN
+    IF foreign_id IS NOT NULL AND own_id IS NOT NULL THEN
+        IF foreign_val != own_val THEN
+            own_fqid := own_table || '/' || own_id || '/' || check_column;
+            foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
+            RAISE EXCEPTION 'The relation % requires the following fields to be equal:% %: % % %: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
+        END IF;
+    END IF;
+END;
+$equality_exception$ LANGUAGE plpgsql;
+
 -- expects in this order:
 -- * own table name,
 -- * referenced table name,
@@ -161,13 +177,11 @@ DECLARE
     ref_column TEXT;
     check_column TEXT;
     foreign_table TEXT;
-    foreign_id TEXT;
+    foreign_id INTEGER;
     foreign_val TEXT;
-    foreign_fqid TEXT;
-    own_id TEXT;
+    own_id INTEGER;
     own_val TEXT;
     own_table TEXT;
-    own_fqid TEXT;
     from_back_relation BOOLEAN;
     i INTEGER := 0;
 BEGIN
@@ -178,24 +192,16 @@ BEGIN
         ref_column := TG_ARGV[i+2];
         check_column := TG_ARGV[i+3];
         from_back_relation := TG_ARGV[i+4];
+
         IF from_back_relation IS TRUE THEN
-            foreign_id = NEW.id;
-            EXECUTE format('SELECT "id" FROM %I WHERE %L = %L', own_table, ref_column, foreign_id) INTO own_id USING NEW;
+            EXECUTE format('SELECT ($1).id, ($1).%I', check_column) INTO foreign_id, foreign_val USING NEW;
+            EXECUTE format('SELECT "id", %I FROM %I WHERE %L = %L', check_column, own_table, ref_column, foreign_id) INTO own_id, own_val;
         ELSE
-            own_id = NEW.id;
-            EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
+            EXECUTE format('SELECT ($1).id, ($1).%I, ($1).%I', check_column, ref_column) INTO own_id, own_val, foreign_id USING NEW;
+            EXECUTE format('SELECT %I FROM %I WHERE "id" = %L', check_column, foreign_table, foreign_id) INTO foreign_val;
         END IF;
 
-        EXECUTE format('SELECT ($1).%I', check_column) INTO own_val USING NEW;
-        EXECUTE format('SELECT %I FROM %I WHERE "id" = %L', check_column, foreign_table, foreign_id) INTO foreign_val USING NEW;
-
-        IF foreign_id IS NOT NULL THEN
-            IF foreign_val != own_val THEN
-                foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
-                own_fqid := own_table || '/' || own_id || '/' || check_column;
-                RAISE EXCEPTION 'The relation %s requires the following fields to be equal:% %s: % % %s: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
-            END IF;
-        END IF;
+        PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
 
         i := i + 5;
     END LOOP;
@@ -219,17 +225,13 @@ DECLARE
     check_column TEXT;
     foreign_table_reference TEXT;
     foreign_table TEXT;
-    foreign_id TEXT;
+    foreign_id INTEGER;
     foreign_val TEXT;
-    foreign_fqid TEXT;
     intermediate_table TEXT;
-    own_id TEXT;
+    own_id INTEGER;
     own_val TEXT;
     own_table_reference TEXT;
     own_table TEXT;
-    own_fqid TEXT;
-    foreign_rows record;
-    from_intermediate BOOLEAN;
     i INTEGER := 0;
     r record;
 BEGIN
@@ -244,24 +246,12 @@ BEGIN
         ref_column := TG_ARGV[i+6];
         
         own_id = NEW.id;
-        EXECUTE format('SELECT ($1).%I', check_column) INTO own_val USING NEW;
-        EXECUTE format('SELECT a.id, a.%I FROM %I a JOIN %I b ON b.%I = a.id JOIN %I c ON c.id = b.%I AND c.id = %L AND c.%I != a.%I ORDER BY a.id', check_column, foreign_table, intermediate_table, foreign_table_reference, own_table, own_table_reference, own_id, check_column, check_column) INTO foreign_rows USING NEW;
-        -- EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
+        FOR r in EXECUTE format('SELECT a.%I AS a_val, c.id AS c_id, c.%I AS c_val FROM %I a JOIN %I b ON b.%I = a.id JOIN %I c ON b.%I = c.id WHERE a.id = $1',check_column, check_column, own_table, intermediate_table, own_table_reference, foreign_table, foreign_table_reference) USING own_id LOOP
+            own_val := r.own_val;
+            foreign_id := r.foreign_id;
+            foreign_val := r.foreign_val;
 
-        -- This fails with
-        -- FOREACH expression must yield an array, not type record
-        -- CONTEXT:  PL/pgSQL function check_equals_multi() line 36 at FOREACH over array
-        FOREACH r IN ARRAY foreign_rows LOOP
-            foreign_id := r.id;
-            EXECUTE format('SELECT ($1).%I', check_column) INTO foreign_val USING r;
-
-            IF foreign_id IS NOT NULL THEN
-                IF foreign_val != own_val THEN
-                    foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
-                    own_fqid := own_table || '/' || own_id || '/' || check_column;
-                    RAISE EXCEPTION 'The relation %s requires the following fields to be equal:% %s: % % %s: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
-                END IF;
-            END IF;
+            PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
         END LOOP;
 
         i := i + 7;
@@ -286,19 +276,14 @@ DECLARE
     check_column TEXT;
     foreign_table_reference TEXT;
     foreign_table TEXT;
-    foreign_id TEXT;
+    foreign_id INTEGER;
     foreign_val TEXT;
-    foreign_fqid TEXT;
     intermediate_table TEXT;
-    own_id TEXT;
+    own_id INTEGER;
     own_val TEXT;
     own_table_reference TEXT;
     own_table TEXT;
-    own_fqid TEXT;
-    read_rows record;
-    from_intermediate BOOLEAN;
     i INTEGER := 0;
-    r record;
 BEGIN
 
     WHILE i < TG_NARGS LOOP
@@ -310,26 +295,10 @@ BEGIN
         check_column := TG_ARGV[i+5];
         ref_column := TG_ARGV[i+6];
         
-        EXECUTE format('SELECT a.id, a.%I, c.id, c.I% FROM ($1) b JOIN %I a ON b.%I = a.id JOIN %I c ON b.%I = c.id', check_column, check_column, own_table, own_table_reference, foreign_table, foreign_table_reference) into own_id,own_val,foreign_id,foreign_val USING NEW;
-        -- own_id = NEW.id;
-        -- EXECUTE format('SELECT ($1).%I', check_column) INTO own_val USING NEW;
-        -- EXECUTE format('SELECT a.id, a.%I FROM %I a JOIN %I b ON b.%I = a.id JOIN %I c ON c.id = b.%I AND c.id = %L AND c.%I != a.%I ORDER BY a.id', check_column, foreign_table, intermediate_table, foreign_table_reference, own_table, own_table_reference, own_id, check_column, check_column) INTO foreign_rows USING NEW;
-        -- EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING NEW;
+        EXECUTE format('SELECT id, %I FROM %I WHERE id = ($1).%I', check_column, own_table, own_table_reference) INTO own_id, own_val USING NEW;
+        EXECUTE format('SELECT id, %I FROM %I WHERE id = ($1).%I', check_column, foreign_table, foreign_table_reference) INTO foreign_id, foreign_val USING NEW;
 
-        -- FOREACH r IN ARRAY foreign_rows LOOP
-        --     foreign_id := r.id;
-        --     EXECUTE format('SELECT ($1).%I', check_column) INTO foreign_val USING r;
-
-        IF foreign_id IS NOT NULL AND own_id IS NOT NULL THEN
-            IF foreign_val != own_val THEN
-                foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
-                own_fqid := own_table || '/' || own_id || '/' || check_column;
-                RAISE EXCEPTION 'The relation %s requires the following fields to be equal:% %s: % % %s: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
-            END IF;
-        ELSE
-            RAISE EXCEPTION 'bad. bad bad. bad bad bad. bad bad bad bAD BAD BAD BAD BADBADBADBADBADBAD!!!!';
-        END IF;
-        -- END LOOP;
+        PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
 
         i := i + 7;
     END LOOP;
