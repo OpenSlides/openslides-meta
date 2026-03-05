@@ -25,3 +25,18 @@ allow_nota:
   type: boolean
   default: false
   restriction_mode: A
+strike_out:
+  type: boolean
+  default: false
+  restriction_mode: A
+onehundred_percent_base:
+  type: string
+  required: true
+  enum:
+    - no_general
+    - valid
+    - cast
+    - entitled
+    - entitled_present
+    - disabled
+  restriction_mode: A

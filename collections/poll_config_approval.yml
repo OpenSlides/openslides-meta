@@ -17,3 +17,14 @@ allow_abstain:
   type: boolean
   default: true
   restriction_mode: A
+onehundred_percent_base:
+  type: string
+  required: true
+  enum:
+    - YN
+    - valid
+    - cast
+    - entitled
+    - entitled_present
+    - disabled
+  restriction_mode: A
