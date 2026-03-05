@@ -35,6 +35,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     create_trigger_1_n_relation_not_null: str
     create_trigger_n_m_relation_not_null: str
     create_trigger_unique_ids_pair_code: str
+    create_trigger_equal_fields_code: str
     create_trigger_notify: str
     undecided: str
     final_info: str
@@ -483,11 +484,15 @@ class GenerateCodeBlocks:
                 fdata.get("to"), fdata.get("reference")
             )
         )
-        state, _, final_info, error = InternalHelper.check_relation_definitions(
+        state, primary, final_info, error = InternalHelper.check_relation_definitions(
             own_table_field, [foreign_table_field]
         )
 
         foreign_table = foreign_table_field.table
+
+        if primary and (own_table_field.field_def.get("equal_fields") or foreign_table_field.field_def.get("equal_fields")):
+            text["create_trigger_equal_fields_code"] = cls.get_trigger_check_equal_fields_for_1_x(own_table_field, foreign_table_field, state)
+
         if state == FieldSqlErrorType.FIELD:
             foreign_card, error = InternalHelper.get_cardinality(foreign_table_field)
             if foreign_card.startswith("1"):
@@ -586,6 +591,8 @@ class GenerateCodeBlocks:
                     nm_table_name, value = Helper.get_nm_table_for_n_m_relation_lists(
                         own_table_field, foreign_table_field
                     )
+                    if (own_table_field.field_def.get("equal_fields") or foreign_table_field.field_def.get("equal_fields")):
+                        text["create_trigger_equal_fields_code"] = cls.get_trigger_check_equal_fields_for_n_m(own_table_field, foreign_table_field, nm_table_name, state)
                     if nm_table_name not in cls.intermediate_tables:
                         cls.intermediate_tables[nm_table_name] = value
                         text["create_trigger_notify"] = (
@@ -832,6 +839,80 @@ class GenerateCodeBlocks:
             """)
 
     @classmethod
+    def get_equal_fields(
+        cls,
+        table_field: TableFieldType,
+    ) -> list[str]:
+        equal_fields = table_field.field_def.get("equal_field")
+        if isinstance(equal_fields, list):
+            return equal_fields
+        elif isinstance(equal_fields, str):
+            return [equal_fields]
+        else:
+            raise Exception(f"Could not write equal_fields trigger for {table_field.column}: Unknown setting.")
+
+    @classmethod
+    def equal_fields_state_check(cls, state: FieldSqlErrorType,table_field: TableFieldType) -> None:
+        if state != FieldSqlErrorType.FIELD:
+            raise Exception(f"Could not write equal_fields trigger for {table_field.column}: Not supported for FieldSqlErrorType {state}.")
+
+    @classmethod
+    def get_trigger_check_equal_fields_for_1_x(
+        cls,
+        own_table_field: TableFieldType,
+        foreign_table_field: TableFieldType,
+        state: FieldSqlErrorType
+    ) -> str:
+        cls.equal_fields_state_check(state, own_table_field)
+        equal_fields = list(set(*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)))
+        return dedent("\n".join(f"""
+            CREATE TRIGGER equal_{equal_field}_on_{own_table_field.table}_t_{own_table_field.column} AFTER INSERT OR UPDATE OF {equal_field}, {own_table_field.column} ON {own_table_field.table}
+            FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', FALSE);
+            CREATE TRIGGER equal_{equal_field}_on_{foreign_table_field.table}_t_{foreign_table_field.column} AFTER INSERT OR UPDATE OF {equal_field} ON {foreign_table_field.table}
+            FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', TRUE);
+
+        """ for equal_field in equal_fields))
+
+    @classmethod
+    def get_trigger_check_equal_fields_for_n_m(
+        cls,
+        own_table_field: TableFieldType,
+        foreign_table_field: TableFieldType,
+        nm_table_name:str,
+        state: FieldSqlErrorType
+    ) -> str:
+        cls.equal_fields_state_check(state, own_table_field)
+        equal_fields = list(set(*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)))
+        return dedent("\n".join(f"""
+            CREATE TRIGGER equal_{equal_field}_on_{own_table_field.table}_t_{own_table_field.column} AFTER INSERT OR UPDATE OF {equal_field} ON {own_table_field.table}
+            FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{own_table_field.intermediate_column}', '{own_table_field.table}', '{foreign_table_field.intermediate_column}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
+            CREATE TRIGGER equal_{equal_field}_on_{foreign_table_field.table}_t_{foreign_table_field.column} AFTER INSERT OR UPDATE OF {equal_field} ON {foreign_table_field.table}
+            FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{foreign_table_field.intermediate_column}', '{foreign_table_field.table}', '{own_table_field.intermediate_column}', '{own_table_field.table}', '{equal_field}', '{foreign_table_field.column}');
+            CREATE TRIGGER equal_{equal_field}_on_{own_table_field.table}_t_{own_table_field.column}_intermediate AFTER INSERT OR UPDATE ON {nm_table_name}
+            FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{nm_table_name}', '{own_table_field.intermediate_column}', '{own_table_field.table}', '{foreign_table_field.intermediate_column}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
+
+        """ for equal_field in equal_fields))
+
+    @classmethod
+    def get_trigger_check_equal_fields_for_g1_x(
+        cls,
+        own_table_field: TableFieldType,
+        foreign_table_fields: list[TableFieldType],
+        state: FieldSqlErrorType
+    ) -> str:
+        cls.equal_fields_state_check(state, own_table_field)
+        raise Exception("TODO: implement")
+
+    @classmethod
+    def get_trigger_check_equal_fields_for_gn_m(
+        cls,
+        own_table_field: TableFieldType,
+        foreign_table_fields: list[TableFieldType],
+        state: FieldSqlErrorType
+    ) -> str:
+        raise Exception("TODO: implement")
+
+    @classmethod
     def get_generic_relation_type(
         cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
     ) -> tuple[SchemaZoneTexts, str]:
@@ -843,9 +924,20 @@ class GenerateCodeBlocks:
             )
         )
 
-        state, _, final_info, error = InternalHelper.check_relation_definitions(
+        state, primary, final_info, error = InternalHelper.check_relation_definitions(
             own_table_field, foreign_table_fields
         )
+
+        if primary:
+            if own_table_field.field_def.get("equal_fields"):
+                text["create_trigger_equal_fields_code"] = cls.get_trigger_check_equal_fields_for_g1_x(own_table_field, foreign_table_fields, state)
+            else:
+                equal_fields_text = ""
+                for foreign_table_field in foreign_table_fields:
+                    if foreign_table_field.field_def.get("equal_fields"):
+                        equal_fields_text+=cls.get_trigger_check_equal_fields_for_g1_x(own_table_field, [foreign_table_field], state)
+                if equal_fields_text:
+                    text["create_trigger_equal_fields_code"] = equal_fields_text
 
         if state == FieldSqlErrorType.FIELD:
             text, error = cls.get_schema_simple_types(
@@ -903,6 +995,17 @@ class GenerateCodeBlocks:
         state, primary, final_info, error = InternalHelper.check_relation_definitions(
             own_table_field, foreign_table_fields
         )
+
+        if primary:
+            if own_table_field.field_def.get("equal_fields"):
+                text["create_trigger_equal_fields_code"] = cls.get_trigger_check_equal_fields_for_gn_m(own_table_field, foreign_table_fields, state)
+            else:
+                equal_fields_text = ""
+                for foreign_table_field in foreign_table_fields:
+                    if foreign_table_field.field_def.get("equal_fields"):
+                        equal_fields_text += cls.get_trigger_check_equal_fields_for_gn_m(own_table_field, [foreign_table_field], state)
+                if equal_fields_text:
+                    text["create_trigger_equal_fields_code"] = equal_fields_text
 
         if state == FieldSqlErrorType.SQL and primary:
             # create gm-intermediate table
@@ -1109,6 +1212,164 @@ class Helper:
             RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
         END;
         $read_only_trigger$ LANGUAGE plpgsql;
+
+        CREATE OR REPLACE FUNCTION raise_equality_exception(check_column TEXT, ref_column TEXT, own_table TEXT, own_id INTEGER, own_val TEXT, foreign_table TEXT, foreign_id INTEGER, foreign_val TEXT)
+        RETURNS void AS $equality_exception$
+        DECLARE
+            own_fqid TEXT;
+            foreign_fqid TEXT;
+        BEGIN
+            IF foreign_id IS NOT NULL AND own_id IS NOT NULL THEN
+                IF foreign_val != own_val THEN
+                    own_fqid := own_table || '/' || own_id || '/' || check_column;
+                    foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
+                    RAISE EXCEPTION 'The relation % requires the following fields to be equal:% %: % % %: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
+                END IF;
+            END IF;
+        END;
+        $equality_exception$ LANGUAGE plpgsql;
+
+        -- expects in this order:
+        -- * own table name,
+        -- * referenced table name,
+        -- * field in own table for which the check was triggered
+        -- * field that is supposed to be equal
+        -- * if new is the back relations table
+        CREATE OR REPLACE FUNCTION check_equals()
+        RETURNS trigger AS $check_equals_trigger$
+        DECLARE
+            ref_column TEXT;
+            check_column TEXT;
+            foreign_table TEXT;
+            foreign_id INTEGER;
+            foreign_val TEXT;
+            own_id INTEGER;
+            own_val TEXT;
+            own_table TEXT;
+            from_back_relation BOOLEAN;
+            i INTEGER := 0;
+        BEGIN
+
+            WHILE i < TG_NARGS LOOP
+                own_table := TG_ARGV[i];
+                foreign_table := TG_ARGV[i+1];
+                ref_column := TG_ARGV[i+2];
+                check_column := TG_ARGV[i+3];
+                from_back_relation := TG_ARGV[i+4];
+
+                IF from_back_relation IS TRUE THEN
+                    EXECUTE format('SELECT ($1).id, ($1).%I', check_column) INTO foreign_id, foreign_val USING NEW;
+                    EXECUTE format('SELECT "id", %I FROM %I WHERE %L = %L', check_column, own_table, ref_column, foreign_id) INTO own_id, own_val;
+                ELSE
+                    EXECUTE format('SELECT ($1).id, ($1).%I, ($1).%I', check_column, ref_column) INTO own_id, own_val, foreign_id USING NEW;
+                    EXECUTE format('SELECT %I FROM %I WHERE "id" = %L', check_column, foreign_table, foreign_id) INTO foreign_val;
+                END IF;
+
+                PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
+
+                i := i + 5;
+            END LOOP;
+
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $check_equals_trigger$ LANGUAGE plpgsql;
+
+        -- expects in this order:
+        -- * intermediate table name,
+        -- * column referencing calling table in intermediate table
+        -- * calling table name
+        -- * column referencing other table in intermediate table
+        -- * other table name
+        -- * field that is supposed to be equal
+        -- * pseudofield for which the check was triggered
+        CREATE OR REPLACE FUNCTION check_equals_multi()
+        RETURNS trigger AS $check_equals_multi_trigger$
+        DECLARE
+            ref_column TEXT;
+            check_column TEXT;
+            foreign_table_reference TEXT;
+            foreign_table TEXT;
+            foreign_id INTEGER;
+            foreign_val TEXT;
+            intermediate_table TEXT;
+            own_id INTEGER;
+            own_val TEXT;
+            own_table_reference TEXT;
+            own_table TEXT;
+            i INTEGER := 0;
+            r record;
+        BEGIN
+
+            WHILE i < TG_NARGS LOOP
+                intermediate_table := TG_ARGV[i];
+                own_table_reference := TG_ARGV[i+1];
+                own_table := TG_ARGV[i+2];
+                foreign_table_reference := TG_ARGV[i+3];
+                foreign_table := TG_ARGV[i+4];
+                check_column := TG_ARGV[i+5];
+                ref_column := TG_ARGV[i+6];
+                
+                own_id = NEW.id;
+                FOR r in EXECUTE format('SELECT a.%I AS a_val, c.id AS c_id, c.%I AS c_val FROM %I a JOIN %I b ON b.%I = a.id JOIN %I c ON b.%I = c.id WHERE a.id = $1',check_column, check_column, own_table, intermediate_table, own_table_reference, foreign_table, foreign_table_reference) USING own_id LOOP
+                    own_val := r.own_val;
+                    foreign_id := r.foreign_id;
+                    foreign_val := r.foreign_val;
+
+                    PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
+                END LOOP;
+
+                i := i + 7;
+            END LOOP;
+
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $check_equals_multi_trigger$ LANGUAGE plpgsql;
+
+        -- expects in this order:
+        -- * intermediate table name,
+        -- * column referencing table1 in intermediate table
+        -- * table1 name
+        -- * column referencing table2 in intermediate table
+        -- * table2 name
+        -- * field that is supposed to be equal
+        -- * pseudofield for which the check was triggered
+        CREATE OR REPLACE FUNCTION check_equals_intermediate()
+        RETURNS trigger AS $check_equals_intermediate_trigger$
+        DECLARE
+            ref_column TEXT;
+            check_column TEXT;
+            foreign_table_reference TEXT;
+            foreign_table TEXT;
+            foreign_id INTEGER;
+            foreign_val TEXT;
+            intermediate_table TEXT;
+            own_id INTEGER;
+            own_val TEXT;
+            own_table_reference TEXT;
+            own_table TEXT;
+            i INTEGER := 0;
+        BEGIN
+
+            WHILE i < TG_NARGS LOOP
+                intermediate_table := TG_ARGV[i];
+                own_table_reference := TG_ARGV[i+1];
+                own_table := TG_ARGV[i+2];
+                foreign_table_reference := TG_ARGV[i+3];
+                foreign_table := TG_ARGV[i+4];
+                check_column := TG_ARGV[i+5];
+                ref_column := TG_ARGV[i+6];
+                
+                EXECUTE format('SELECT id, %I FROM %I WHERE id = ($1).%I', check_column, own_table, own_table_reference) INTO own_id, own_val USING NEW;
+                EXECUTE format('SELECT id, %I FROM %I WHERE id = ($1).%I', check_column, foreign_table, foreign_table_reference) INTO foreign_id, foreign_val USING NEW;
+
+                PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
+
+                i := i + 7;
+            END LOOP;
+
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $check_equals_intermediate_trigger$ LANGUAGE plpgsql;
         """)
     NOT_NULL_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
             CREATE FUNCTION check_not_null_for_${trigger_type}() RETURNS trigger AS $$not_null_trigger$$
