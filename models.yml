@@ -3502,6 +3502,17 @@ poll_config_approval:
     type: boolean
     default: true
     restriction_mode: A
+  onehundred_percent_base:
+    type: string
+    required: true
+    enum:
+    - YN
+    - valid
+    - cast
+    - entitled
+    - entitled_present
+    - disabled
+    restriction_mode: A
 poll_config_option:
   id:
     type: number
@@ -3564,6 +3575,17 @@ poll_config_rating_approval:
     type: boolean
     default: true
     restriction_mode: A
+  onehundred_percent_base:
+    type: string
+    required: true
+    enum:
+    - YN
+    - valid
+    - cast
+    - entitled
+    - entitled_present
+    - disabled
+    restriction_mode: A
 poll_config_rating_score:
   id:
     type: number
@@ -3600,6 +3622,17 @@ poll_config_rating_score:
     type: number
     default: 0
     restriction_mode: A
+  onehundred_percent_base:
+    type: string
+    required: true
+    enum:
+    - YN
+    - valid
+    - cast
+    - entitled
+    - entitled_present
+    - disabled
+    restriction_mode: A
 poll_config_selection:
   id:
     type: number
@@ -3627,6 +3660,21 @@ poll_config_selection:
   allow_nota:
     type: boolean
     default: false
+    restriction_mode: A
+  strike_out:
+    type: boolean
+    default: false
+    restriction_mode: A
+  onehundred_percent_base:
+    type: string
+    required: true
+    enum:
+    - no_general
+    - valid
+    - cast
+    - entitled
+    - entitled_present
+    - disabled
     restriction_mode: A
 poll_config_stv_scottish:
   id:

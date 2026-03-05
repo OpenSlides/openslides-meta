@@ -33,3 +33,14 @@ min_vote_sum:
   type: number
   default: 0
   restriction_mode: A
+onehundred_percent_base:
+  type: string
+  required: true
+  enum:
+    - YN
+    - valid
+    - cast
+    - entitled
+    - entitled_present
+    - disabled
+  restriction_mode: A
