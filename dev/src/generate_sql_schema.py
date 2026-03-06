@@ -878,16 +878,16 @@ class GenerateCodeBlocks:
                 print("--list start")
                 for a in arg:
                     if isinstance(a, TableFieldType):
-                        print("TableFieldType: ")
-                        print("- collectionfield:",a.collectionfield)
-                        print("- column:", a.column)
-                        print("- field_def:", a.field_def)
-                        print("- intermediate_column:",a.intermediate_column)
-                        print("- ref_column:", a.ref_column)
-                        print("- table:", a.table)
-                        print("- view:", a.view)
+                        print("- TableFieldType: ")
+                        print("- - collectionfield:",a.collectionfield)
+                        print("- - column:", a.column)
+                        print("- - field_def:", a.field_def)
+                        print("- - intermediate_column:",a.intermediate_column)
+                        print("- - ref_column:", a.ref_column)
+                        print("- - table:", a.table)
+                        print("- - view:", a.view)
                     else:
-                        print(a)
+                        print("- ",a)
                 print("--list end")
             else:
                 print(arg)
@@ -1000,22 +1000,60 @@ class GenerateCodeBlocks:
     def get_trigger_check_equal_fields_for_g1_x(
         cls,
         own_table_field: TableFieldType,
-        foreign_table_fields: list[TableFieldType],
+        foreign_table_field: TableFieldType,
+        specified_relation_field: str,
         state: FieldSqlErrorType
     ) -> str:
-        cls.print_data("g1_x",own_table_field, foreign_table_fields, state)
+        cls.print_data("g1_x",own_table_field, foreign_table_field, specified_relation_field, state)
         cls.equal_fields_state_check(state, own_table_field)
-        raise Exception("TODO: implement")
+        equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
+        sql = ""
+        for equal_field in equal_fields:
+            own_event_str, own_table = cls.get_equal_field_trigger_config(
+                own_table_field, [own_table_field, equal_field]
+            )
+            foreign_event_str, foreign_table = cls.get_equal_field_trigger_config(
+                foreign_table_field, [equal_field]
+            )
+            sql+=dedent(f"""
+                CREATE TRIGGER equal_{equal_field}_on_{own_table}_{specified_relation_field} AFTER {own_event_str} OF {equal_field}, {specified_relation_field} ON {own_table}
+                FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{specified_relation_field}', '{equal_field}', FALSE);
+                CREATE TRIGGER equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column} AFTER {foreign_event_str} OF {equal_field} ON {foreign_table}
+                FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{specified_relation_field}', '{equal_field}', TRUE);
+
+            """)
+        return sql
 
     @classmethod
     def get_trigger_check_equal_fields_for_gn_m(
         cls,
         own_table_field: TableFieldType,
-        foreign_table_fields: list[TableFieldType],
+        foreign_table_field: TableFieldType,
+        nm_table_name:str,
+        own_intermediate_field: str,
+        foreign_intermediate_field: str,
         state: FieldSqlErrorType
     ) -> str:
-        cls.print_data("gn_m",own_table_field, foreign_table_fields, state)
-        raise Exception("TODO: implement")
+        # cls.print_data("gn_m",own_table_field, foreign_table_field, state)
+        equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
+        sql = ""
+        for equal_field in equal_fields:
+            own_event_str, own_table = cls.get_equal_field_trigger_config(
+                own_table_field, [equal_field]
+            )
+            foreign_event_str, foreign_table = cls.get_equal_field_trigger_config(
+                foreign_table_field, [equal_field]
+            )
+            sql+=dedent(f"""
+                CREATE TRIGGER equal_{equal_field}_on_{own_table}_{own_table_field.column} AFTER {own_event_str} OF {equal_field} ON {own_table}
+                FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
+                CREATE TRIGGER equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column} AFTER {foreign_event_str} OF {equal_field} ON {foreign_table}
+                FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{own_intermediate_field}', '{own_table_field.table}', '{equal_field}', '{foreign_table_field.column}');
+                CREATE TRIGGER equal_{equal_field}_on_{own_table_field.table}_t_{own_table_field.column}_intermediate AFTER INSERT OR UPDATE ON {nm_table_name}
+                FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
+
+            """)
+        return sql
 
     @classmethod
     def get_generic_relation_type(
@@ -1033,16 +1071,6 @@ class GenerateCodeBlocks:
             own_table_field, foreign_table_fields
         )
 
-        if primary:
-            if own_table_field.field_def.get("equal_fields"):
-                text["create_trigger_equal_fields_code"] = cls.get_trigger_check_equal_fields_for_g1_x(own_table_field, foreign_table_fields, state)
-            else:
-                equal_fields_text = ""
-                for foreign_table_field in foreign_table_fields:
-                    if foreign_table_field.field_def.get("equal_fields"):
-                        equal_fields_text+=cls.get_trigger_check_equal_fields_for_g1_x(own_table_field, [foreign_table_field], state)
-                if equal_fields_text:
-                    text["create_trigger_equal_fields_code"] = equal_fields_text
 
         if state == FieldSqlErrorType.FIELD:
             text, error = cls.get_schema_simple_types(
@@ -1055,6 +1083,7 @@ class GenerateCodeBlocks:
                 for foreign_table_field in foreign_table_fields
             )
             foreign_tables: list[str] = []
+            equal_fields_text = ""
             for foreign_table_field in foreign_table_fields:
                 generic_plain_field_name = f"{own_table_field.column}_{foreign_table_field.table}_{foreign_table_field.ref_column}"
                 foreign_tables.append(foreign_table_field.table)
@@ -1063,6 +1092,11 @@ class GenerateCodeBlocks:
                     own_table_field.column,
                     foreign_table_field,
                 )
+                if own_table_field.field_def.get("equal_fields") or foreign_table_field.field_def.get("equal_fields"):
+                    equal_fields_text+=cls.get_trigger_check_equal_fields_for_g1_x(own_table_field, foreign_table_field, generic_plain_field_name, state)
+                # cls.print_data("TABLE DATA",generic_plain_field_name,
+                #     own_table_field.column,
+                #     foreign_table_field)
                 text[
                     "create_trigger_notify"
                 ] += Helper.get_trigger_for_generic_relation(
@@ -1080,6 +1114,8 @@ class GenerateCodeBlocks:
                     foreign_table_field.ref_column,
                     initially_deferred,
                 )
+            if equal_fields_text:
+                text["create_trigger_equal_fields_code"] = equal_fields_text
             text["table"] += Helper.get_generic_field_constraint(
                 own_table_field.column, foreign_tables
             )
@@ -1101,21 +1137,10 @@ class GenerateCodeBlocks:
             own_table_field, foreign_table_fields
         )
 
-        if primary:
-            if own_table_field.field_def.get("equal_fields"):
-                text["create_trigger_equal_fields_code"] = cls.get_trigger_check_equal_fields_for_gn_m(own_table_field, foreign_table_fields, state)
-            else:
-                equal_fields_text = ""
-                for foreign_table_field in foreign_table_fields:
-                    if foreign_table_field.field_def.get("equal_fields"):
-                        equal_fields_text += cls.get_trigger_check_equal_fields_for_gn_m(own_table_field, [foreign_table_field], state)
-                if equal_fields_text:
-                    text["create_trigger_equal_fields_code"] = equal_fields_text
-
         if state == FieldSqlErrorType.SQL and primary:
             # create gm-intermediate table
             if primary:
-                gm_foreign_table, value = Helper.get_gm_table_for_gm_nm_relation_lists(
+                gm_foreign_table, value, own_intermediate_field, foreign_intermediate_field_foreign_table_field = Helper.get_gm_table_for_gm_nm_relation_lists(
                     own_table_field, foreign_table_fields
                 )
                 text[
@@ -1129,6 +1154,12 @@ class GenerateCodeBlocks:
                     raise Exception(
                         f"Tried to create gm_table '{gm_foreign_table}' twice"
                     )
+                equal_fields_text = ""
+                for foreign_intermediate_field, foreign_table_field in foreign_intermediate_field_foreign_table_field.items():
+                    if own_table_field.field_def.get("equal_fields") or foreign_table_field.field_def.get("equal_fields"):
+                        equal_fields_text += cls.get_trigger_check_equal_fields_for_gn_m(own_table_field, foreign_table_field, gm_foreign_table, own_intermediate_field, foreign_intermediate_field, state)
+                if equal_fields_text:
+                    text["create_trigger_equal_fields_code"] = equal_fields_text
 
             # add field to view definition of table_name
             text["view"] = cls.get_sql_for_relation_n_1(
@@ -1144,6 +1175,7 @@ class GenerateCodeBlocks:
                     HelperGetNames.get_view_name(table_name), fname, comment
                 )
 
+        print(text["create_trigger_equal_fields_code"])
         text["final_info"] = final_info
         return text, error
 
@@ -1751,7 +1783,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
     @staticmethod
     def get_gm_table_for_gm_nm_relation_lists(
         own_table_field: TableFieldType, foreign_table_fields: list[TableFieldType]
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str, str, dict[str, TableFieldType]]:
         gm_table_name = HelperGetNames.get_gm_table_name(own_table_field)
         joined_table_names = (
             "('"
@@ -1766,11 +1798,13 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         foreign_table_ref_lines = []
         indices_lines = []
         own_table_column = own_table_field.intermediate_column
+        intermediate_field_to_foreign_table_field: dict[str, TableFieldType]={}
         for foreign_table_field in foreign_table_fields:
             foreign_table_name = foreign_table_field.table
             gm_content_field = HelperGetNames.get_gm_content_field(
                 own_table_column, foreign_table_name
             )
+            intermediate_field_to_foreign_table_field[gm_content_field]=foreign_table_field
             fk_idx = HelperGetNames.get_fk_and_index_name(
                 gm_table_name, gm_content_field, foreign_table_name, "id"
             )
@@ -1827,7 +1861,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "content_field_indices": "\n".join(indices_lines),
             }
         )
-        return gm_table_name, text
+        return gm_table_name, text, own_table_name_with_ref_column, intermediate_field_to_foreign_table_field
 
     @staticmethod
     def get_trigger_for_intermediate_table(
