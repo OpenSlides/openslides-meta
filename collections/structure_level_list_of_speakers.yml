@@ -1,3 +1,7 @@
+_meta:
+  unique_in_meeting:
+  - structure_level_id, list_of_speakers_id
+
 id:
   type: number
   restriction_mode: A
@@ -11,6 +15,7 @@ structure_level_id:
   restriction_mode: A
   reference: structure_level
   to: structure_level/structure_level_list_of_speakers_ids
+  description: unique in list_of_speakers
 list_of_speakers_id:
   type: relation
   required: true

@@ -1,3 +1,7 @@
+_meta:
+  unique_in_meeting:
+  - number
+
 id:
   type: number
   restriction_mode: A
@@ -6,6 +10,7 @@ id:
 
 number:
   type: string
+  description: unique in meeting
   restriction_mode: C
 number_value:
   type: number

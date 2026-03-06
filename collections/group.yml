@@ -1,3 +1,7 @@
+_meta:
+  unique_in_meeting:
+  - external_id
+
 id:
   type: number
   restriction_mode: A

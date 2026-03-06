@@ -1,3 +1,7 @@
+_meta:
+  unique_in_meeting:
+  - title
+
 id:
   type: number
   restriction_mode: A
@@ -7,6 +11,7 @@ id:
 title:
   type: string
   required: true
+  description: unique in meeting
   restriction_mode: A
 description:
   type: string

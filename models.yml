@@ -288,6 +288,9 @@ assignment_candidate:
     restriction_mode: A
     constant: true
 chat_group:
+  _meta:
+    unique_in_meeting:
+    - name
   id:
     type: number
     restriction_mode: A
@@ -296,6 +299,7 @@ chat_group:
   name:
     type: string
     required: true
+    description: unique in meeting
     restriction_mode: A
   weight:
     type: number
@@ -467,6 +471,9 @@ gender:
     restriction_mode: A
     reference: user
 group:
+  _meta:
+    unique_in_meeting:
+    - external_id
   id:
     type: number
     restriction_mode: A
@@ -775,6 +782,9 @@ list_of_speakers:
     restriction_mode: A
     constant: true
 mediafile:
+  _meta:
+    unique_together:
+    - title, parent_id, owner_id
   id:
     type: number
     restriction_mode: A
@@ -2215,6 +2225,9 @@ meeting_user:
     restriction_mode: A
     to: structure_level/meeting_user_ids
 motion:
+  _meta:
+    unique_in_meeting:
+    - number
   id:
     type: number
     restriction_mode: A
@@ -2222,6 +2235,7 @@ motion:
     required: true
   number:
     type: string
+    description: unique in meeting
     restriction_mode: C
   number_value:
     type: number
@@ -2658,6 +2672,9 @@ motion_change_recommendation:
     restriction_mode: A
     constant: true
 motion_comment:
+  _meta:
+    unique_together:
+    - motion_id, section_id
   id:
     type: number
     restriction_mode: A
@@ -2739,6 +2756,9 @@ motion_comment_section:
     restriction_mode: A
     constant: true
 motion_editor:
+  _meta:
+    unique_together:
+    - meeting_user_id, motion_id
   id:
     type: number
     restriction_mode: A
@@ -2768,6 +2788,9 @@ motion_editor:
     restriction_mode: A
     constant: true
 motion_state:
+  _meta:
+    unique_together:
+    - name, workflow_id
   id:
     type: number
     restriction_mode: A
@@ -2777,6 +2800,7 @@ motion_state:
     type: string
     required: true
     restriction_mode: A
+    description: unique for workflow
   weight:
     type: number
     required: true
@@ -2916,6 +2940,9 @@ motion_state:
     constant: true
     deferred: true
 motion_submitter:
+  _meta:
+    unique_together:
+    - meeting_user_id, motion_id
   id:
     type: number
     restriction_mode: A
@@ -2945,6 +2972,9 @@ motion_submitter:
     restriction_mode: A
     constant: true
 motion_supporter:
+  _meta:
+    unique_together:
+    - meeting_user_id, motion_id
   id:
     type: number
     restriction_mode: A
@@ -3018,6 +3048,9 @@ motion_workflow:
     restriction_mode: A
     constant: true
 motion_working_group_speaker:
+  _meta:
+    unique_together:
+    - meeting_user_id, motion_id
   id:
     type: number
     restriction_mode: A
@@ -3047,6 +3080,10 @@ motion_working_group_speaker:
     restriction_mode: A
     constant: true
 option:
+  _meta:
+    unique_together:
+    - content_object_id, poll_id
+    - text, poll_id
   id:
     type: number
     restriction_mode: A
@@ -3058,6 +3095,7 @@ option:
     restriction_mode: A
   text:
     type: HTMLStrict
+    description: unique in poll
     restriction_mode: A
   'yes':
     type: decimal(6)
@@ -3102,6 +3140,7 @@ option:
     equal_fields: meeting_id
     restriction_mode: A
     constant: true
+    description: unique in poll
   meeting_id:
     type: relation
     to: meeting/option_ids
@@ -3306,6 +3345,9 @@ organization_tag:
     restriction_mode: A
     required: true
 personal_note:
+  _meta:
+    unique_together:
+    - meeting_user_id, content_object_id
   id:
     type: number
     restriction_mode: A
@@ -3871,6 +3913,9 @@ projector:
     required: true
     constant: true
 projector_countdown:
+  _meta:
+    unique_in_meeting:
+    - title
   id:
     type: number
     restriction_mode: A
@@ -3879,6 +3924,7 @@ projector_countdown:
   title:
     type: string
     required: true
+    description: unique in meeting
     restriction_mode: A
   description:
     type: string
@@ -4018,6 +4064,9 @@ speaker:
     restriction_mode: A
     constant: true
 structure_level:
+  _meta:
+    unique_in_meeting:
+    - name
   id:
     type: number
     restriction_mode: A
@@ -4026,6 +4075,7 @@ structure_level:
   name:
     type: string
     required: true
+    description: unique in meeting
     restriction_mode: A
   color:
     type: color
@@ -4051,6 +4101,9 @@ structure_level:
     to: meeting/structure_level_ids
     restriction_mode: A
 structure_level_list_of_speakers:
+  _meta:
+    unique_in_meeting:
+    - structure_level_id, list_of_speakers_id
   id:
     type: number
     restriction_mode: A
@@ -4063,6 +4116,7 @@ structure_level_list_of_speakers:
     restriction_mode: A
     reference: structure_level
     to: structure_level/structure_level_list_of_speakers_ids
+    description: unique in list_of_speakers
   list_of_speakers_id:
     type: relation
     required: true
@@ -4352,6 +4406,9 @@ topic:
     restriction_mode: A
     constant: true
 user:
+  _meta:
+    unique_together:
+    - first_name, last_name, email
   id:
     type: number
     restriction_mode: A

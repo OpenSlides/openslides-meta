@@ -77,7 +77,21 @@ class GenerateCodeBlocks:
     def generate_the_code(
         cls,
     ) -> tuple[
-        str, str, str, str, str, list[str], str, str, str, str, str, str, str, list[str]
+        str,
+        str,
+        str,
+        str,
+        str,
+        list[str],
+        list[str],
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        list[str],
     ]:
         """
         Return values:
@@ -119,6 +133,10 @@ class GenerateCodeBlocks:
             # "equal_fields", # Seems we need, see example_transactional.sql between meeting and groups?
             "unique",
         }
+        collection_meta_handled_attributes = {
+            "unique_together",
+            "unique_in_meeting",
+        }
         pre_code: str = ""
         table_name_code: str = ""
         view_name_code: str = ""
@@ -131,6 +149,7 @@ class GenerateCodeBlocks:
         create_trigger_notify_code: str = ""
         final_info_code: str = ""
         missing_handled_attributes = []
+        missing_handled_collections_meta_attributes = set()
         im_table_code = ""
         errors: list[str] = []
 
@@ -143,6 +162,7 @@ class GenerateCodeBlocks:
             if table_name in ["_migration_index", "_meta"]:
                 continue
 
+            collection_meta_data = fields.pop("_meta", {})
             schema_zone_texts = cast(SchemaZoneTexts, defaultdict(str))
             cls.intermediate_tables = {}
 
@@ -164,6 +184,14 @@ class GenerateCodeBlocks:
                         schema_zone_texts[k] += v or ""  # type: ignore
                     if error:
                         errors.append(Helper.prefix_error(error, table_name, fname))
+
+            if collection_meta_data:
+                for attr, value in collection_meta_data.items():
+                    if attr not in collection_meta_handled_attributes:
+                        missing_handled_collections_meta_attributes.add(attr)
+                    schema_zone_texts["table"] += cls.get_constraint_unique_together(
+                        table_name, attr, value
+                    )
 
             if code := schema_zone_texts["table"]:
                 table_name_code += Helper.get_table_head(table_name)
@@ -213,6 +241,7 @@ class GenerateCodeBlocks:
             alter_table_final_code,
             final_info_code,
             missing_handled_attributes,
+            list(missing_handled_collections_meta_attributes),
             im_table_code,
             create_trigger_partitioned_sequences_code,
             create_trigger_1_1_relation_not_null_code,
@@ -402,9 +431,9 @@ class GenerateCodeBlocks:
             ] += cls.get_trigger_generate_partitioned_sequence(
                 table_name, fname, depend_field
             )
-            text[
-                "table"
-            ] += f"    CONSTRAINT unique_{table_name}_{fname} UNIQUE ({fname}, {depend_field}),\n"
+            text["table"] += Helper.get_unique_constraint_definition(
+                table_name, [fname], unique_in_meeting=True
+            )
         return text, ""
 
     @classmethod
@@ -728,6 +757,23 @@ class GenerateCodeBlocks:
             )
             query = f"select array_cat(({arr1}), ({arr2}))"
         return f"({query}) as {fname},\n"
+
+    @staticmethod
+    def get_constraint_unique_together(table_name: str, attr: str, value: Any) -> str:
+        if attr not in ["unique_together", "unique_in_meeting"]:
+            return ""
+        assert isinstance(
+            value, list
+        ), f"'{table_name}.yml/_meta/{attr}' must be a list of field names"
+        result = ""
+        for fields in value:
+            fields = [field_name.strip() for field_name in fields.split(",")]
+            result += Helper.get_unique_constraint_definition(
+                table_name,
+                fields,
+                unique_in_meeting=attr == "unique_in_meeting",
+            )
+        return result
 
     @classmethod
     def get_trigger_generate_partitioned_sequence(
@@ -1248,6 +1294,20 @@ class Helper:
             f"/*\n Fields without SQL definition for table {table_name}\n\n{code}\n*/\n"
         )
 
+    @classmethod
+    def get_unique_constraint_definition(
+        cls,
+        table: str,
+        fields: list[str],
+        unique_in_meeting: bool = False,
+    ) -> str:
+        if unique_in_meeting:
+            fields.append("meeting_id")
+        result = f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE"
+        if len(fields) > 1:
+            result += f" ({', '.join(fields)})"
+        return result + ",\n"
+
     @staticmethod
     def get_check_enum(
         table_name: str, fname: str, enum_: list[Any], type_: str
@@ -1728,6 +1788,7 @@ def main() -> None:
         alter_table_code,
         final_info_code,
         missing_handled_attributes,
+        missing_handled_collections_meta_attributes,
         im_table_code,
         create_trigger_partitioned_sequences_code,
         create_trigger_1_1_relation_not_null_code,
@@ -1782,6 +1843,10 @@ def main() -> None:
         dest.write(
             f"\n/*   Missing attribute handling for {', '.join(missing_handled_attributes)} */"
         )
+        if missing_handled_collections_meta_attributes:
+            dest.write(
+                f"\n/*   Missing handling for collections _meta attributes: {', '.join(missing_handled_collections_meta_attributes)} */"
+            )
     if errors:
         print(f"Models file {DESTINATION} created with {len(errors)} errors/warnings\n")
         print("".join(errors))

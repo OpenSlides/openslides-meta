@@ -217,6 +217,12 @@ class HelperGetNames:
         )
 
     @staticmethod
+    def get_unique_constraint_name(table_name: str, fields: list[str]) -> str:
+        return HelperGetNames.get_shortened_name(
+            f"unique_{table_name}_{'_'.join(fields)}"
+        )
+
+    @staticmethod
     @max_length
     def get_check_enum_constraint_name(
         table_name: str,
