@@ -6,8 +6,8 @@ id:
 
 external_id:
   type: string
+  unique: true
   restriction_mode: F
-  description: unique in committee
 welcome_title:
   type: string
   default: Welcome to OpenSlides

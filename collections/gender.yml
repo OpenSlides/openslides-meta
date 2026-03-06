@@ -6,9 +6,9 @@ id:
 
 name:
   type: string
+  unique: true
   required: true
   restriction_mode: A
-  description: unique
 organization_id:
   type: relation
   required: true

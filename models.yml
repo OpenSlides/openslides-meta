@@ -373,8 +373,8 @@ committee:
     restriction_mode: A
   external_id:
     type: string
+    unique: true
     restriction_mode: A
-    description: unique
   meeting_ids:
     type: relation-list
     to: meeting/committee_id
@@ -452,9 +452,9 @@ gender:
     required: true
   name:
     type: string
+    unique: true
     required: true
     restriction_mode: A
-    description: unique
   organization_id:
     type: relation
     required: true
@@ -808,6 +808,7 @@ mediafile:
     restriction_mode: A
   token:
     type: string
+    unique: true
     restriction_mode: A
   published_to_meetings_in_organization_id:
     type: relation
@@ -849,8 +850,8 @@ meeting:
     required: true
   external_id:
     type: string
+    unique: true
     restriction_mode: F
-    description: unique in committee
   welcome_title:
     type: string
     default: Welcome to OpenSlides
@@ -4358,14 +4359,17 @@ user:
     required: true
   username:
     type: string
+    unique: true
     required: true
     restriction_mode: B
   member_number:
     type: string
+    unique: true
     restriction_mode: B
   saml_id:
     type: string
     minLength: 1
+    unique: true
     restriction_mode: B
     description: unique-key from IdP for SAML login
   pronoun:

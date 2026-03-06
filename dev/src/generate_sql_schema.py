@@ -117,7 +117,7 @@ class GenerateCodeBlocks:
             # "on_delete", # must have other name then the key-value-store one
             "sql",
             # "equal_fields", # Seems we need, see example_transactional.sql between meeting and groups?
-            # "unique",  # TODO: still to design
+            "unique",
         }
         pre_code: str = ""
         table_name_code: str = ""
@@ -1539,6 +1539,8 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         subst.update({"field_name": fname, "type": subst_type})
         if fdata.get("required"):
             subst["required"] = " NOT NULL"
+        if fdata.get("unique"):
+            subst["unique"] = " UNIQUE"
         if (default := fdata.get("default")) is not None:
             if isinstance(default, str) or type_ in ("string", "text"):
                 subst["default"] = f" DEFAULT '{default}'"
