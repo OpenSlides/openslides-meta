@@ -756,7 +756,7 @@ comment on column meeting_t.is_active_in_organization_id is 'Backrelation and bo
 comment on column meeting_t.is_archived_in_organization_id is 'Backrelation and boolean flag at once';
 comment on column meeting_t.list_of_speakers_default_structure_level_time is '0 disables structure level countdowns.';
 comment on column meeting_t.list_of_speakers_intervention_time is '0 disables intervention speakers.';
-comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default ''poll.live_voting_enabled'' option suggested to user. Is not used in the validations.';
+comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default "poll.live_voting_enabled" option suggested to user. Is not used in the validations.';
 
 
 CREATE TABLE meeting_mediafile_t (
@@ -1534,7 +1534,7 @@ CREATE TABLE gm_meeting_mediafile_attachment_ids_t (
     attachment_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'topic' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_meeting_mediafile_attachment_ids_t_attachment_id_tf2c2308 REFERENCES topic_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     attachment_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'assignment' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_meeting_mediafile_attachment_ids_t_attachment_id_af0f87e8 REFERENCES assignment_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_attachment_id_part1 CHECK (split_part(attachment_id, '/', 1) IN ('motion', 'topic', 'assignment')),
-    CONSTRAINT unique_$meeting_mediafile_id_$attachment_id UNIQUE (meeting_mediafile_id, attachment_id)
+    CONSTRAINT unique_meeting_mediafile_id_attachment_id UNIQUE (meeting_mediafile_id, attachment_id)
 );
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_meeting_mediafile_id ON gm_meeting_mediafile_attachment_ids_t (meeting_mediafile_id);
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id ON gm_meeting_mediafile_attachment_ids_t (attachment_id);
@@ -1571,7 +1571,7 @@ CREATE TABLE gm_motion_state_extension_reference_ids_t (
     state_extension_reference_id varchar(100) NOT NULL,
     state_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(state_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(state_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_motion_state_extension_reference_ids_t_state_exten1eb8dcc REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_state_extension_reference_id_part1 CHECK (split_part(state_extension_reference_id, '/', 1) IN ('motion')),
-    CONSTRAINT unique_$motion_id_$state_extension_reference_id UNIQUE (motion_id, state_extension_reference_id)
+    CONSTRAINT unique_motion_id_state_extension_reference_id UNIQUE (motion_id, state_extension_reference_id)
 );
 CREATE INDEX idx_gm_motion_state_extension_reference_ids_t_motion_id ON gm_motion_state_extension_reference_ids_t (motion_id);
 CREATE INDEX idx_gm_motion_state_extension_reference_ids_t_state_exte869c61b ON gm_motion_state_extension_reference_ids_t (state_extension_reference_id);
@@ -1582,7 +1582,7 @@ CREATE TABLE gm_motion_recommendation_extension_reference_ids_t (
     recommendation_extension_reference_id varchar(100) NOT NULL,
     recommendation_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(recommendation_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(recommendation_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_motion_recommendation_extension_reference_ids_t_re6acbf83 REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_recommendation_extension_reference_id_part1 CHECK (split_part(recommendation_extension_reference_id, '/', 1) IN ('motion')),
-    CONSTRAINT unique_$motion_id_$recommendation_extension_reference_id UNIQUE (motion_id, recommendation_extension_reference_id)
+    CONSTRAINT unique_motion_id_recommendation_extension_reference_id UNIQUE (motion_id, recommendation_extension_reference_id)
 );
 CREATE INDEX idx_gm_motion_recommendation_extension_reference_ids_t_m81631d0 ON gm_motion_recommendation_extension_reference_ids_t (motion_id);
 CREATE INDEX idx_gm_motion_recommendation_extension_reference_ids_t_r6488b59 ON gm_motion_recommendation_extension_reference_ids_t (recommendation_extension_reference_id);
@@ -1602,7 +1602,7 @@ CREATE TABLE gm_organization_tag_tagged_ids_t (
     tagged_id_committee_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'committee' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_organization_tag_tagged_ids_t_tagged_id_committee_c4b8172 REFERENCES committee_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     tagged_id_meeting_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'meeting' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_organization_tag_tagged_ids_t_tagged_id_meeting_id97a619f REFERENCES meeting_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_tagged_id_part1 CHECK (split_part(tagged_id, '/', 1) IN ('committee', 'meeting')),
-    CONSTRAINT unique_$organization_tag_id_$tagged_id UNIQUE (organization_tag_id, tagged_id)
+    CONSTRAINT unique_organization_tag_id_tagged_id UNIQUE (organization_tag_id, tagged_id)
 );
 CREATE INDEX idx_gm_organization_tag_tagged_ids_t_organization_tag_id ON gm_organization_tag_tagged_ids_t (organization_tag_id);
 CREATE INDEX idx_gm_organization_tag_tagged_ids_t_tagged_id ON gm_organization_tag_tagged_ids_t (tagged_id);
@@ -1624,7 +1624,7 @@ CREATE TABLE gm_tag_tagged_ids_t (
     tagged_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'assignment' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_tag_tagged_ids_t_tagged_id_assignment_id_assignment_id REFERENCES assignment_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     tagged_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'motion' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_tag_tagged_ids_t_tagged_id_motion_id_motion_id REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_tagged_id_part1 CHECK (split_part(tagged_id, '/', 1) IN ('agenda_item', 'assignment', 'motion')),
-    CONSTRAINT unique_$tag_id_$tagged_id UNIQUE (tag_id, tagged_id)
+    CONSTRAINT unique_tag_id_tagged_id UNIQUE (tag_id, tagged_id)
 );
 CREATE INDEX idx_gm_tag_tagged_ids_t_tag_id ON gm_tag_tagged_ids_t (tag_id);
 CREATE INDEX idx_gm_tag_tagged_ids_t_tagged_id ON gm_tag_tagged_ids_t (tagged_id);
@@ -1823,8 +1823,6 @@ CREATE VIEW "meeting" AS SELECT *,
 (select array_agg(h.id ORDER BY h.id) from history_entry_t h where h.meeting_id = m.id) as relevant_history_entry_ids
 FROM meeting_t m;
 
-comment on column "meeting_t".is_active_in_organization_id is 'Backrelation and boolean flag at once';
-comment on column "meeting_t".is_archived_in_organization_id is 'Backrelation and boolean flag at once';
 comment on column "meeting".user_ids is 'Calculated. All user ids from all users assigned to groups of this meeting.';
 
 CREATE VIEW "meeting_mediafile" AS SELECT *,

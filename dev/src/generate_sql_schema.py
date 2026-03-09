@@ -537,10 +537,6 @@ class GenerateCodeBlocks:
                             foreign_column,
                         )
                     )
-        if comment := fdata.get("description"):
-            text["post_view"] += Helper.get_post_view_comment(
-                HelperGetNames.get_view_name(table_name), fname, comment
-            )
         text["final_info"] = final_info
         return text, error
 
@@ -926,10 +922,6 @@ class GenerateCodeBlocks:
                 f"{own_table_field.table}_{own_table_field.ref_column}",
                 own_table_field.intermediate_column,
             )
-            if comment := fdata.get("description"):
-                text["post_view"] += Helper.get_post_view_comment(
-                    HelperGetNames.get_view_name(table_name), fname, comment
-                )
 
         text["final_info"] = final_info
         return text, error
@@ -1577,7 +1569,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 
     @staticmethod
     def get_post_view_comment(entity_name: str, fname: str, comment: str) -> str:
-        comment = comment.replace("'", "''")
+        comment = comment.replace("'", '"')
         return f"comment on column {entity_name}.{fname} is '{comment}';\n"
 
     @staticmethod
