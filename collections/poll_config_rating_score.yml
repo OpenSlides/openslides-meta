@@ -37,7 +37,7 @@ onehundred_percent_base:
   type: string
   required: true
   enum:
-    - YN
+    - yes_no
     - valid
     - cast
     - entitled
