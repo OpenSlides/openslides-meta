@@ -551,36 +551,20 @@ motion_poll_ballot_paper_number:
   restriction_mode: B
 motion_poll_default_type:
   type: string
-  default: pseudoanonymous
+  default: secret
   restriction_mode: B
-motion_poll_default_method:
-  type: string
-  default: YNA
+motion_poll_default_allow_abstain:
+  type: boolean
+  default: true
   restriction_mode: B
 motion_poll_default_onehundred_percent_base:
   type: string
-  enum: &onehundred_percent_bases
-    - "Y"
-    - "YN"
-    - "YNA"
-    - "N"
-    - "valid"
-    - "cast"
-    - "entitled"
-    - "entitled_present"
-    - "disabled"
-  default: YNA
+  enum: *approval_onehundred_percent_bases
+  default: valid
   restriction_mode: B
 motion_poll_default_group_ids:
   type: relation-list
   to: group/used_as_motion_poll_default_id
-  restriction_mode: B
-motion_poll_default_backend:
-  type: string
-  enum: &poll_backends
-    - long
-    - fast
-  default: fast
   restriction_mode: B
 motion_poll_projection_name_order_first:
   type: string
@@ -716,25 +700,22 @@ assignment_poll_sort_poll_result_by_votes:
   restriction_mode: B
 assignment_poll_default_type:
   type: string
-  default: pseudoanonymous
+  default: secret
   restriction_mode: B
 assignment_poll_default_method:
   type: string
-  default: Y
+  default: selection
   restriction_mode: B
 assignment_poll_default_onehundred_percent_base:
   type: string
-  enum: *onehundred_percent_bases
+  enum: 
+    - *rating_approval_onehundred_percent_bases
+    - *selection_onehundred_percent_bases
   default: valid
   restriction_mode: B
 assignment_poll_default_group_ids:
   type: relation-list
   to: group/used_as_assignment_poll_default_id
-  restriction_mode: B
-assignment_poll_default_backend:
-  type: string
-  enum: *poll_backends
-  default: fast
   restriction_mode: B
 
   # Polls

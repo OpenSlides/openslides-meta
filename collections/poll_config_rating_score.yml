@@ -36,11 +36,5 @@ min_vote_sum:
 onehundred_percent_base:
   type: string
   required: true
-  enum:
-    - yes_no
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
+  enum: *rating_score_onehundred_percent_bases
   restriction_mode: A

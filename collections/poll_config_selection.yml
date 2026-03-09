@@ -32,11 +32,5 @@ strike_out:
 onehundred_percent_base:
   type: string
   required: true
-  enum:
-    - no_general
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
+  enum: *selection_onehundred_percent_bases
   restriction_mode: A
