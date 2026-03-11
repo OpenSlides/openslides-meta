@@ -156,7 +156,7 @@ DECLARE
     foreign_fqid TEXT;
 BEGIN
     IF foreign_id IS NOT NULL AND own_id IS NOT NULL THEN
-        IF foreign_val != own_val THEN
+        IF foreign_val IS DISTINCT FROM own_val THEN
             own_fqid := own_table || '/' || own_id || '/' || check_column;
             foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
             RAISE EXCEPTION 'The relation % requires the following fields to be equal:% %: % % %: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
@@ -209,6 +209,73 @@ BEGIN
     RETURN NULL;  -- AFTER TRIGGER needs no return
 END;
 $check_equals_trigger$ LANGUAGE plpgsql;
+
+-- expects in this order:
+-- * own table name (i.e. name of table that isn't user),
+-- * user relation field in said table for which the check was triggered
+-- checks if meeting_id of NEW is equal to meeting_id of connected user,
+-- which is grandfathered in from whichever meeting_user connects that user to that meeting.
+CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_user()
+RETURNS trigger AS $check_equals_meeting_id_for_user_trigger$
+DECLARE
+    ref_column TEXT;
+    user_id INTEGER;
+    user_val TEXT;
+    own_id INTEGER;
+    own_val TEXT;
+    own_table TEXT;
+    i INTEGER := 0;
+BEGIN
+
+    WHILE i < TG_NARGS LOOP
+        own_table := TG_ARGV[i];
+        ref_column := TG_ARGV[i+1];
+        EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO own_id, own_val, user_id USING NEW;
+        IF user_id IS NOT NULL THEN
+            EXECUTE format('SELECT meeting_id FROM meeting_user_t WHERE user_id = %L AND meeting_id = %L', user_id, own_val) INTO user_val;
+
+            PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', user_id, user_val);
+        END IF;
+
+        i := i + 2;
+    END LOOP;
+
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$check_equals_meeting_id_for_user_trigger$ LANGUAGE plpgsql;
+
+-- called on meeting_user delete.
+-- expects in this order:
+-- * own table name (i.e. name of table that isn't user),
+-- * user relation field in said table for which the check was triggered
+-- Checks if the other table has any row with the same meeting_id pointing to that user.
+CREATE OR REPLACE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete()
+RETURNS trigger AS $check_equals_meeting_id_user_on_meeting_user_delete_trigger$
+DECLARE
+    ref_column TEXT;
+    foreign_id INTEGER;
+    foreign_val TEXT;
+    own_id INTEGER;
+    own_val TEXT;
+    own_table TEXT;
+    i INTEGER := 0;
+BEGIN
+    WHILE i < TG_NARGS LOOP
+        own_table := TG_ARGV[i];
+        ref_column := TG_ARGV[i+1];
+        EXECUTE format('SELECT ($1).user_id, ($1).meeting_id') INTO foreign_id, foreign_val USING OLD;
+        -- EXECUTE format('SELECT id, meeting_id FROM %I WHERE %I = % AND meeting_id = %', own_table, ref_column, foreign_id, foreign_val) INTO own_id, own_val;
+        FOR own_id, own_val in EXECUTE format('SELECT id, meeting_id FROM %I WHERE %I = %L AND meeting_id = %L', own_table, ref_column, foreign_id, foreign_val) LOOP
+            RAISE EXCEPTION 'TODO: THE PROBLEM IS WHEN AN ID IS FOUND. IN THAT CASE THIS NEEDS TO BREAK % % % % % %', own_table, ref_column, foreign_id, foreign_val, own_id, own_val;
+            PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', foreign_id, foreign_val);
+        END LOOP;
+
+        i := i + 2;
+    END LOOP;
+
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$check_equals_meeting_id_user_on_meeting_user_delete_trigger$ LANGUAGE plpgsql;
 
 -- expects in this order:
 -- * intermediate table name,
@@ -3744,6 +3811,14 @@ CREATE TRIGGER equal_meeting_id_group_t_read_chat_group_ids AFTER INSERT OR UPDA
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_chat_group_read_group_ids_group_t', 'group_id', 'group', 'chat_group_id', 'chat_group', 'meeting_id', 'read_chat_group_ids');
 CREATE TRIGGER equal_meeting_id_group_t_read_chat_group_ids_intermediate AFTER INSERT OR UPDATE ON nm_chat_group_read_group_ids_group_t
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('nm_chat_group_read_group_ids_group_t', 'group_id', 'group', 'chat_group_id', 'chat_group', 'meeting_id', 'read_chat_group_ids');
+
+
+-- TRIGGER ON non-user create, non-user update, meeting_user delete
+CREATE TRIGGER equal_meeting_id_on_option_content_object_id_user_id AFTER INSERT OR UPDATE OF meeting_id, content_object_id_user_id ON option_t
+FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('option', 'content_object_id_user_id');
+-- other way around not necessary because users aren't set as options at the same time as they're being created
+CREATE TRIGGER equal_meeting_id_on_option_content_object_id_user_id_back AFTER DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('option', 'content_object_id_user_id');
 
 /*   Relation-list infos
 Generated: What will be generated for left field

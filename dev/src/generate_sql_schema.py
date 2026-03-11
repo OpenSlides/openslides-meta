@@ -904,6 +904,7 @@ class GenerateCodeBlocks:
         - What event string should be used for the check
         - The name of the table/view that should be used
         """
+        print(table_field.column, table_field.field_def)
         with_update =False
         use_view = False
         collection=table_field.table
