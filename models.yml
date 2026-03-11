@@ -2126,6 +2126,9 @@ meeting_mediafile:
     to: meeting/font_projector_h2_id
     restriction_mode: A
 meeting_user:
+  _meta:
+    unique_in_meeting:
+    - user_id
   id:
     type: number
     restriction_mode: A
@@ -2154,6 +2157,7 @@ meeting_user:
     required: true
     restriction_mode: C
     constant: true
+    description: unique in meeting
   meeting_id:
     type: relation
     reference: meeting

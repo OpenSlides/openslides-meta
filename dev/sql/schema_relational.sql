@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '1d0ea7df470399a35618d18b05bcea6e'
+-- MODELS_YML_CHECKSUM = '92f7bec4b33e4269c2a4658cf36539cd'
 
 
 -- Function and meta table definitions
@@ -785,10 +785,13 @@ CREATE TABLE meeting_user_t (
     locked_out boolean,
     user_id integer NOT NULL,
     meeting_id integer NOT NULL,
-    vote_delegated_to_id integer
+    vote_delegated_to_id integer,
+    CONSTRAINT unique_meeting_user_user_id_meeting_id UNIQUE (user_id, meeting_id)
 );
 
 
+
+comment on column meeting_user_t.user_id is 'unique in meeting';
 
 
 CREATE TABLE motion_t (

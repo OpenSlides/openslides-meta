@@ -1,9 +1,12 @@
+_meta:
+  unique_in_meeting:
+    - user_id
+
 id:
   type: number
   restriction_mode: A
   constant: true
   required: true
-
 
 comment:
   type: HTMLStrict
@@ -29,6 +32,7 @@ user_id:
   required: true
   restriction_mode: C
   constant: true
+  description: unique in meeting
 meeting_id:
   type: relation
   reference: meeting
