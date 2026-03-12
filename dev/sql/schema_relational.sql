@@ -211,73 +211,6 @@ END;
 $check_equals_trigger$ LANGUAGE plpgsql;
 
 -- expects in this order:
--- * own table name (i.e. name of table that isn't user),
--- * user relation field in said table for which the check was triggered
--- checks if meeting_id of NEW is equal to meeting_id of connected user,
--- which is grandfathered in from whichever meeting_user connects that user to that meeting.
-CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_user()
-RETURNS trigger AS $check_equals_meeting_id_for_user_trigger$
-DECLARE
-    ref_column TEXT;
-    user_id INTEGER;
-    user_val TEXT;
-    own_id INTEGER;
-    own_val TEXT;
-    own_table TEXT;
-    i INTEGER := 0;
-BEGIN
-
-    WHILE i < TG_NARGS LOOP
-        own_table := TG_ARGV[i];
-        ref_column := TG_ARGV[i+1];
-        EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO own_id, own_val, user_id USING NEW;
-        IF user_id IS NOT NULL THEN
-            EXECUTE format('SELECT meeting_id FROM meeting_user_t WHERE user_id = %L AND meeting_id = %L', user_id, own_val) INTO user_val;
-
-            PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', user_id, user_val);
-        END IF;
-
-        i := i + 2;
-    END LOOP;
-
-    RETURN NULL;  -- AFTER TRIGGER needs no return
-END;
-$check_equals_meeting_id_for_user_trigger$ LANGUAGE plpgsql;
-
--- called on meeting_user delete.
--- expects in this order:
--- * own table name (i.e. name of table that isn't user),
--- * user relation field in said table for which the check was triggered
--- Checks if the other table has any row with the same meeting_id pointing to that user.
-CREATE OR REPLACE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete()
-RETURNS trigger AS $check_equals_meeting_id_user_on_meeting_user_delete_trigger$
-DECLARE
-    ref_column TEXT;
-    foreign_id INTEGER;
-    foreign_val TEXT;
-    own_id INTEGER;
-    own_val TEXT;
-    own_table TEXT;
-    i INTEGER := 0;
-BEGIN
-    WHILE i < TG_NARGS LOOP
-        own_table := TG_ARGV[i];
-        ref_column := TG_ARGV[i+1];
-        EXECUTE format('SELECT ($1).user_id, ($1).meeting_id') INTO foreign_id, foreign_val USING OLD;
-        FOR own_id, own_val in EXECUTE format('SELECT id, meeting_id FROM %I WHERE %I = %L AND meeting_id = %L', own_table, ref_column, foreign_id, foreign_val) LOOP
-            IF own_id IS NOT NULL THEN
-                PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', foreign_id, NULL);
-            END IF;
-        END LOOP;
-
-        i := i + 2;
-    END LOOP;
-
-    RETURN NULL;  -- AFTER TRIGGER needs no return
-END;
-$check_equals_meeting_id_user_on_meeting_user_delete_trigger$ LANGUAGE plpgsql;
-
--- expects in this order:
 -- * intermediate table name,
 -- * column referencing calling table in intermediate table
 -- * calling table name
@@ -373,6 +306,97 @@ BEGIN
     RETURN NULL;  -- AFTER TRIGGER needs no return
 END;
 $check_equals_intermediate_trigger$ LANGUAGE plpgsql;
+
+-- expects in this order:
+-- * own table name (i.e. name of table that isn't user),
+-- * user relation field in said table for which the check was triggered
+-- checks if meeting_id of NEW is equal to meeting_id of connected user,
+-- which is grandfathered in from whichever meeting_user connects that user to that meeting.
+CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_user()
+RETURNS trigger AS $check_equals_meeting_id_for_user_trigger$
+DECLARE
+    ref_column TEXT;
+    user_id INTEGER;
+    user_val TEXT;
+    own_id INTEGER;
+    own_val TEXT;
+    own_table TEXT;
+    i INTEGER := 0;
+BEGIN
+
+    WHILE i < TG_NARGS LOOP
+        own_table := TG_ARGV[i];
+        ref_column := TG_ARGV[i+1];
+        EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO own_id, own_val, user_id USING NEW;
+        IF user_id IS NOT NULL THEN
+            EXECUTE format('SELECT meeting_id FROM meeting_user_t WHERE user_id = %L AND meeting_id = %L', user_id, own_val) INTO user_val;
+
+            PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', user_id, user_val);
+        END IF;
+
+        i := i + 2;
+    END LOOP;
+
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$check_equals_meeting_id_for_user_trigger$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_meeting()
+RETURNS trigger AS $check_equals_meeting_id_for_meeting$
+DECLARE
+    table_name TEXT;
+    ref_column TEXT;
+    id INTEGER;
+    meeting_id INTEGER;
+    reference_id TEXT;
+    i INTEGER := 0;
+BEGIN
+    WHILE i < TG_NARGS LOOP
+        table_name := TG_ARGV[i];
+        ref_column := TG_ARGV[i+1];
+        EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO id, meeting_id, reference_id USING NEW;
+        
+        PERFORM raise_equality_exception('meeting_id', ref_column, table_name, id, reference_id, 'meeting', meeting_id, meeting_id::TEXT);
+
+        i := i + 2;
+    END LOOP;
+
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$check_equals_meeting_id_for_meeting$ LANGUAGE plpgsql;
+
+-- called on meeting_user delete.
+-- expects in this order:
+-- * own table name (i.e. name of table that isn't user),
+-- * user relation field in said table for which the check was triggered
+-- Checks if the other table has any row with the same meeting_id pointing to that user.
+CREATE OR REPLACE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete()
+RETURNS trigger AS $check_equals_meeting_id_user_on_meeting_user_delete_trigger$
+DECLARE
+    ref_column TEXT;
+    foreign_id INTEGER;
+    foreign_val TEXT;
+    own_id INTEGER;
+    own_val TEXT;
+    own_table TEXT;
+    i INTEGER := 0;
+BEGIN
+    WHILE i < TG_NARGS LOOP
+        own_table := TG_ARGV[i];
+        ref_column := TG_ARGV[i+1];
+        EXECUTE format('SELECT ($1).user_id, ($1).meeting_id') INTO foreign_id, foreign_val USING OLD;
+        FOR own_id, own_val in EXECUTE format('SELECT id, meeting_id FROM %I WHERE %I = %L AND meeting_id = %L', own_table, ref_column, foreign_id, foreign_val) LOOP
+            IF own_id IS NOT NULL THEN
+                PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', foreign_id, NULL);
+            END IF;
+        END LOOP;
+
+        i := i + 2;
+    END LOOP;
+
+    RETURN NULL;  -- AFTER TRIGGER needs no return
+END;
+$check_equals_meeting_id_user_on_meeting_user_delete_trigger$ LANGUAGE plpgsql;
 
 CREATE TABLE os_notify_log_t (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -3818,6 +3842,10 @@ CREATE TRIGGER equal_meeting_id_on_option_content_object_id_user_id AFTER INSERT
 FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('option', 'content_object_id_user_id');
 CREATE TRIGGER equal_meeting_id_on_option_content_object_id_user_id_back AFTER DELETE ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('option', 'content_object_id_user_id');
+
+
+CREATE TRIGGER equal_meeting_id_on_projection_content_object_id_meeting_id AFTER INSERT OR UPDATE OF meeting_id, content_object_id_meeting_id ON projection_t
+FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_meeting('projection', 'content_object_id_meeting_id');
 
 /*   Relation-list infos
 Generated: What will be generated for left field

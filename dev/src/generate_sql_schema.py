@@ -898,7 +898,8 @@ class GenerateCodeBlocks:
         cls,
         table_field: TableFieldType,
         fields: list[TableFieldType | str],
-        fail_on_user_meeting_id:bool=True
+        fail_on_user_meeting_id:bool=True,
+        fail_on_meeting_meeting_id:bool=True
     ) -> tuple[str, str]:
         """
         Checks the configuration of the relation and returns:
@@ -916,7 +917,7 @@ class GenerateCodeBlocks:
                 field_def = field.field_def
             elif collection == "user" and field == "meeting_id":
                 if fail_on_user_meeting_id:
-                    raise Exception(f"Cannot generate equal_fields trigger: Not user/meeting_id handling not implemented for {table_field.collectionfield}")
+                    raise Exception(f"Cannot generate equal_fields trigger: user/meeting_id handling not implemented for {table_field.collectionfield}")
                 field_def = InternalHelper.get_models("meeting_user", "meeting_id")
                 own_table_field = TableFieldType("meeting_user", "meeting_id", field_def)
                 foreign_table_fields = TableFieldType(collection, field, field_def)
@@ -925,6 +926,10 @@ class GenerateCodeBlocks:
                 )
                 if fse_type!= FieldSqlErrorType.FIELD or field_def.get("sql"):
                     raise Exception("Cannot generate sql_schema: meeting_user/meeting_id sql schema was changed in an incompatible manner. Please fix the generator code accordingly.")
+            elif collection == "meeting" and field == "meeting_id":
+                if fail_on_meeting_meeting_id:
+                    raise Exception(f"Cannot generate equal_fields trigger: meeting/meeting_id handling not implemented for {table_field.collectionfield}")
+                field_def = None
             else:
                 field_def = InternalHelper.get_models(collection, field)
                 if field_def["type"] in ["relation", "relation_list", "generic-relation", "generic-relation_list"]:
@@ -940,7 +945,7 @@ class GenerateCodeBlocks:
                         use_view = True
                 elif field_def.get("sql"):
                     use_view = True
-            if not field_def.get("constant"):
+            if field_def and not field_def.get("constant"):
                 with_update = True
         if use_view:
             raise Exception(f"Cannot generate equal_fields triggers for {table_field.collectionfield}: One of the fields is a view field")
@@ -1035,7 +1040,7 @@ class GenerateCodeBlocks:
                 own_table_field, [own_table_field, equal_field]
             )
             foreign_event_str, foreign_table = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field], False
+                foreign_table_field, [equal_field], False, False
             )
             if foreign_table == "user" and  equal_field == "meeting_id":
                 sql+=dedent(f"""
@@ -1043,6 +1048,12 @@ class GenerateCodeBlocks:
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('{own_table_field.table}', '{specified_relation_field}');
                     CREATE TRIGGER equal_meeting_id_on_{own_table}_{specified_relation_field} AFTER DELETE ON meeting_user_t
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('{own_table_field.table}', '{specified_relation_field}');
+
+                """)
+            elif foreign_table == "meeting" and equal_field == "meeting_id":
+                sql+=dedent(f"""
+                    CREATE TRIGGER equal_meeting_id_on_{own_table}_{specified_relation_field} AFTER {own_event_str} OF meeting_id, {specified_relation_field} ON {own_table}
+                    FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_meeting('{own_table_field.table}', '{specified_relation_field}');
 
                 """)
             else:
@@ -1443,73 +1454,6 @@ class Helper:
         $check_equals_trigger$ LANGUAGE plpgsql;
 
         -- expects in this order:
-        -- * own table name (i.e. name of table that isn't user),
-        -- * user relation field in said table for which the check was triggered
-        -- checks if meeting_id of NEW is equal to meeting_id of connected user,
-        -- which is grandfathered in from whichever meeting_user connects that user to that meeting.
-        CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_user()
-        RETURNS trigger AS $check_equals_meeting_id_for_user_trigger$
-        DECLARE
-            ref_column TEXT;
-            user_id INTEGER;
-            user_val TEXT;
-            own_id INTEGER;
-            own_val TEXT;
-            own_table TEXT;
-            i INTEGER := 0;
-        BEGIN
-
-            WHILE i < TG_NARGS LOOP
-                own_table := TG_ARGV[i];
-                ref_column := TG_ARGV[i+1];
-                EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO own_id, own_val, user_id USING NEW;
-                IF user_id IS NOT NULL THEN
-                    EXECUTE format('SELECT meeting_id FROM meeting_user_t WHERE user_id = %L AND meeting_id = %L', user_id, own_val) INTO user_val;
-
-                    PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', user_id, user_val);
-                END IF;
-
-                i := i + 2;
-            END LOOP;
-
-            RETURN NULL;  -- AFTER TRIGGER needs no return
-        END;
-        $check_equals_meeting_id_for_user_trigger$ LANGUAGE plpgsql;
-
-        -- called on meeting_user delete.
-        -- expects in this order:
-        -- * own table name (i.e. name of table that isn't user),
-        -- * user relation field in said table for which the check was triggered
-        -- Checks if the other table has any row with the same meeting_id pointing to that user.
-        CREATE OR REPLACE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete()
-        RETURNS trigger AS $check_equals_meeting_id_user_on_meeting_user_delete_trigger$
-        DECLARE
-            ref_column TEXT;
-            foreign_id INTEGER;
-            foreign_val TEXT;
-            own_id INTEGER;
-            own_val TEXT;
-            own_table TEXT;
-            i INTEGER := 0;
-        BEGIN
-            WHILE i < TG_NARGS LOOP
-                own_table := TG_ARGV[i];
-                ref_column := TG_ARGV[i+1];
-                EXECUTE format('SELECT ($1).user_id, ($1).meeting_id') INTO foreign_id, foreign_val USING OLD;
-                FOR own_id, own_val in EXECUTE format('SELECT id, meeting_id FROM %I WHERE %I = %L AND meeting_id = %L', own_table, ref_column, foreign_id, foreign_val) LOOP
-                    IF own_id IS NOT NULL THEN
-                        PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', foreign_id, NULL);
-                    END IF;
-                END LOOP;
-
-                i := i + 2;
-            END LOOP;
-
-            RETURN NULL;  -- AFTER TRIGGER needs no return
-        END;
-        $check_equals_meeting_id_user_on_meeting_user_delete_trigger$ LANGUAGE plpgsql;
-
-        -- expects in this order:
         -- * intermediate table name,
         -- * column referencing calling table in intermediate table
         -- * calling table name
@@ -1605,6 +1549,98 @@ class Helper:
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $check_equals_intermediate_trigger$ LANGUAGE plpgsql;
+
+        -- expects in this order:
+        -- * own table name (i.e. name of table that isn't user),
+        -- * user relation field in said table for which the check was triggered
+        -- checks if meeting_id of NEW is equal to meeting_id of connected user,
+        -- which is grandfathered in from whichever meeting_user connects that user to that meeting.
+        CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_user()
+        RETURNS trigger AS $check_equals_meeting_id_for_user_trigger$
+        DECLARE
+            ref_column TEXT;
+            user_id INTEGER;
+            user_val TEXT;
+            own_id INTEGER;
+            own_val TEXT;
+            own_table TEXT;
+            i INTEGER := 0;
+        BEGIN
+
+            WHILE i < TG_NARGS LOOP
+                own_table := TG_ARGV[i];
+                ref_column := TG_ARGV[i+1];
+                EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO own_id, own_val, user_id USING NEW;
+                IF user_id IS NOT NULL THEN
+                    EXECUTE format('SELECT meeting_id FROM meeting_user_t WHERE user_id = %L AND meeting_id = %L', user_id, own_val) INTO user_val;
+
+                    PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', user_id, user_val);
+                END IF;
+
+                i := i + 2;
+            END LOOP;
+
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $check_equals_meeting_id_for_user_trigger$ LANGUAGE plpgsql;
+
+        -- called on meeting_user delete.
+        -- expects in this order:
+        -- * own table name (i.e. name of table that isn't user),
+        -- * user relation field in said table for which the check was triggered
+        -- Checks if the other table has any row with the same meeting_id pointing to that user.
+        CREATE OR REPLACE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete()
+        RETURNS trigger AS $check_equals_meeting_id_user_on_meeting_user_delete_trigger$
+        DECLARE
+            ref_column TEXT;
+            foreign_id INTEGER;
+            foreign_val TEXT;
+            own_id INTEGER;
+            own_val TEXT;
+            own_table TEXT;
+            i INTEGER := 0;
+        BEGIN
+            WHILE i < TG_NARGS LOOP
+                own_table := TG_ARGV[i];
+                ref_column := TG_ARGV[i+1];
+                EXECUTE format('SELECT ($1).user_id, ($1).meeting_id') INTO foreign_id, foreign_val USING OLD;
+                FOR own_id, own_val in EXECUTE format('SELECT id, meeting_id FROM %I WHERE %I = %L AND meeting_id = %L', own_table, ref_column, foreign_id, foreign_val) LOOP
+                    IF own_id IS NOT NULL THEN
+                        PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', foreign_id, NULL);
+                    END IF;
+                END LOOP;
+
+                i := i + 2;
+            END LOOP;
+
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $check_equals_meeting_id_user_on_meeting_user_delete_trigger$ LANGUAGE plpgsql;
+
+        CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_meeting()
+        RETURNS trigger AS $check_equals_meeting_id_for_meeting$
+        DECLARE
+            table_name TEXT;
+            ref_column TEXT;
+            id INTEGER;
+            meeting_id INTEGER;
+            reference_id TEXT;
+            i INTEGER := 0;
+        BEGIN
+            WHILE i < TG_NARGS LOOP
+                table_name := TG_ARGV[i];
+                ref_column := TG_ARGV[i+1];
+                EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO id, meeting_id, reference_id USING NEW;
+                
+                PERFORM raise_equality_exception('meeting_id', ref_column, table_name, id, reference_id, 'meeting', meeting_id, meeting_id::TEXT);
+
+                i := i + 2;
+            END LOOP;
+
+            RETURN NULL;  -- AFTER TRIGGER needs no return
+        END;
+        $check_equals_meeting_id_for_meeting$ LANGUAGE plpgsql;
+
         """)
     NOT_NULL_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
             CREATE FUNCTION check_not_null_for_${trigger_type}() RETURNS trigger AS $$not_null_trigger$$
@@ -2243,6 +2279,7 @@ def main() -> None:
         create_trigger_1_n_relation_not_null_code,
         create_trigger_n_m_relation_not_null_code,
         create_trigger_unique_ids_pair_code,
+        create_trigger_equal_fields_code,
         create_trigger_notify_code,
         errors,
     ) = GenerateCodeBlocks.generate_the_code()
@@ -2276,6 +2313,10 @@ def main() -> None:
         dest.write(create_trigger_n_m_relation_not_null_code)
         dest.write(
             "\n\n-- Create triggers preventing mirrored duplicates in fields referencing themselves\n"
+        )
+        dest.write(create_trigger_equal_fields_code)
+        dest.write(
+            "\n\n-- Create triggers checking equal_fields settings in relations\n"
         )
         dest.write(create_trigger_unique_ids_pair_code)
         dest.write("\n\n-- Create triggers for notify\n")
