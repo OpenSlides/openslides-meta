@@ -4410,9 +4410,6 @@ topic:
     restriction_mode: A
     constant: true
 user:
-  _meta:
-    unique_together:
-    - first_name, last_name, email
   id:
     type: number
     restriction_mode: A

@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '92f7bec4b33e4269c2a4658cf36539cd'
+-- MODELS_YML_CHECKSUM = '6e985640fe94ccd2ceac66be8b7d753a'
 
 
 -- Function and meta table definitions
@@ -1437,8 +1437,7 @@ CREATE TABLE user_t (
     gender_id integer,
     organization_management_level varchar(256) CONSTRAINT enum_user_organization_management_level CHECK (organization_management_level IN ('superadmin', 'can_manage_organization', 'can_manage_users')),
     home_committee_id integer,
-    organization_id integer GENERATED ALWAYS AS (1) STORED NOT NULL,
-    CONSTRAINT unique_user_first_name_last_name_email UNIQUE (first_name, last_name, email)
+    organization_id integer GENERATED ALWAYS AS (1) STORED NOT NULL
 );
 
 
