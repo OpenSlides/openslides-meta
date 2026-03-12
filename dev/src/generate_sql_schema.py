@@ -194,7 +194,7 @@ class GenerateCodeBlocks:
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
                 create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["create_trigger_equal_fields_code"]:
-                print("CREATE TRIGGER CODE", code)
+                # print("CREATE TRIGGER CODE", code)
                 create_trigger_equal_fields_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
@@ -485,11 +485,14 @@ class GenerateCodeBlocks:
                 fdata.get("to"), fdata.get("reference")
             )
         )
-        state, _, final_info, error = InternalHelper.check_relation_definitions(
+        state, primary, final_info, error = InternalHelper.check_relation_definitions(
             own_table_field, [foreign_table_field]
         )
 
         foreign_table = foreign_table_field.table
+
+        if table_name in ["poll", "poll_t", "option", "option_t"]:
+            print("table_name",table_name,"\nfname", fname,"\nfdata", fdata,"\nstate",state,"\nprimary",primary,"\nfinal_info", final_info,"\nerror", error, "\n")
 
 
         if state == FieldSqlErrorType.FIELD:
@@ -593,7 +596,7 @@ class GenerateCodeBlocks:
                         own_table_field, foreign_table_field
                     )
                     if (own_table_field.field_def.get("equal_fields") or foreign_table_field.field_def.get("equal_fields")):
-                        text["create_trigger_equal_fields_code"] = cls.get_trigger_check_equal_fields_for_n_m(own_table_field, foreign_table_field, nm_table_name, own_intermediate_field, foreign_intermediate_field, state)
+                        text["create_trigger_equal_fields_code"] = cls.get_trigger_check_equal_fields_for_n_m(own_table_field, foreign_table_field, nm_table_name, own_intermediate_field, foreign_intermediate_field)
                     if nm_table_name not in cls.intermediate_tables:
                         cls.intermediate_tables[nm_table_name] = value
                         text["create_trigger_notify"] = (
@@ -900,11 +903,11 @@ class GenerateCodeBlocks:
         fields: list[TableFieldType | str],
         fail_on_user_meeting_id:bool=True,
         fail_on_meeting_meeting_id:bool=True
-    ) -> tuple[str, str]:
+    ) -> tuple[str, bool]:
         """
         Checks the configuration of the relation and returns:
-        - What event string should be used for the check
         - The name of the table/view that should be used
+        - If the field can be updated
         """
         # print(table_field.column, table_field.field_def)
         with_update =False
@@ -949,11 +952,15 @@ class GenerateCodeBlocks:
                 with_update = True
         if use_view:
             raise Exception(f"Cannot generate equal_fields triggers for {table_field.collectionfield}: One of the fields is a view field")
-        event_str = "INSERT"
-        if with_update:
-            event_str+= " OR UPDATE"
-        return event_str, HelperGetNames.get_table_name(table_field.table)
+        return HelperGetNames.get_table_name(table_field.table), with_update
         # return event_str, collection if use_view else HelperGetNames.get_table_name(table_field.table)
+
+    @classmethod
+    def get_event_string(cls, is_update: bool, fields: list[str]) -> str:
+        if is_update:
+            return f"INSERT OR UPDATE OF {', '.join(fields)}"
+        else:
+            return "INSERT"
 
     @classmethod
     def get_trigger_check_equal_fields_for_1_x(
@@ -967,25 +974,31 @@ class GenerateCodeBlocks:
         equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
         sql = ""
         for equal_field in equal_fields:
-            own_event_str, own_table = cls.get_equal_field_trigger_config(
+            own_table, own_with_update = cls.get_equal_field_trigger_config(
                 own_table_field, [own_table_field, equal_field]
             )
-            foreign_event_str, foreign_table = cls.get_equal_field_trigger_config(
+            own_event_str = cls.get_event_string(own_with_update, [own_table_field.column, equal_field])
+            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
                 foreign_table_field, [equal_field], False
             )
-            if foreign_table == "user" and  equal_field == "meeting_id":
+            full_own_trigger_name = f"equal_{equal_field}_on_{own_table}_{own_table_field.column}"
+            own_trigger_name = HelperGetNames.get_shortened_name(full_own_trigger_name)
+            if foreign_table_field.table == "user" and  equal_field == "meeting_id":
+                back_trigger_name = HelperGetNames.get_shortened_name(f"{full_own_trigger_name}_back")
                 sql+=dedent(f"""
-                    CREATE TRIGGER equal_meeting_id_on_{own_table}_{own_table_field.column} AFTER {own_event_str} OF meeting_id, {own_table_field.column} ON {own_table}
+                    CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('{own_table_field.table}', '{own_table_field.column}');
-                    CREATE TRIGGER equal_meeting_id_on_{own_table}_{own_table_field.column} AFTER DELETE ON meeting_user_t
+                    CREATE CONSTRAINT TRIGGER {back_trigger_name} AFTER DELETE ON meeting_user_t INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('{own_table_field.table}', '{own_table_field.column}');
 
                 """)
             else:
+                foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
+                foreign_trigger_name = HelperGetNames.get_shortened_name(f"equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column}")
                 sql+=dedent(f"""
-                    CREATE TRIGGER equal_{equal_field}_on_{own_table}_{own_table_field.column} AFTER {own_event_str} OF {equal_field}, {own_table_field.column} ON {own_table}
+                    CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', FALSE);
-                    CREATE TRIGGER equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column} AFTER {foreign_event_str} OF {equal_field} ON {foreign_table}
+                    CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', TRUE);
 
                 """)
@@ -998,26 +1011,32 @@ class GenerateCodeBlocks:
         foreign_table_field: TableFieldType,
         nm_table_name:str,
         own_intermediate_field: str,
-        foreign_intermediate_field: str,
-        state: FieldSqlErrorType
+        foreign_intermediate_field: str
     ) -> str:
         # cls.print_data("n_m",own_table_field, foreign_table_field,nm_table_name, state)
         # cls.equal_fields_state_check(state, own_table_field)
         equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
         sql = ""
         for equal_field in equal_fields:
-            own_event_str, own_table = cls.get_equal_field_trigger_config(
+            own_table, own_with_update = cls.get_equal_field_trigger_config(
                 own_table_field, [equal_field]
             )
-            foreign_event_str, foreign_table = cls.get_equal_field_trigger_config(
+            own_event_str = cls.get_event_string(own_with_update, [equal_field])
+            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
                 foreign_table_field, [equal_field]
             )
+            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
+            intermediate_event_str = cls.get_event_string(True, [own_intermediate_field, foreign_intermediate_field])
+            full_own_trigger_name = f"equal_{equal_field}_on_{own_table}_{own_table_field.column}"
+            own_trigger_name = HelperGetNames.get_shortened_name(full_own_trigger_name)
+            foreign_trigger_name = HelperGetNames.get_shortened_name(f"equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column}")
+            intermediate_trigger_name = HelperGetNames.get_shortened_name(f"{full_own_trigger_name}_intermediate")
             sql+=dedent(f"""
-                CREATE TRIGGER equal_{equal_field}_on_{own_table}_{own_table_field.column} AFTER {own_event_str} OF {equal_field} ON {own_table}
+                CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
                 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.view}', '{foreign_intermediate_field}', '{foreign_table_field.view}', '{equal_field}', '{own_table_field.column}');
-                CREATE TRIGGER equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column} AFTER {foreign_event_str} OF {equal_field} ON {foreign_table}
+                CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
                 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{foreign_intermediate_field}', '{foreign_table_field.view}', '{own_intermediate_field}', '{own_table_field.view}', '{equal_field}', '{foreign_table_field.column}');
-                CREATE TRIGGER equal_{equal_field}_on_{own_table_field.table}_t_{own_table_field.column}_intermediate AFTER INSERT OR UPDATE ON {nm_table_name}
+                CREATE CONSTRAINT TRIGGER {intermediate_trigger_name} AFTER {intermediate_event_str} ON {nm_table_name} INITIALLY DEFERRED
                 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.view}', '{foreign_intermediate_field}', '{foreign_table_field.view}', '{equal_field}', '{own_table_field.column}');
 
             """)
@@ -1036,31 +1055,37 @@ class GenerateCodeBlocks:
         equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
         sql = ""
         for equal_field in equal_fields:
-            own_event_str, own_table = cls.get_equal_field_trigger_config(
+            own_table, own_with_update = cls.get_equal_field_trigger_config(
                 own_table_field, [own_table_field, equal_field]
             )
-            foreign_event_str, foreign_table = cls.get_equal_field_trigger_config(
+            own_event_str = cls.get_event_string(own_with_update, [equal_field, specified_relation_field])
+            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
                 foreign_table_field, [equal_field], False, False
             )
-            if foreign_table == "user" and  equal_field == "meeting_id":
+            full_own_trigger_name = f"equal_meeting_id_on_{own_table}_{specified_relation_field}"
+            own_trigger_name = HelperGetNames.get_shortened_name(full_own_trigger_name)
+            if foreign_table_field.table == "user" and  equal_field == "meeting_id":
+                back_trigger_name = HelperGetNames.get_shortened_name(f"{full_own_trigger_name}_back")
                 sql+=dedent(f"""
-                    CREATE TRIGGER equal_meeting_id_on_{own_table}_{specified_relation_field} AFTER {own_event_str} OF meeting_id, {specified_relation_field} ON {own_table}
+                    CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('{own_table_field.table}', '{specified_relation_field}');
-                    CREATE TRIGGER equal_meeting_id_on_{own_table}_{specified_relation_field} AFTER DELETE ON meeting_user_t
+                    CREATE CONSTRAINT TRIGGER {back_trigger_name} AFTER DELETE ON meeting_user_t INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('{own_table_field.table}', '{specified_relation_field}');
 
                 """)
-            elif foreign_table == "meeting" and equal_field == "meeting_id":
+            elif foreign_table_field.table == "meeting" and equal_field == "meeting_id":
                 sql+=dedent(f"""
-                    CREATE TRIGGER equal_meeting_id_on_{own_table}_{specified_relation_field} AFTER {own_event_str} OF meeting_id, {specified_relation_field} ON {own_table}
+                    CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_meeting('{own_table_field.table}', '{specified_relation_field}');
 
                 """)
             else:
+                foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
+                foreign_trigger_name = HelperGetNames.get_shortened_name(f"equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column}")
                 sql+=dedent(f"""
-                    CREATE TRIGGER equal_{equal_field}_on_{own_table}_{specified_relation_field} AFTER {own_event_str} OF {equal_field}, {specified_relation_field} ON {own_table}
+                    CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{specified_relation_field}', '{equal_field}', FALSE);
-                    CREATE TRIGGER equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column} AFTER {foreign_event_str} OF {equal_field} ON {foreign_table}
+                    CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{specified_relation_field}', '{equal_field}', TRUE);
 
                 """)
@@ -1073,25 +1098,31 @@ class GenerateCodeBlocks:
         foreign_table_field: TableFieldType,
         nm_table_name:str,
         own_intermediate_field: str,
-        foreign_intermediate_field: str,
-        state: FieldSqlErrorType
+        foreign_intermediate_field: str
     ) -> str:
         # cls.print_data("gn_m",own_table_field, foreign_table_field, state)
         equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
         sql = ""
         for equal_field in equal_fields:
-            own_event_str, own_table = cls.get_equal_field_trigger_config(
+            own_table, own_with_update= cls.get_equal_field_trigger_config(
                 own_table_field, [equal_field]
             )
-            foreign_event_str, foreign_table = cls.get_equal_field_trigger_config(
+            own_event_str = cls.get_event_string(own_with_update, [equal_field])
+            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
                 foreign_table_field, [equal_field]
             )
+            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
+            intermediate_event_str = cls.get_event_string(True, [own_intermediate_field, foreign_intermediate_field])
+            full_own_trigger_name = f"equal_{equal_field}_on_{own_table}_{own_table_field.column}_{foreign_table}"
+            own_trigger_name = HelperGetNames.get_shortened_name(full_own_trigger_name)
+            foreign_trigger_name = HelperGetNames.get_shortened_name(f"equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column}")
+            intermediate_trigger_name = HelperGetNames.get_shortened_name(f"{full_own_trigger_name}_intermediate")
             sql+=dedent(f"""
-                CREATE TRIGGER equal_{equal_field}_on_{own_table}_{own_table_field.column} AFTER {own_event_str} OF {equal_field} ON {own_table}
+                CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
                 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
-                CREATE TRIGGER equal_{equal_field}_on_{foreign_table}_{foreign_table_field.column} AFTER {foreign_event_str} OF {equal_field} ON {foreign_table}
+                CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
                 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{own_intermediate_field}', '{own_table_field.table}', '{equal_field}', '{foreign_table_field.column}');
-                CREATE TRIGGER equal_{equal_field}_on_{own_table_field.table}_t_{own_table_field.column}_intermediate AFTER INSERT OR UPDATE ON {nm_table_name}
+                CREATE CONSTRAINT TRIGGER {intermediate_trigger_name} AFTER {intermediate_event_str} ON {nm_table_name} INITIALLY DEFERRED
                 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
 
             """)
@@ -1199,7 +1230,7 @@ class GenerateCodeBlocks:
                 equal_fields_text = ""
                 for foreign_intermediate_field, foreign_table_field in foreign_intermediate_field_foreign_table_field.items():
                     if own_table_field.field_def.get("equal_fields") or foreign_table_field.field_def.get("equal_fields"):
-                        equal_fields_text += cls.get_trigger_check_equal_fields_for_gn_m(own_table_field, foreign_table_field, gm_foreign_table, own_intermediate_field, foreign_intermediate_field, state)
+                        equal_fields_text += cls.get_trigger_check_equal_fields_for_gn_m(own_table_field, foreign_table_field, gm_foreign_table, own_intermediate_field, foreign_intermediate_field)
                 if equal_fields_text:
                     text["create_trigger_equal_fields_code"] = equal_fields_text
 
@@ -1490,9 +1521,9 @@ class Helper:
                 
                 own_id = NEW.id;
                 FOR r in EXECUTE format('SELECT a.%I AS a_val, c.id AS c_id, c.%I AS c_val FROM %I a JOIN %I b ON b.%I = a.id JOIN %I c ON b.%I = c.id WHERE a.id = $1',check_column, check_column, own_table, intermediate_table, own_table_reference, foreign_table, foreign_table_reference) USING own_id LOOP
-                    own_val := r.own_val;
-                    foreign_id := r.foreign_id;
-                    foreign_val := r.foreign_val;
+                    own_val := r.a_val;
+                    foreign_id := r.c_id;
+                    foreign_val := r.c_val;
 
                     PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
                 END LOOP;
@@ -2314,13 +2345,13 @@ def main() -> None:
         dest.write(
             "\n\n-- Create triggers preventing mirrored duplicates in fields referencing themselves\n"
         )
-        dest.write(create_trigger_equal_fields_code)
-        dest.write(
-            "\n\n-- Create triggers checking equal_fields settings in relations\n"
-        )
         dest.write(create_trigger_unique_ids_pair_code)
         dest.write("\n\n-- Create triggers for notify\n")
         dest.write(create_trigger_notify_code)
+        dest.write(
+            "\n\n-- Create triggers checking equal_fields settings in relations\n"
+        )
+        dest.write(create_trigger_equal_fields_code)
         dest.write(Helper.RELATION_LIST_AGENDA)
         dest.write("/*\n")
         dest.write(final_info_code)
