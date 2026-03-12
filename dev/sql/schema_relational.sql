@@ -264,10 +264,10 @@ BEGIN
         own_table := TG_ARGV[i];
         ref_column := TG_ARGV[i+1];
         EXECUTE format('SELECT ($1).user_id, ($1).meeting_id') INTO foreign_id, foreign_val USING OLD;
-        -- EXECUTE format('SELECT id, meeting_id FROM %I WHERE %I = % AND meeting_id = %', own_table, ref_column, foreign_id, foreign_val) INTO own_id, own_val;
         FOR own_id, own_val in EXECUTE format('SELECT id, meeting_id FROM %I WHERE %I = %L AND meeting_id = %L', own_table, ref_column, foreign_id, foreign_val) LOOP
-            RAISE EXCEPTION 'TODO: THE PROBLEM IS WHEN AN ID IS FOUND. IN THAT CASE THIS NEEDS TO BREAK % % % % % %', own_table, ref_column, foreign_id, foreign_val, own_id, own_val;
-            PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', foreign_id, foreign_val);
+            IF own_id IS NOT NULL THEN
+                PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', foreign_id, NULL);
+            END IF;
         END LOOP;
 
         i := i + 2;
@@ -3816,7 +3816,6 @@ FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('nm_chat_group_read_grou
 -- TRIGGER ON non-user create, non-user update, meeting_user delete
 CREATE TRIGGER equal_meeting_id_on_option_content_object_id_user_id AFTER INSERT OR UPDATE OF meeting_id, content_object_id_user_id ON option_t
 FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('option', 'content_object_id_user_id');
--- other way around not necessary because users aren't set as options at the same time as they're being created
 CREATE TRIGGER equal_meeting_id_on_option_content_object_id_user_id_back AFTER DELETE ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('option', 'content_object_id_user_id');
 
