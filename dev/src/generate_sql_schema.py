@@ -986,17 +986,26 @@ class Helper:
             escaped_table_name varchar;
             operation_var TEXT;
             fqid_var TEXT;
+            updated_fields_var varchar(256)[];
         BEGIN
             escaped_table_name := TG_ARGV[0];
             operation_var := LOWER(TG_OP);
-            fqid_var :=  escaped_table_name || '/' || NEW.id;
+
+            -- Determine fqid (use OLD for deletes)
+            fqid_var := escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
                 fqid_var := escaped_table_name || '/' || OLD.id;
             END IF;
 
-            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp)
-            VALUES (operation_var, fqid_var, pg_current_xact_id(), 'now')
+            updated_fields_var := NULL;
+            IF (TG_OP = 'UPDATE') THEN
+                updated_fields_var := akeys((hstore(NEW) - hstore(OLD)) || (hstore(OLD) - hstore(NEW)));
+            END IF;
+
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp, updated_fields)
+            VALUES (operation_var, fqid_var, pg_current_xact_id(), 'now', updated_fields_var)
             ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
+
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
@@ -1088,6 +1097,7 @@ class Helper:
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             operation varchar(32),
             fqid varchar(256) NOT NULL,
+            updated_fields varchar(256)[],
             xact_id xid8,
             timestamp timestamptz,
             CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
