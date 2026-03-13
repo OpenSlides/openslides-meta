@@ -101,6 +101,7 @@ class GenerateCodeBlocks:
           alter_table_final_code: Changes on tables defining relations after, which should appear after all table/views definition to be sequence independant
           final_info_code: Detailed info about all relation fields.Types: relation, relation-list, generic-relation and generic-relation-list
           missing_handled_atributes: List of unhandled attributes. handled one's are to be set manually.
+          missing_handled_collections_meta_attributes: List of unhandled meta-attributes of the collection
           im_table_code: Code for intermediate tables.
               n:m-relations name schema: f"nm_{smaller-table-name}_{it's-fieldname}_{greater-table_name}" uses one per relation
               g:m-relations name schema: f"gm_{table_field.table}_{table_field.column}" of table with generic-list-field
