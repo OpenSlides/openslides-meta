@@ -178,8 +178,12 @@ DECLARE
 BEGIN
     IF foreign_id IS NOT NULL AND own_id IS NOT NULL THEN
         IF foreign_val IS DISTINCT FROM own_val THEN
+            foreign_fqid := foreign_table || '/' || foreign_id;
+            IF check_column = 'meeting_id' THEN
+                RAISE EXCEPTION 'The following models do not belong to meeting %: [''%'']', own_val, foreign_fqid;
+            END IF;
+            foreign_fqid := foreign_fqid  || '/' || check_column;
             own_fqid := own_table || '/' || own_id || '/' || check_column;
-            foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
             RAISE EXCEPTION 'The relation % requires the following fields to be equal:% %: % % %: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
         END IF;
     END IF;
@@ -410,7 +414,9 @@ BEGIN
         ref_column := TG_ARGV[i+1];
         EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO id, meeting_id, reference_id USING NEW;
 
-        PERFORM raise_equality_exception('meeting_id', ref_column, table_name, id, reference_id, 'meeting', meeting_id, meeting_id::TEXT);
+        IF reference_id IS NOT NULL THEN
+            PERFORM raise_equality_exception('meeting_id', ref_column, table_name, id, reference_id, 'meeting', meeting_id, meeting_id::TEXT);
+        END IF;
 
         i := i + 2;
     END LOOP;

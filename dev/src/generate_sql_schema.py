@@ -491,9 +491,6 @@ class GenerateCodeBlocks:
 
         foreign_table = foreign_table_field.table
 
-        if table_name in ["poll", "poll_t", "option", "option_t"]:
-            print("table_name",table_name,"\nfname", fname,"\nfdata", fdata,"\nstate",state,"\nprimary",primary,"\nfinal_info", final_info,"\nerror", error, "\n")
-
 
         if state == FieldSqlErrorType.FIELD:
             foreign_card, error = InternalHelper.get_cardinality(foreign_table_field)
@@ -971,7 +968,7 @@ class GenerateCodeBlocks:
     ) -> str:
         # cls.print_data("1_x",own_table_field, foreign_table_field, state)
         cls.equal_fields_state_check(state, own_table_field)
-        equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
+        equal_fields = list({*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)})
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -981,6 +978,8 @@ class GenerateCodeBlocks:
             foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
                 foreign_table_field, [equal_field], False
             )
+            if "reference" in own_table_field.field_def and "reference" in foreign_table_field.field_def and foreign_table_field.field_def.get("type") in ["relation"]:
+                raise Exception(f"Cannot generate equal_fields triggers for {own_table_field.collectionfield} and {foreign_table_field.collectionfield}: Both have reference set.")
             full_own_trigger_name = f"equal_{equal_field}_on_{own_table}_{own_table_field.column}"
             own_trigger_name = HelperGetNames.get_shortened_name(full_own_trigger_name)
             if foreign_table_field.table == "user" and  equal_field == "meeting_id":
@@ -1015,7 +1014,7 @@ class GenerateCodeBlocks:
     ) -> str:
         # cls.print_data("n_m",own_table_field, foreign_table_field,nm_table_name, state)
         # cls.equal_fields_state_check(state, own_table_field)
-        equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
+        equal_fields = list({*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)})
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1052,7 +1051,7 @@ class GenerateCodeBlocks:
     ) -> str:
         # cls.print_data("g1_x",own_table_field, foreign_table_field, specified_relation_field, state)
         cls.equal_fields_state_check(state, own_table_field)
-        equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
+        equal_fields = list({*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)})
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1101,7 +1100,7 @@ class GenerateCodeBlocks:
         foreign_intermediate_field: str
     ) -> str:
         # cls.print_data("gn_m",own_table_field, foreign_table_field, state)
-        equal_fields = list(set([*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)]))
+        equal_fields = list({*cls.get_equal_fields(own_table_field),*cls.get_equal_fields(foreign_table_field)})
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update= cls.get_equal_field_trigger_config(
@@ -1431,8 +1430,12 @@ class Helper:
         BEGIN
             IF foreign_id IS NOT NULL AND own_id IS NOT NULL THEN
                 IF foreign_val IS DISTINCT FROM own_val THEN
+                    foreign_fqid := foreign_table || '/' || foreign_id;
+                    IF check_column = 'meeting_id' THEN
+                        RAISE EXCEPTION 'The following models do not belong to meeting %: [''%'']', own_val, foreign_fqid;
+                    END IF;
+                    foreign_fqid := foreign_fqid  || '/' || check_column;
                     own_fqid := own_table || '/' || own_id || '/' || check_column;
-                    foreign_fqid := foreign_table || '/' || foreign_id || '/' || check_column;
                     RAISE EXCEPTION 'The relation % requires the following fields to be equal:% %: % % %: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
                 END IF;
             END IF;
@@ -1663,7 +1666,9 @@ class Helper:
                 ref_column := TG_ARGV[i+1];
                 EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO id, meeting_id, reference_id USING NEW;
                 
-                PERFORM raise_equality_exception('meeting_id', ref_column, table_name, id, reference_id, 'meeting', meeting_id, meeting_id::TEXT);
+                IF reference_id IS NOT NULL THEN
+                    PERFORM raise_equality_exception('meeting_id', ref_column, table_name, id, reference_id, 'meeting', meeting_id, meeting_id::TEXT);
+                END IF;
 
                 i := i + 2;
             END LOOP;
