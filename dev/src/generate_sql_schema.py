@@ -988,6 +988,8 @@ class Helper:
             operation_var TEXT;
             fqid_var TEXT;
             updated_fields_var varchar(63)[];
+            old_hstore hstore;
+            new_hstore hstore;
         BEGIN
             escaped_table_name := TG_ARGV[0];
             operation_var := LOWER(TG_OP);
@@ -1000,7 +1002,9 @@ class Helper:
 
             updated_fields_var := NULL;
             IF (TG_OP = 'UPDATE') THEN
-                updated_fields_var := akeys((hstore(NEW) - hstore(OLD)) || (hstore(OLD) - hstore(NEW)));
+                old_hstore := hstore(OLD);
+                new_hstore := hstore(NEW);
+                updated_fields_var := akeys((new_hstore - old_hstore) || (old_hstore - new_hstore));
             END IF;
 
             INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp, updated_fields)
