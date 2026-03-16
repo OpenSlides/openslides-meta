@@ -1005,7 +1005,15 @@ class Helper:
 
             INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp, updated_fields)
             VALUES (operation_var, fqid_var, pg_current_xact_id(), 'now', updated_fields_var)
-            ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
+            ON CONFLICT (operation,fqid,xact_id) DO UPDATE SET updated_fields = (
+                SELECT ARRAY(
+                    SELECT DISTINCT e
+                    FROM unnest(COALESCE(os_notify_log_t.updated_fields, '{}'::varchar[])) AS e
+                    UNION
+                    SELECT DISTINCT e
+                    FROM unnest(COALESCE(EXCLUDED.updated_fields, '{}'::varchar[])) AS e
+                )
+            );
 
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
@@ -1086,7 +1094,15 @@ class Helper:
                     fqid_var := foreign_table || '/' || foreign_id;
                     INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp, updated_fields)
                     VALUES ('update', fqid_var, pg_current_xact_id(), now(), ARRAY[fk_field])
-                    ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
+                    ON CONFLICT (operation,fqid,xact_id) DO UPDATE SET updated_fields = (
+                        SELECT ARRAY(
+                            SELECT DISTINCT e
+                            FROM unnest(COALESCE(os_notify_log_t.updated_fields, '{}'::varchar[])) AS e
+                            UNION
+                            SELECT DISTINCT e
+                            FROM unnest(COALESCE(EXCLUDED.updated_fields, '{}'::varchar[])) AS e
+                        )
+                    );
                 END IF;
 
                 i := i + 3;
