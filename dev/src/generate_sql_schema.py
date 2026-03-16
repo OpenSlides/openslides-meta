@@ -987,7 +987,7 @@ class Helper:
             escaped_table_name varchar;
             operation_var TEXT;
             fqid_var TEXT;
-            updated_fields_var varchar(256)[];
+            updated_fields_var varchar(63)[];
         BEGIN
             escaped_table_name := TG_ARGV[0];
             operation_var := LOWER(TG_OP);
@@ -1100,7 +1100,7 @@ class Helper:
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             operation varchar(32),
             fqid varchar(256) NOT NULL,
-            updated_fields varchar(256)[],
+            updated_fields varchar(63)[],
             xact_id xid8,
             timestamp timestamptz,
             CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
