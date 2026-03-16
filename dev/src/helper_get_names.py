@@ -223,13 +223,16 @@ class HelperGetNames:
         )
 
     @staticmethod
-    @max_length
-    def get_check_enum_constraint_name(
+    def get_enum_name_for_column(
         table_name: str,
         fname: str,
     ) -> str:
         """gets the name of check enum constraint"""
-        return f"enum_{table_name}_{fname}"
+        return HelperGetNames.get_enum_name(f"{table_name}_{fname}")
+
+    @staticmethod
+    def get_enum_name(enum: str) -> str:
+        return HelperGetNames.get_shortened_name(f"enum_{enum}")
 
     @staticmethod
     @max_length
@@ -366,6 +369,7 @@ class HelperGetNames:
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}
+    ENUMS: dict[str, list[str]] = {}
     checksum: str = ""
     ref_compiled = compiled = re.compile(r"(^\w+\b).*?\((.*?)\)")
 
@@ -383,6 +387,8 @@ class InternalHelper:
 
         # Load and parse models.yml
         cls.MODELS = yaml.safe_load(models_yml)
+        for name, values in cls.MODELS["_meta"].get("enum_definitions", {}).items():
+            cls.ENUMS[HelperGetNames.get_enum_name(name)] = values
         cls.check_field_length()
         return cls.MODELS, checksum
 
