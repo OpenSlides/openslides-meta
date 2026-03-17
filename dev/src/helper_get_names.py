@@ -393,6 +393,14 @@ class InternalHelper:
         return cls.MODELS, checksum
 
     @classmethod
+    def get_all_fields(cls, collection: str) -> dict[str, Any]:
+        return cls.MODELS[collection]["fields"]
+
+    @classmethod
+    def get_field_data(cls, collection: str, field_name: str) -> dict[str, Any]:
+        return cls.get_all_fields(collection)[field_name]
+
+    @classmethod
     def check_field_length(cls) -> None:
         to_long: list[str] = []
         for table_name, fields in cls.MODELS.items():
