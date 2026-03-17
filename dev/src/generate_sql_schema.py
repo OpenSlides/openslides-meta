@@ -1,3 +1,4 @@
+import logging
 import string
 from collections import defaultdict
 from collections.abc import Callable
@@ -20,6 +21,12 @@ from .helper_get_names import (
 
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 MODELS: dict[str, dict[str, Any]] = {}
+
+
+# Set log level for sqlfluff
+for name in logging.root.manager.loggerDict:
+    if "sqlfluff" in name:
+        logging.getLogger(name).setLevel(logging.WARN)
 
 
 class SchemaZoneTexts(TypedDict, total=False):

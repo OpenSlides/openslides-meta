@@ -23,9 +23,7 @@ type:
 backend:
   type: string
   required: true
-  enum:
-  - long
-  - fast
+  enum: *poll_backends
   default: fast
   restriction_mode: A
 is_pseudoanonymized:
@@ -79,16 +77,7 @@ global_abstain:
 onehundred_percent_base:
   type: string
   required: true
-  enum:
-  - "Y"
-  - "YN"
-  - "YNA"
-  - "N"
-  - "valid"
-  - "cast"
-  - "entitled"
-  - "entitled_present"
-  - "disabled"
+  enum: *onehundred_percent_bases
   default: disabled
   restriction_mode: A
 votesvalid:
