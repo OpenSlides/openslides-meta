@@ -16,20 +16,20 @@ DEFAULT_COLLECTIONS_DIR = os.path.join(ROOT, "collections")
 
 
 def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
-    result = {}
+    joined_collections = ["_meta:\n"]
 
-    with open(meta_file, encoding="utf-8") as f:
-        meta_data = yaml.safe_load(f)
-        result["_meta"] = meta_data
+    meta_text = Path(meta_file).read_text()
+    joined_collections.extend(
+        f"  {line}" for line in meta_text.splitlines(keepends=True)
+    )
 
     collections_path = Path(collections_dir)
     yaml_files = sorted(collections_path.glob("*.yml"))
 
     for yaml_file in yaml_files:
-        with open(yaml_file, encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-
-            result[yaml_file.stem] = data
+        joined_collections.append(f"{yaml_file.stem}:\n")
+        for line in yaml_file.read_text().splitlines(keepends=True):
+            joined_collections.append(f"  {line}")
 
     header = (
         "# GENERATED FILE - DO NOT EDIT MANUALLY\n"
@@ -37,6 +37,7 @@ def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
         "---\n"
     )
 
+    result = yaml.safe_load("".join(joined_collections))
     yaml_body = yaml.dump(
         result,
         default_flow_style=False,

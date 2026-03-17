@@ -6,7 +6,11 @@ from typing import Any, cast
 import simplejson as json
 import yaml
 
-from .helper_get_names import DEFAULT_COLLECTIONS_DIR, KEYSEPARATOR
+from .helper_get_names import (
+    DEFAULT_COLLECTION_META,
+    DEFAULT_COLLECTIONS_DIR,
+    KEYSEPARATOR,
+)
 
 MAX_FIELD_NAME_LENGTH = 63
 
@@ -71,7 +75,14 @@ class Checker:
         self._load_collections(collections_dir)
 
     def _load_collections(self, collections_dir: str) -> None:
+        meta_path = Path(DEFAULT_COLLECTION_META)
         collections_path = Path(collections_dir)
+
+        meta_text = ["_meta:\n"]
+        meta_text.extend(
+            f"  {line}"
+            for line in Path(meta_path).read_text().splitlines(keepends=True)
+        )
 
         if not collections_path.exists():
             raise CheckException(
@@ -90,8 +101,12 @@ class Checker:
 
         for yaml_file in yaml_files:
             try:
-                with open(yaml_file, "rb") as f:
-                    data = yaml.safe_load(f.read())
+                yaml_content = meta_text.copy() + [f"{yaml_file.stem}:\n"]
+                yaml_content.extend(
+                    f"  {line}"
+                    for line in Path(yaml_file).read_text().splitlines(keepends=True)
+                )
+                data = yaml.safe_load("".join(yaml_content))
 
                 if not isinstance(data, dict):
                     self.errors.append(
@@ -99,7 +114,7 @@ class Checker:
                     )
                     continue
 
-                self.models[yaml_file.stem] = data
+                self.models[yaml_file.stem] = data[yaml_file.stem]
 
             except yaml.YAMLError as e:
                 self.errors.append(f"Error parsing '{yaml_file.name}': {e}")
