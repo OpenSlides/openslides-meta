@@ -36,6 +36,9 @@ sqlfluff:
 validate-models:
 	python -m src.validate
 
+join-models-yml:
+	python -m src.join_models_yml
+
 generate-relational-schema:
 	python -m src.generate_sql_schema
 

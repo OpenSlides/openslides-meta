@@ -58,14 +58,7 @@ limit_of_users:
 default_language:
   type: string
   restriction_mode: A
-  enum:
-  - en
-  - de
-  - it
-  - es
-  - ru
-  - cs
-  - fr
+  enum: *languages
   default: en
 require_duplicate_from:
   type: boolean
