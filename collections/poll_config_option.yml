@@ -1,0 +1,33 @@
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
+poll_config_id:
+  type: generic-relation
+  to:
+    - poll_config_approval/option_ids
+    - poll_config_selection/option_ids
+    - poll_config_rating_score/option_ids
+    - poll_config_rating_approval/option_ids
+    - poll_config_stv_scottish/option_ids
+  reference:
+    - poll_config_approval
+    - poll_config_selection
+    - poll_config_rating_score
+    - poll_config_rating_approval
+    - poll_config_stv_scottish
+  required: true
+  restriction_mode: A
+weight:
+  type: number
+  restriction_mode: A
+text:
+  type: string
+  restriction_mode: A
+meeting_user_id:
+  type: relation
+  to: meeting_user/poll_option_ids
+  reference: meeting_user
+  required: false
+  restriction_mode: A
