@@ -30,5 +30,3 @@ meeting_id:
   restriction_mode: A
   constant: true
 
-# Mediafiles are delivered by the mediafile server with the URL
-# `<media-prefix>/media/<meeting_id>/path`

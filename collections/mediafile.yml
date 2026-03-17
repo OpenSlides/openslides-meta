@@ -65,3 +65,5 @@ meeting_mediafile_ids:
   on_delete: CASCADE
   restriction_mode: A
 
+  # Mediafiles are delivered by the mediafile server with the URL
+  # `<media-prefix>/media/<meeting_id>/path`
