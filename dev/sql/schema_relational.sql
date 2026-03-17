@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'd351555c90f22772ba357a0bb94918c5'
+-- MODELS_YML_CHECKSUM = 'fbde8b13145fe97d7c0086e2d2335f43'
 
 
 -- Function and meta table definitions
@@ -762,7 +762,7 @@ This email was generated automatically.',
     assignment_poll_sort_poll_result_by_votes boolean DEFAULT True,
     assignment_poll_default_type varchar(256) DEFAULT 'secret',
     assignment_poll_default_method varchar(256) DEFAULT 'selection',
-    assignment_poll_default_onehundred_percent_base varchar(256) CONSTRAINT enum_meeting_assignment_poll_default_onehundred_percent_base CHECK (assignment_poll_default_onehundred_percent_base IN ('['yes_no', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled']', '['no_general', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled']')) DEFAULT 'valid',
+    assignment_poll_default_onehundred_percent_base varchar(256) CONSTRAINT enum_meeting_assignment_poll_default_onehundred_percent_base CHECK (assignment_poll_default_onehundred_percent_base IN ('no_general', 'yes_no', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled')) DEFAULT 'valid',
     poll_ballot_paper_selection varchar(256) CONSTRAINT enum_meeting_poll_ballot_paper_selection CHECK (poll_ballot_paper_selection IN ('NUMBER_OF_DELEGATES', 'NUMBER_OF_ALL_PARTICIPANTS', 'CUSTOM_NUMBER')),
     poll_ballot_paper_number integer,
     poll_sort_poll_result_by_votes boolean,

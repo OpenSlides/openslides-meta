@@ -698,9 +698,7 @@ assignment_poll_default_method:
   restriction_mode: B
 assignment_poll_default_onehundred_percent_base:
   type: string
-  enum: 
-    - *rating_approval_onehundred_percent_bases
-    - *selection_onehundred_percent_bases
+  enum: *onehundred_percent_bases
   default: valid
   restriction_mode: B
 assignment_poll_default_group_ids:

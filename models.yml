@@ -14,14 +14,37 @@ _meta:
   - NUMBER_OF_DELEGATES
   - NUMBER_OF_ALL_PARTICIPANTS
   - CUSTOM_NUMBER
-  poll_backends: &id004
-  - long
-  - fast
-  onehundred_percent_bases: &id003
-  - Y
-  - YN
-  - YNA
-  - N
+  onehundred_percent_bases: &id004
+  - no_general
+  - yes_no
+  - valid
+  - cast
+  - entitled
+  - entitled_present
+  - disabled
+  approval_onehundred_percent_bases: &id003
+  - yes_no
+  - valid
+  - cast
+  - entitled
+  - entitled_present
+  - disabled
+  rating_approval_onehundred_percent_bases: &id006
+  - yes_no
+  - valid
+  - cast
+  - entitled
+  - entitled_present
+  - disabled
+  rating_score_onehundred_percent_bases: &id007
+  - yes_no
+  - valid
+  - cast
+  - entitled
+  - entitled_present
+  - disabled
+  selection_onehundred_percent_bases: &id005
+  - no_general
   - valid
   - cast
   - entitled
@@ -1401,25 +1424,20 @@ meeting:
     restriction_mode: B
   motion_poll_default_type:
     type: string
-    default: pseudoanonymous
+    default: secret
     restriction_mode: B
-  motion_poll_default_method:
-    type: string
-    default: YNA
+  motion_poll_default_allow_abstain:
+    type: boolean
+    default: true
     restriction_mode: B
   motion_poll_default_onehundred_percent_base:
     type: string
     enum: *id003
-    default: YNA
+    default: valid
     restriction_mode: B
   motion_poll_default_group_ids:
     type: relation-list
     to: group/used_as_motion_poll_default_id
-    restriction_mode: B
-  motion_poll_default_backend:
-    type: string
-    enum: *id004
-    default: fast
     restriction_mode: B
   motion_poll_projection_name_order_first:
     type: string
@@ -1548,25 +1566,20 @@ meeting:
     restriction_mode: B
   assignment_poll_default_type:
     type: string
-    default: pseudoanonymous
+    default: secret
     restriction_mode: B
   assignment_poll_default_method:
     type: string
-    default: Y
+    default: selection
     restriction_mode: B
   assignment_poll_default_onehundred_percent_base:
     type: string
-    enum: *id003
+    enum: *id004
     default: valid
     restriction_mode: B
   assignment_poll_default_group_ids:
     type: relation-list
     to: group/used_as_assignment_poll_default_id
-    restriction_mode: B
-  assignment_poll_default_backend:
-    type: string
-    enum: *id004
-    default: fast
     restriction_mode: B
   poll_ballot_paper_selection:
     type: string
@@ -1587,7 +1600,7 @@ meeting:
     restriction_mode: B
   poll_default_onehundred_percent_base:
     type: string
-    enum: *id003
+    enum: *id005
     default: YNA
     restriction_mode: B
   poll_default_group_ids:
@@ -3477,13 +3490,7 @@ poll_config_approval:
   onehundred_percent_base:
     type: string
     required: true
-    enum:
-    - YN
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
+    enum: *id003
     restriction_mode: A
 poll_config_option:
   id:
@@ -3550,13 +3557,7 @@ poll_config_rating_approval:
   onehundred_percent_base:
     type: string
     required: true
-    enum:
-    - YN
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
+    enum: *id006
     restriction_mode: A
 poll_config_rating_score:
   id:
@@ -3597,13 +3598,7 @@ poll_config_rating_score:
   onehundred_percent_base:
     type: string
     required: true
-    enum:
-    - YN
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
+    enum: *id007
     restriction_mode: A
 poll_config_selection:
   id:
@@ -3640,13 +3635,7 @@ poll_config_selection:
   onehundred_percent_base:
     type: string
     required: true
-    enum:
-    - no_general
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
+    enum: *id005
     restriction_mode: A
 poll_config_stv_scottish:
   id:
