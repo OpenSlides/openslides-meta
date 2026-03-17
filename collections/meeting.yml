@@ -727,7 +727,7 @@ poll_default_method:
 poll_default_onehundred_percent_base:
   type: string
   enum: *selection_onehundred_percent_bases
-  default: YNA
+  default: valid
   restriction_mode: B
 poll_default_group_ids:
   type: relation-list

@@ -1601,7 +1601,7 @@ meeting:
   poll_default_onehundred_percent_base:
     type: string
     enum: *id005
-    default: YNA
+    default: valid
     restriction_mode: B
   poll_default_group_ids:
     type: relation-list

@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'fbde8b13145fe97d7c0086e2d2335f43'
+-- MODELS_YML_CHECKSUM = '8f6b33883a3c3b774ada5af312dcbb14'
 
 
 -- Function and meta table definitions
@@ -768,7 +768,7 @@ This email was generated automatically.',
     poll_sort_poll_result_by_votes boolean,
     poll_default_type varchar(256) DEFAULT 'analog',
     poll_default_method varchar(256),
-    poll_default_onehundred_percent_base varchar(256) CONSTRAINT enum_meeting_poll_default_onehundred_percent_base CHECK (poll_default_onehundred_percent_base IN ('no_general', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled')) DEFAULT 'YNA',
+    poll_default_onehundred_percent_base varchar(256) CONSTRAINT enum_meeting_poll_default_onehundred_percent_base CHECK (poll_default_onehundred_percent_base IN ('no_general', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled')) DEFAULT 'valid',
     poll_default_live_voting_enabled boolean DEFAULT False,
     poll_default_allow_invalid boolean DEFAULT False,
     poll_default_allow_vote_split boolean DEFAULT False,
