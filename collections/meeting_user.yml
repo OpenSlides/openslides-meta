@@ -32,7 +32,6 @@ user_id:
   required: true
   restriction_mode: C
   constant: true
-  description: unique in meeting
 meeting_id:
   type: relation
   reference: meeting

@@ -12,7 +12,6 @@ name:
   type: string
   required: true
   restriction_mode: A
-  description: unique for workflow
 weight:
   type: number
   required: true

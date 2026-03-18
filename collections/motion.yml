@@ -10,7 +10,6 @@ id:
 
 number:
   type: string
-  description: unique in meeting
   restriction_mode: C
 number_value:
   type: number

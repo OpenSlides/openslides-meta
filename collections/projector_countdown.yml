@@ -11,7 +11,6 @@ id:
 title:
   type: string
   required: true
-  description: unique in meeting
   restriction_mode: A
 description:
   type: string
