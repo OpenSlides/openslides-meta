@@ -7,7 +7,11 @@ from typing import Any, cast
 import simplejson as json
 import yaml
 
-from .helper_get_names import DEFAULT_COLLECTIONS_DIR, KEYSEPARATOR
+from .helper_get_names import (
+    DEFAULT_COLLECTION_META,
+    DEFAULT_COLLECTIONS_DIR,
+    KEYSEPARATOR,
+)
 
 MAX_FIELD_NAME_LENGTH = 63
 
@@ -73,7 +77,13 @@ class Checker:
         self._load_collections(collections_dir)
 
     def _load_collections(self, collections_dir: str) -> None:
+        meta_path = Path(DEFAULT_COLLECTION_META)
         collections_path = Path(collections_dir)
+
+        with open(meta_path, "rb") as f:
+            self.shared_enum_definitions = yaml.safe_load(f.read()).get(
+                "enum_definitions", {}
+            )
 
         if not collections_path.exists():
             raise CheckException(
@@ -220,13 +230,13 @@ class Checker:
         valid_attributes = list(OPTIONAL_ATTRIBUTES) + required_attributes
         if type in ["string[]", "text[]"]:
             valid_attributes.append("items")
-            if "items" in field and "enum" not in field["items"]:
-                self.errors.append(
-                    f"'items' is missing an inner 'enum' for {collectionfield}"
-                )
-                return
-            for value in field.get("items", {"enum": []})["enum"]:
-                self.validate_value_for_type("string", value, collectionfield)
+            if "items" in field:
+                if "enum" in field["items"]:
+                    self.check_enum(collectionfield, field["items"]["enum"])
+                else:
+                    self.errors.append(
+                        f"'items' is missing an inner 'enum' for {collectionfield}"
+                    )
         if type == "JSON" and "default" in field:
             try:
                 json.loads(json.dumps(field["default"]))
@@ -235,26 +245,54 @@ class Checker:
                     f"Default value for {collectionfield}' is not valid json."
                 )
         if type in ("number", "float", "decimal(6)"):
-            valid_attributes.append("minimum")
-            if "minimum" in field:
-                self.validate_value_for_type(type, field["minimum"], collectionfield)
+            valid_attributes.extend(["minimum", "maximum"])
+            for attr in ["minimum", "maximum"]:
+                if attr in field:
+                    self.validate_value_for_type(type, field[attr], collectionfield)
+            if "default" in field:
+                base_error_message = f"incorrect 'default' value for {collectionfield}: {field['default']}. Allowed"
+                for attr, comparison_func in (
+                    ("minimum", lambda a, b: a < b),
+                    ("maximum", lambda a, b: a > b),
+                ):
+                    if attr in field and comparison_func(field["default"], field[attr]):
+                        self.errors.append(
+                            f"{base_error_message} {attr} is {field[attr]}."
+                        )
         if type in ("string", "text"):
+            valid_attributes.append("enum")
+            if "enum" in field:
+                if isinstance(field["enum"], str):
+                    if (
+                        shared_enum := self.shared_enum_definitions.get(field["enum"])
+                    ) is not None:
+                        field["enum"] = shared_enum
+                    else:
+                        self.errors.append(
+                            f"incorrect 'enum' name for {collectionfield}: '{field['enum']}' is not defined."
+                        )
+                self.check_enum(collectionfield, field["enum"])
             for attr in ("minLength", "maxLength"):
                 valid_attributes.append(attr)
                 if not isinstance(field.get("maxLength", 0), int):
                     self.errors.append(
                         f"'maxLength' for {collectionfield} is not a number."
                     )
+            if (
+                "default" in field
+                and "enum" in field
+                and isinstance(field["enum"], list)
+                and not field["default"] in field["enum"]
+            ):
+                self.errors.append(
+                    f"default value '{field['default']}' for {collectionfield} is not "
+                    f"found in 'enum' for the field. Allowed values are: {field['enum']}."
+                )
+
         if type in DATA_TYPES:
             valid_attributes.append("default")
             if "default" in field:
                 self.validate_value_for_type(type, field["default"], collectionfield)
-            valid_attributes.append("enum")
-            if "enum" in field:
-                if not isinstance(field["enum"], list):
-                    self.errors.append(f"'enum' for {collectionfield} is not a list.")
-                for value in field["enum"]:
-                    self.validate_value_for_type(type, value, collectionfield)
 
         if type in RELATION_TYPES:
             valid_attributes.append("on_delete")
@@ -419,6 +457,16 @@ class Checker:
         if from_collectionfield not in to_unified:
             return f"{from_collectionfield} points to {to_collectionfield}, but {to_collectionfield} does not point back."
         return None
+
+    def check_enum(self, collectionfield: str, enum: Any) -> None:
+        if not isinstance(enum, (list, str)):
+            self.errors.append(f"'enum' for {collectionfield} is not a list.")
+        elif invalid_values := [
+            str(item) for item in enum if not isinstance(item, str)
+        ]:
+            self.errors.append(
+                f"some values of 'enum' for {collectionfield} are not strings: {', '.join(invalid_values)}."
+            )
 
     def split_collectionfield(self, collectionfield: str) -> tuple[str, str]:
         parts = collectionfield.split(KEYSEPARATOR)
