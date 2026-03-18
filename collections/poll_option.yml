@@ -1,0 +1,23 @@
+id:
+  type: number
+  restriction_mode: A
+  constant: true
+  required: true
+poll_id:
+  type: relation
+  to: poll/option_ids
+  reference: poll
+  required: true
+  restriction_mode: A
+weight:
+  type: number
+  restriction_mode: A
+text:
+  type: string
+  restriction_mode: A
+meeting_user_id:
+  type: relation
+  to: meeting_user/poll_option_ids
+  reference: meeting_user
+  required: false
+  restriction_mode: A

@@ -89,8 +89,8 @@ poll_voted_ids:
   restriction_mode: A
 poll_option_ids:
   type: relation-list
-  to: poll_config_option/meeting_user_id
-  reference: poll_config_option
+  to: poll_option/meeting_user_id
+  reference: poll_option
   required: false
   restriction_mode: A
 acting_ballot_ids:

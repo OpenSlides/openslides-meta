@@ -8,11 +8,6 @@ poll_id:
   to: poll/config_id
   required: true
   restriction_mode: A
-option_ids:
-  type: relation-list
-  to: poll_config_option/poll_config_id
-  on_delete: CASCADE
-  restriction_mode: A
 allow_abstain:
   type: boolean
   default: true
