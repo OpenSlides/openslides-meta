@@ -1,6 +1,5 @@
-_meta:
-  unique_together:
-  - name, workflow_id
+unique_together:
+- name, workflow_id
 
 fields:
   id:

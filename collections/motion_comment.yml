@@ -1,6 +1,5 @@
-_meta:
-  unique_together:
-  - motion_id, section_id
+unique_together:
+- motion_id, section_id
 
 fields:
   id:

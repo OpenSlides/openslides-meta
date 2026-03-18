@@ -1,6 +1,5 @@
-_meta:
-  unique_together:
-  - title, parent_id, owner_id
+unique_together:
+- title, parent_id, owner_id
 
 fields:
   id:

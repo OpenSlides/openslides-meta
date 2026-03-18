@@ -1,6 +1,5 @@
-_meta:
-  unique_together:
-  - meeting_user_id, motion_id
+unique_together:
+- meeting_user_id, motion_id
 
 fields:
   id:

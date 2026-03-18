@@ -1,6 +1,5 @@
-_meta:
-  unique_in_meeting:
-  - number
+unique_together:
+- meeting_id, number
 
 fields:
   id:

@@ -143,7 +143,6 @@ class GenerateCodeBlocks:
         }
         collection_meta_handled_attributes = {
             "unique_together",
-            "unique_in_meeting",
         }
         pre_code: str = ""
         table_name_code: str = ""
@@ -170,7 +169,6 @@ class GenerateCodeBlocks:
             if table_name in ["_migration_index", "_meta"]:
                 continue
 
-            collection_meta_data = data.pop("_meta", {})
             fields = data["fields"]
             schema_zone_texts = cast(SchemaZoneTexts, defaultdict(str))
             cls.intermediate_tables = {}
@@ -194,13 +192,16 @@ class GenerateCodeBlocks:
                     if error:
                         errors.append(Helper.prefix_error(error, table_name, fname))
 
-            if collection_meta_data:
-                for attr, value in collection_meta_data.items():
+            if len(data) > 1:
+                for attr, value in data.items():
+                    if attr == "fields":
+                        continue
                     if attr not in collection_meta_handled_attributes:
                         missing_handled_collections_meta_attributes.add(attr)
-                    schema_zone_texts["table"] += cls.get_constraint_unique_together(
-                        table_name, attr, value
-                    )
+                    if attr == "unique_together":
+                        schema_zone_texts[
+                            "table"
+                        ] += cls.get_constraint_unique_together(table_name, value)
 
             if code := schema_zone_texts["table"]:
                 table_name_code += Helper.get_table_head(table_name)
@@ -769,12 +770,10 @@ class GenerateCodeBlocks:
         return f"({query}) as {fname},\n"
 
     @staticmethod
-    def get_constraint_unique_together(table_name: str, attr: str, value: Any) -> str:
-        if attr not in ["unique_together", "unique_in_meeting"]:
-            return ""
+    def get_constraint_unique_together(table_name: str, value: Any) -> str:
         assert isinstance(
             value, list
-        ), f"'{table_name}.yml/_meta/{attr}' must be a list of field names"
+        ), f"'{table_name}.yml/unique_together' must be a list of field names"
         result = ""
         for fields in value:
             fields = [field_name.strip() for field_name in fields.split(",")]
@@ -1336,10 +1335,7 @@ class Helper:
 
     @classmethod
     def get_unique_together_constraint_definition(
-        cls,
-        table: str,
-        fields: list[str],
-        unique_in_meeting: bool = False,
+        cls, table: str, fields: list[str]
     ) -> str:
         assert (
             len(fields) > 1

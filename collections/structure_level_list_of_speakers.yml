@@ -1,6 +1,5 @@
-_meta:
-  unique_in_meeting:
-  - structure_level_id, list_of_speakers_id
+unique_together:
+- meeting_id, structure_level_id, list_of_speakers_id
 
 fields:
   id:

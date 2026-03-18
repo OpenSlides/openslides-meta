@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '207ed31447d3c58b438905c54d56542f'
+-- MODELS_YML_CHECKSUM = '5c5cad2597e38d8a1b33bebe7a469bcb'
 
 
 -- Function and meta table definitions
@@ -449,7 +449,7 @@ CREATE TABLE chat_group_t (
     name varchar(256) NOT NULL,
     weight integer DEFAULT 10000,
     meeting_id integer NOT NULL,
-    CONSTRAINT unique_chat_group_name_meeting_id UNIQUE (name, meeting_id)
+    CONSTRAINT unique_chat_group_meeting_id_name UNIQUE (meeting_id, name)
 );
 
 
@@ -500,7 +500,7 @@ CREATE TABLE group_t (
     used_as_topic_poll_default_id integer,
     used_as_poll_default_id integer,
     meeting_id integer NOT NULL,
-    CONSTRAINT unique_group_external_id_meeting_id UNIQUE (external_id, meeting_id)
+    CONSTRAINT unique_group_meeting_id_external_id UNIQUE (meeting_id, external_id)
 );
 
 
@@ -814,7 +814,7 @@ CREATE TABLE meeting_user_t (
     user_id integer NOT NULL,
     meeting_id integer NOT NULL,
     vote_delegated_to_id integer,
-    CONSTRAINT unique_meeting_user_user_id_meeting_id UNIQUE (user_id, meeting_id)
+    CONSTRAINT unique_meeting_user_meeting_id_user_id UNIQUE (meeting_id, user_id)
 );
 
 
@@ -852,7 +852,7 @@ CREATE TABLE motion_t (
     category_id integer,
     block_id integer,
     meeting_id integer NOT NULL,
-    CONSTRAINT unique_motion_number_meeting_id UNIQUE (number, meeting_id)
+    CONSTRAINT unique_motion_meeting_id_number UNIQUE (meeting_id, number)
 );
 
 
@@ -1282,7 +1282,7 @@ CREATE TABLE projector_countdown_t (
     countdown_time double precision DEFAULT 60,
     running boolean DEFAULT False,
     meeting_id integer NOT NULL,
-    CONSTRAINT unique_projector_countdown_title_meeting_id UNIQUE (title, meeting_id)
+    CONSTRAINT unique_projector_countdown_meeting_id_title UNIQUE (meeting_id, title)
 );
 
 
@@ -1325,7 +1325,7 @@ CREATE TABLE structure_level_t (
     color varchar(7) CHECK (color is null or color ~* '^#[a-f0-9]{6}$'),
     default_time integer CONSTRAINT minimum_default_time CHECK (default_time >= 0),
     meeting_id integer NOT NULL,
-    CONSTRAINT unique_structure_level_name_meeting_id UNIQUE (name, meeting_id)
+    CONSTRAINT unique_structure_level_meeting_id_name UNIQUE (meeting_id, name)
 );
 
 
@@ -1340,7 +1340,7 @@ CREATE TABLE structure_level_list_of_speakers_t (
     remaining_time double precision NOT NULL,
     current_start_time timestamptz,
     meeting_id integer NOT NULL,
-    CONSTRAINT unique_structure_level_list_of_speakers_structure_level_0befc2f UNIQUE (structure_level_id, list_of_speakers_id, meeting_id)
+    CONSTRAINT unique_structure_level_list_of_speakers_meeting_id_struce047abe UNIQUE (meeting_id, structure_level_id, list_of_speakers_id)
 );
 
 

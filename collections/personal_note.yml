@@ -1,6 +1,5 @@
-_meta:
-  unique_together:
-  - meeting_user_id, content_object_id
+unique_together:
+- meeting_user_id, content_object_id
 
 fields:
   id:
