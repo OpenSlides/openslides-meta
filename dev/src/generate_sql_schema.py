@@ -432,8 +432,8 @@ class GenerateCodeBlocks:
             ] += cls.get_trigger_generate_partitioned_sequence(
                 table_name, fname, depend_field
             )
-            text["table"] += Helper.get_unique_constraint_definition(
-                table_name, [fname], unique_in_meeting=True
+            text["table"] += Helper.get_unique_together_constraint_definition(
+                table_name, [fname, depend_field]
             )
         return text, ""
 
@@ -769,10 +769,8 @@ class GenerateCodeBlocks:
         result = ""
         for fields in value:
             fields = [field_name.strip() for field_name in fields.split(",")]
-            result += Helper.get_unique_constraint_definition(
-                table_name,
-                fields,
-                unique_in_meeting=attr == "unique_in_meeting",
+            result += Helper.get_unique_together_constraint_definition(
+                table_name, fields
             )
         return result
 
@@ -1296,18 +1294,16 @@ class Helper:
         )
 
     @classmethod
-    def get_unique_constraint_definition(
+    def get_unique_together_constraint_definition(
         cls,
         table: str,
         fields: list[str],
         unique_in_meeting: bool = False,
     ) -> str:
-        if unique_in_meeting:
-            fields.append("meeting_id")
-        result = f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE"
-        if len(fields) > 1:
-            result += f" ({', '.join(fields)})"
-        return result + ",\n"
+        assert (
+            len(fields) > 1
+        ), "At least 2 fields must be defined for the unique together constraint"
+        return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE ({', '.join(fields)}),\n"
 
     @staticmethod
     def get_check_enum(
