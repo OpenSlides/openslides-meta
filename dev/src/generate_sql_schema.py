@@ -194,14 +194,20 @@ class GenerateCodeBlocks:
 
             if len(data) > 1:
                 for attr, value in data.items():
-                    if attr == "fields":
-                        continue
-                    if attr not in collection_meta_handled_attributes:
-                        missing_handled_collections_meta_attributes.add(attr)
-                    if attr == "unique_together":
-                        schema_zone_texts[
-                            "table"
-                        ] += cls.get_constraint_unique_together(table_name, value)
+                    match attr:
+                        case "fields":
+                            continue
+                        case "unique_together":
+                            schema_zone_texts[
+                                "table"
+                            ] += cls.get_constraint_unique_together(table_name, value)
+                        case _:
+                            if attr not in collection_meta_handled_attributes:
+                                missing_handled_collections_meta_attributes.add(attr)
+                            else:
+                                raise Exception(
+                                    f"Attribute '{attr}' set to be handled but actually unhandled."
+                                )
 
             if code := schema_zone_texts["table"]:
                 table_name_code += Helper.get_table_head(table_name)
@@ -243,6 +249,7 @@ class GenerateCodeBlocks:
             # TODO: needs to be filled in the get_*_relation_*_type functions
             if code := schema_zone_texts["create_trigger_notify"]:
                 create_trigger_notify_code += code + "\n"
+        print(missing_handled_collections_meta_attributes)
 
         return (
             pre_code,
@@ -1878,6 +1885,7 @@ def main() -> None:
         dest.write(
             f"\n/*   Missing attribute handling for {', '.join(missing_handled_attributes)} */"
         )
+        print(missing_handled_collections_meta_attributes)
         if missing_handled_collections_meta_attributes:
             dest.write(
                 f"\n/*   Missing handling for collections _meta attributes: {', '.join(missing_handled_collections_meta_attributes)} */"
