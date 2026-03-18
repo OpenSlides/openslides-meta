@@ -114,11 +114,7 @@ class Checker:
                     )
                     continue
 
-                self.models[yaml_file.stem] = {
-                    field_name: value
-                    for field_name, value in data[yaml_file.stem].items()
-                    if field_name != "_meta"
-                }
+                self.models[yaml_file.stem] = data[yaml_file.stem]["fields"]
 
             except yaml.YAMLError as e:
                 self.errors.append(f"Error parsing '{yaml_file.name}': {e}")
