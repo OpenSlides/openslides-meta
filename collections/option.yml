@@ -1,3 +1,7 @@
+unique_together:
+- content_object_id, poll_id
+- text, poll_id
+
 fields:
   id:
     type: number

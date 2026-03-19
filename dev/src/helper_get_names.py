@@ -204,7 +204,6 @@ class HelperGetNames:
         return f"valid_{fname}_part1"
 
     @staticmethod
-    @max_length
     def get_generic_unique_constraint_name(
         own_table_name_with_ref_column: str, own_table_column: str
     ) -> str:
@@ -213,7 +212,15 @@ class HelperGetNames:
         - {table_name}_{ref_column}
         - {owcolumn}
         """
-        return f"unique_${own_table_name_with_ref_column}_${own_table_column}"
+        return HelperGetNames.get_shortened_name(
+            f"unique_{own_table_name_with_ref_column}_{own_table_column}"
+        )
+
+    @staticmethod
+    def get_unique_constraint_name(table_name: str, fields: list[str]) -> str:
+        return HelperGetNames.get_shortened_name(
+            f"unique_{table_name}_{'_'.join(fields)}"
+        )
 
     @staticmethod
     @max_length
