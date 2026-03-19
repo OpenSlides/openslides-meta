@@ -1349,9 +1349,6 @@ class Helper:
     def get_unique_together_constraint_definition(
         cls, table: str, fields: list[str]
     ) -> str:
-        assert (
-            len(fields) > 1
-        ), "At least 2 fields must be defined for the unique together constraint"
         return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE ({', '.join(fields)}),\n"
 
     @staticmethod
