@@ -1026,6 +1026,27 @@ class Helper:
         $sequences_trigger$
         LANGUAGE plpgsql;
 
+        CREATE OR REPLACE PROCEDURE log_field_change(
+            operation_var TEXT,
+            fqid_var TEXT,
+            fields TEXT[]
+        ) AS
+        $log_field_change$
+        BEGIN
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp, updated_fields)
+            VALUES (operation_var, fqid_var, pg_current_xact_id(), now(), fields)
+            ON CONFLICT (operation, fqid, xact_id) DO UPDATE SET updated_fields = (
+                SELECT ARRAY(
+                    SELECT DISTINCT e
+                    FROM unnest(COALESCE(os_notify_log_t.updated_fields, '{}'::varchar[])) AS e
+                    UNION
+                    SELECT DISTINCT e
+                    FROM unnest(COALESCE(EXCLUDED.updated_fields, '{}'::varchar[])) AS e
+                )
+            );
+        END;
+        $log_field_change$ LANGUAGE plpgsql;
+
         CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_modified_trigger$
         DECLARE
             escaped_table_name varchar;
@@ -1039,9 +1060,21 @@ class Helper:
                 fqid_var := escaped_table_name || '/' || OLD.id;
             END IF;
 
+<<<<<<< HEAD
             INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp)
             VALUES (operation_var, fqid_var, pg_current_xact_id(), 'now')
             ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
+=======
+            updated_fields_var := NULL;
+            IF (TG_OP = 'UPDATE') THEN
+                old_hstore := hstore(OLD);
+                new_hstore := hstore(NEW);
+                updated_fields_var := akeys((new_hstore - old_hstore) || (old_hstore - new_hstore));
+            END IF;
+
+            CALL log_field_change(operation_var, fqid_var, updated_fields_var);
+
+>>>>>>> a9a4810 (log old and new fqid for notifcation on update (#400))
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
@@ -1117,9 +1150,22 @@ class Helper:
 
                 IF foreign_id IS NOT NULL THEN
                     fqid_var := foreign_table || '/' || foreign_id;
+<<<<<<< HEAD
                     INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp)
                     VALUES ('update', fqid_var, pg_current_xact_id(), now())
                     ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
+=======
+                    CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
+                END IF;
+
+                --when update there must be a notification for the old foreign_fqid
+                IF (TG_OP = 'UPDATE') THEN
+                    EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING OLD;
+                    IF foreign_id IS NOT NULL THEN
+                        fqid_var := foreign_table || '/' || foreign_id;
+                        CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
+                    END IF;
+>>>>>>> a9a4810 (log old and new fqid for notifcation on update (#400))
                 END IF;
 
                 i := i + 2;
