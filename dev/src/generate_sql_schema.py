@@ -458,7 +458,7 @@ class GenerateCodeBlocks:
         cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
     ) -> tuple[SchemaZoneTexts, str]:
         text, subst = cls.get_text_for_simple_types(table_name, fname, fdata, type_)
-        subst["unique"] = " UNIQUE"
+        subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
         return text, ""
 
@@ -913,6 +913,7 @@ class GenerateCodeBlocks:
                 generic_plain_field_name = f"{own_table_field.column}_{foreign_table_field.table}_{foreign_table_field.ref_column}"
                 foreign_tables.append(foreign_table_field.table)
                 text["table"] += Helper.get_generic_combined_fields(
+                    table_name,
                     generic_plain_field_name,
                     own_table_field.column,
                     foreign_table_field,
@@ -1340,6 +1341,10 @@ class Helper:
             f"/*\n Fields without SQL definition for table {table_name}\n\n{code}\n*/\n"
         )
 
+    @staticmethod
+    def get_inline_unique_constraint(table_name: str, fname: str) -> str:
+        return f" CONSTRAINT {HelperGetNames.get_unique_constraint_name(table_name, [fname])} UNIQUE"
+
     @classmethod
     def get_unique_together_constraint_definition(
         cls, table: str, fields: list[str]
@@ -1634,7 +1639,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         if fdata.get("required"):
             subst["required"] = " NOT NULL"
         if fdata.get("unique"):
-            subst["unique"] = " UNIQUE"
+            subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         if (default := fdata.get("default")) is not None:
             if isinstance(default, str) or type_ in ("string", "text"):
                 subst["default"] = f" DEFAULT '{default}'"
@@ -1676,14 +1681,19 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 
     @staticmethod
     def get_generic_combined_fields(
-        generic_plain_field_name: str, own_column: str, foreign_field: TableFieldType
+        table_name: str,
+        generic_plain_field_name: str,
+        own_column: str,
+        foreign_field: TableFieldType,
     ) -> str:
         foreign_table = foreign_field.table
         foreign_card, error = InternalHelper.get_cardinality(foreign_field)
         if error:
             raise Exception(error)
         if foreign_card.startswith("1"):
-            unique = " UNIQUE"
+            unique = Helper.get_inline_unique_constraint(
+                table_name, generic_plain_field_name
+            )
         else:
             unique = ""
         return f"    {generic_plain_field_name} integer{unique} GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
