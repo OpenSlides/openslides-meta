@@ -1563,7 +1563,20 @@ class Helper:
                 ref_column := TG_ARGV[i+6];
                 
                 own_id = NEW.id;
-                FOR r in EXECUTE format('SELECT a.%I AS a_val, c.id AS c_id, c.%I AS c_val FROM %I a JOIN %I b ON b.%I = a.id JOIN %I c ON b.%I = c.id WHERE a.id = $1',check_column, check_column, own_table, intermediate_table, own_table_reference, foreign_table, foreign_table_reference) USING own_id LOOP
+                FOR r in EXECUTE format('
+                    SELECT a.%I AS a_val, c.id AS c_id, c.%I AS c_val 
+                    FROM %I a 
+                        JOIN %I b ON b.%I = a.id 
+                        JOIN %I c ON b.%I = c.id 
+                    WHERE a.id = $1',
+                    check_column,
+                    check_column,
+                    own_table,
+                    intermediate_table,
+                    own_table_reference,
+                    foreign_table,
+                    foreign_table_reference
+                ) USING own_id LOOP
                     own_val := r.a_val;
                     foreign_id := r.c_id;
                     foreign_val := r.c_val;
