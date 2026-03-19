@@ -1558,7 +1558,7 @@ class Helper:
 
                 IF from_back_relation IS TRUE THEN
                     EXECUTE format('SELECT ($1).id, ($1).%I', check_column) INTO foreign_id, foreign_val USING NEW;
-                    EXECUTE format('SELECT "id", %I FROM %I WHERE %L = %L', check_column, own_table, ref_column, foreign_id) INTO own_id, own_val;
+                    EXECUTE format('SELECT "id", %I FROM %I WHERE %I = %L', check_column, own_table, ref_column, foreign_id) INTO own_id, own_val;
                 ELSE
                     EXECUTE format('SELECT ($1).id, ($1).%I, ($1).%I', check_column, ref_column) INTO own_id, own_val, foreign_id USING NEW;
                     EXECUTE format('SELECT %I FROM %I WHERE "id" = %L', check_column, foreign_table, foreign_id) INTO foreign_val;
