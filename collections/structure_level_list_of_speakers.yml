@@ -1,3 +1,6 @@
+unique_together:
+- meeting_id, structure_level_id, list_of_speakers_id
+
 fields:
   id:
     type: number

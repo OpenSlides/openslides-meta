@@ -1,3 +1,6 @@
+unique_together:
+- meeting_id, title
+
 fields:
   id:
     type: number
