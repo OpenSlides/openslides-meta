@@ -8,7 +8,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        image: 17
         env:
           POSTGRES_PASSWORD: password
           POSTGRES_USER: openslides
