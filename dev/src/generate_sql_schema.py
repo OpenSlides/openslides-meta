@@ -680,16 +680,16 @@ class GenerateCodeBlocks:
                             )
                         else:
                             own_ref_column = own_table_field.ref_column
-                            foreign_table_ref_column = f"{foreign_table_field.view}_{foreign_table_field.ref_column}"
+                            foreign_table_ref_column = f"{foreign_table_field.table}_{foreign_table_field.ref_column}"
                             foreign_table_name = HelperGetNames.get_nm_table_name(
                                 own_table_field, foreign_table_field
                             )
                             foreign_table_column = (
-                                f"{own_table_field.view}_{own_table_field.ref_column}"
+                                f"{own_table_field.table}_{own_table_field.ref_column}"
                             )
                     elif type_ == "generic-relation-list":
                         own_ref_column = own_table_field.ref_column
-                        foreign_table_ref_column = f"{foreign_table_field.view}_{foreign_table_field.ref_column}"
+                        foreign_table_ref_column = f"{foreign_table_field.table}_{foreign_table_field.ref_column}"
                         foreign_table_name = HelperGetNames.get_gm_table_name(
                             foreign_table_field
                         )
@@ -1089,11 +1089,11 @@ class GenerateCodeBlocks:
             intermediate_trigger_name = HelperGetNames.get_shortened_name(f"{full_own_trigger_name}_intermediate")
             sql+=dedent(f"""
                 CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
-                FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.view}', '{foreign_intermediate_field}', '{foreign_table_field.view}', '{equal_field}', '{own_table_field.column}');
+                FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
                 CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
-                FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{foreign_intermediate_field}', '{foreign_table_field.view}', '{own_intermediate_field}', '{own_table_field.view}', '{equal_field}', '{foreign_table_field.column}');
+                FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{own_intermediate_field}', '{own_table_field.table}', '{equal_field}', '{foreign_table_field.column}');
                 CREATE CONSTRAINT TRIGGER {intermediate_trigger_name} AFTER {intermediate_event_str} ON {nm_table_name} INITIALLY DEFERRED
-                FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.view}', '{foreign_intermediate_field}', '{foreign_table_field.view}', '{equal_field}', '{own_table_field.column}');
+                FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
 
             """)
         return sql
