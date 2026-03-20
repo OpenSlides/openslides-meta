@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 from collections import defaultdict
@@ -232,7 +233,25 @@ class Checker:
             valid_attributes.append("items")
             if "items" in field:
                 if "enum" in field["items"]:
-                    self.check_enum(collectionfield, field["items"]["enum"])
+                    if shared_enum := self.validate_enum(
+                        collectionfield, field["items"]["enum"]
+                    ):
+                        field["items"]["enum"] = shared_enum
+
+                    if "default" in field:
+                        if isinstance(field["items"]["enum"], list) and (
+                            invalid_values := [
+                                item
+                                for item in field["default"]
+                                if item not in field["items"]["enum"]
+                            ]
+                        ):
+                            self.errors.append(
+                                f"some default values for {collectionfield} are not "
+                                f"found in 'enum' for the field: {invalid_values}. "
+                                f"Allowed values are: {field['items']['enum']}."
+                            )
+
                 else:
                     self.errors.append(
                         f"'items' is missing an inner 'enum' for {collectionfield}"
@@ -262,16 +281,8 @@ class Checker:
         if type in ("string", "text"):
             valid_attributes.append("enum")
             if "enum" in field:
-                if isinstance(field["enum"], str):
-                    if (
-                        shared_enum := self.shared_enum_definitions.get(field["enum"])
-                    ) is not None:
-                        field["enum"] = shared_enum
-                    else:
-                        self.errors.append(
-                            f"incorrect 'enum' name for {collectionfield}: '{field['enum']}' is not defined."
-                        )
-                self.check_enum(collectionfield, field["enum"])
+                if shared_enum := self.validate_enum(collectionfield, field["enum"]):
+                    field["enum"] = shared_enum
             for attr in ("minLength", "maxLength"):
                 valid_attributes.append(attr)
                 if not isinstance(field.get("maxLength", 0), int):
@@ -458,15 +469,42 @@ class Checker:
             return f"{from_collectionfield} points to {to_collectionfield}, but {to_collectionfield} does not point back."
         return None
 
-    def check_enum(self, collectionfield: str, enum: Any) -> None:
-        if not isinstance(enum, (list, str)):
-            self.errors.append(f"'enum' for {collectionfield} is not a list.")
+    def validate_enum(self, collectionfield: str, enum: Any) -> list[str] | None:
+        """
+        Checks that the given `enum` value is valid. If `enum` is a name of a valid
+        enum defined in the _meta, returns its value.
+        """
+        shared_enum: list[str] | None = None
+        enum_name: str | None = None
+
+        if (
+            isinstance(enum, str)
+            and (shared_enum := self.shared_enum_definitions.get(enum)) is not None
+        ):
+            enum_name = enum
+            enum = shared_enum
+
+        if not isinstance(enum, list):
+            self.errors.append(
+                f"incorrect 'enum' value for {collectionfield}: '{enum}'. Must be "
+                "a list of allowed values or name of the list defined in "
+                f"'{os.path.basename(DEFAULT_COLLECTION_META)}'."
+            )
         elif invalid_values := [
             str(item) for item in enum if not isinstance(item, str)
         ]:
-            self.errors.append(
-                f"some values of 'enum' for {collectionfield} are not strings: {', '.join(invalid_values)}."
-            )
+            if enum_name:
+                self.errors.append(
+                    f"some values of 'enum' {enum_name} are not strings: {', '.join(invalid_values)}."
+                )
+            else:
+                self.errors.append(
+                    f"some values of 'enum' for {collectionfield} are not strings: {', '.join(invalid_values)}."
+                )
+        else:
+            return shared_enum
+
+        return None
 
     def split_collectionfield(self, collectionfield: str) -> tuple[str, str]:
         parts = collectionfield.split(KEYSEPARATOR)
