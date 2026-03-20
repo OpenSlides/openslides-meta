@@ -549,6 +549,7 @@ class GenerateCodeBlocks:
                 table_name,
                 foreign_table_field.table,
                 fname,
+                foreign_table_field.column,
                 foreign_table_field.ref_column,
                 initially_deferred,
             )
@@ -915,7 +916,7 @@ class GenerateCodeBlocks:
                 ] += Helper.get_trigger_for_generic_relation(
                     table_name,
                     generic_plain_field_name,
-                    own_table_field.column,
+                    foreign_table_field.column,
                     foreign_table_field.table,
                 )
                 text[
@@ -1052,19 +1053,19 @@ class Helper:
             escaped_table_name varchar;
             operation_var TEXT;
             fqid_var TEXT;
+            updated_fields_var varchar(63)[];
+            old_hstore hstore;
+            new_hstore hstore;
         BEGIN
             escaped_table_name := TG_ARGV[0];
             operation_var := LOWER(TG_OP);
-            fqid_var :=  escaped_table_name || '/' || NEW.id;
+
+            -- Determine fqid (use OLD for deletes)
+            fqid_var := escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
                 fqid_var := escaped_table_name || '/' || OLD.id;
             END IF;
 
-<<<<<<< HEAD
-            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp)
-            VALUES (operation_var, fqid_var, pg_current_xact_id(), 'now')
-            ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
-=======
             updated_fields_var := NULL;
             IF (TG_OP = 'UPDATE') THEN
                 old_hstore := hstore(OLD);
@@ -1074,7 +1075,6 @@ class Helper:
 
             CALL log_field_change(operation_var, fqid_var, updated_fields_var);
 
->>>>>>> a9a4810 (log old and new fqid for notifcation on update (#400))
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
@@ -1133,6 +1133,7 @@ class Helper:
         DECLARE
             fqid_var TEXT;
             ref_column TEXT;
+            fk_field TEXT;
             foreign_table TEXT;
             foreign_id TEXT;
             i INTEGER := 0;
@@ -1141,6 +1142,7 @@ class Helper:
             WHILE i < TG_NARGS LOOP
                 foreign_table := TG_ARGV[i];
                 ref_column := TG_ARGV[i+1];
+                fk_field := TG_ARGV[i+2];
 
                 IF (TG_OP = 'DELETE') THEN
                     EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING OLD;
@@ -1150,11 +1152,6 @@ class Helper:
 
                 IF foreign_id IS NOT NULL THEN
                     fqid_var := foreign_table || '/' || foreign_id;
-<<<<<<< HEAD
-                    INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp)
-                    VALUES ('update', fqid_var, pg_current_xact_id(), now())
-                    ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
-=======
                     CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
                 END IF;
 
@@ -1165,10 +1162,9 @@ class Helper:
                         fqid_var := foreign_table || '/' || foreign_id;
                         CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
                     END IF;
->>>>>>> a9a4810 (log old and new fqid for notifcation on update (#400))
                 END IF;
 
-                i := i + 2;
+                i := i + 3;
             END LOOP;
 
             RETURN NULL;  -- AFTER TRIGGER needs no return
@@ -1179,6 +1175,7 @@ class Helper:
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             operation varchar(32),
             fqid varchar(256) NOT NULL,
+            updated_fields varchar(63)[],
             xact_id xid8,
             timestamp timestamptz,
             CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
@@ -1429,6 +1426,7 @@ class Helper:
         table_name: str,
         foreign_table: str,
         ref_column: str,
+        updated_field: str,
         fk_columns: list[str] | str,
         initially_deferred: bool = False,
         delete_action: str = "",
@@ -1439,7 +1437,7 @@ class Helper:
         )
         own_table = HelperGetNames.get_table_name(table_name)
         return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}');\n"""
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}', '{updated_field}');\n"""
 
     @staticmethod
     def get_nm_table_for_n_m_relation_lists(
@@ -1582,7 +1580,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
 
         return f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{foreign_table_field.table}','{field2}');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{own_table_field.column}','{foreign_table_field.table}','{field2}','{foreign_table_field.column}');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 """
@@ -1591,14 +1589,14 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
     def get_trigger_for_generic_relation(
         table_name: str,
         generic_plain_field_name: str,
-        own_column: str,
+        updated_field: str,
         foreign_table: str,
     ) -> str:
         trigger_name = f"tr_log_{foreign_table}_{generic_plain_field_name}"
         own_table_name = HelperGetNames.get_table_name(table_name)
         return f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}','{updated_field}');
 """
 
     @staticmethod
@@ -1619,7 +1617,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{ge
             )
             trigger_text += f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{foreign_table_field.table}','{gm_content_field}');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{own_table_field.column}','{foreign_table_field.table}','{gm_content_field}','{foreign_table_field.column}');
 """
         trigger_text += f"""CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {gm_table_name}
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
