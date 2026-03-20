@@ -1,5 +1,6 @@
 import re
 import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, cast
 
@@ -71,6 +72,7 @@ class CheckException(Exception):
 class Checker:
     def __init__(self, collections_dir: str) -> None:
         self.models: dict[str, Any] = {}
+        self.meta_data: dict[str, Any] = defaultdict(dict)
         self.errors: list[str] = []
         self._load_collections(collections_dir)
 
@@ -114,7 +116,11 @@ class Checker:
                     )
                     continue
 
-                self.models[yaml_file.stem] = data[yaml_file.stem]["fields"]
+                for attr, value in data[yaml_file.stem].items():
+                    if attr == "fields":
+                        self.models[yaml_file.stem] = value
+                    else:
+                        self.meta_data[yaml_file.stem][attr] = value
 
             except yaml.YAMLError as e:
                 self.errors.append(f"Error parsing '{yaml_file.name}': {e}")
@@ -165,6 +171,10 @@ class Checker:
                 error = self.check_relation(collection, field_name, field)
                 if error:
                     self.errors.append(error)
+        for collection, data in self.meta_data.items():
+            for attr, values in data.items():
+                if attr == "unique_together":
+                    self.check_unique_together(collection, values)
 
     def check_field(
         self,
@@ -283,6 +293,34 @@ class Checker:
 
         if not isinstance(field.get("description", ""), str):
             self.errors.append(f"Description of {collectionfield} must be a string.")
+
+    def check_unique_together(self, collection: str, constraints: Any) -> None:
+        if not isinstance(constraints, list):
+            self.errors.append(
+                f"Collection '{collection}': attribute unique_together must be a list."
+            )
+            return
+
+        collection_data = self.models[collection]
+        for constraint in constraints:
+            field_names = [name.strip() for name in constraint.split(",")]
+            if len(field_names) < 2:
+                self.errors.append(
+                    f"Invalid value '{constraint}' for unique_together constraint of '{collection}': at least 2 fields must be defined."
+                )
+            invalid_field_names = []
+            for field_name in field_names:
+                if field_name not in collection_data:
+                    invalid_field_names.append(field_name)
+                else:
+                    if collection_data[field_name].get("unique"):
+                        self.errors.append(
+                            f"Field '{field_name}' can not be used in a unique_together constraint for collection '{collection}' because it has 'unique: true'."
+                        )
+            if invalid_field_names:
+                self.errors.append(
+                    f"Some fields from the unique_together constraint '{constraint}' don't exist in the collection '{collection}': {', '.join(invalid_field_names)}."
+                )
 
     def validate_value_for_type(
         self, type_str: str, value: Any, collectionfield: str
