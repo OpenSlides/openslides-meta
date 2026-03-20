@@ -1583,7 +1583,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         )
 
         table_name = HelperGetNames.get_table_name(nm_table_name)
-        trigger_name = f"tr_log_{table_name}"
+        trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
 
         return f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
@@ -1599,7 +1599,9 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         updated_field: str,
         foreign_table: str,
     ) -> str:
-        trigger_name = f"tr_log_{foreign_table}_{generic_plain_field_name}"
+        trigger_name = HelperGetNames.get_notify_related_trigger_name(
+            foreign_table, generic_plain_field_name
+        )
         own_table_name = HelperGetNames.get_table_name(table_name)
         return f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
@@ -1618,7 +1620,9 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{ge
             gm_content_field = HelperGetNames.get_gm_content_field(
                 own_table_field.intermediate_column, foreign_table_field.table
             )
-            trigger_name = f"tr_log_{gm_content_field}_{gm_table_name}"
+            trigger_name = HelperGetNames.get_notify_gm_related_trigger_name(
+                gm_content_field, gm_table_name
+            )
             own_table_name_with_ref_column = (
                 f"{own_table_field.table}_{own_table_field.ref_column}"
             )

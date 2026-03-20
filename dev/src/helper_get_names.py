@@ -347,6 +347,14 @@ class HelperGetNames:
         """gets the name of the trigger for logging changes on related models"""
         return f"tr_log_{table_name}_{column_name}"
 
+    @staticmethod
+    @max_length
+    def get_notify_gm_related_trigger_name(
+        gm_content_field: str, gm_table_name: str
+    ) -> str:
+        """gets the name of the trigger for logging changes on g:m-tables"""
+        return f"tr_log_{gm_content_field}_{gm_table_name}"
+
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}
