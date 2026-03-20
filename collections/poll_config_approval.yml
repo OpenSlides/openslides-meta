@@ -17,3 +17,8 @@ allow_abstain:
   type: boolean
   default: true
   restriction_mode: A
+onehundred_percent_base:
+  type: string
+  required: true
+  enum: *approval_onehundred_percent_bases
+  restriction_mode: A

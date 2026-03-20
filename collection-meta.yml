@@ -10,19 +10,42 @@ ballot_paper_selection: &ballot_paper_selection
   - NUMBER_OF_DELEGATES
   - NUMBER_OF_ALL_PARTICIPANTS
   - CUSTOM_NUMBER
-poll_backends: &poll_backends
-  - long
-  - fast
 onehundred_percent_bases: &onehundred_percent_bases
-  - "Y"
-  - "YN"
-  - "YNA"
-  - "N"
-  - "valid"
-  - "cast"
-  - "entitled"
-  - "entitled_present"
-  - "disabled"
+  - no_general
+  - yes_no
+  - valid
+  - cast
+  - entitled
+  - entitled_present
+  - disabled
+approval_onehundred_percent_bases: &approval_onehundred_percent_bases
+  - yes_no
+  - valid
+  - cast
+  - entitled
+  - entitled_present
+  - disabled
+rating_approval_onehundred_percent_bases: &rating_approval_onehundred_percent_bases
+  - yes_no
+  - valid
+  - cast
+  - entitled
+  - entitled_present
+  - disabled
+rating_score_onehundred_percent_bases: &rating_score_onehundred_percent_bases
+  - yes_no
+  - valid
+  - cast
+  - entitled
+  - entitled_present
+  - disabled
+selection_onehundred_percent_bases: &selection_onehundred_percent_bases
+  - no_general
+  - valid
+  - cast
+  - entitled
+  - entitled_present
+  - disabled
 id_field: &id_field
   type: number
   restriction_mode: A

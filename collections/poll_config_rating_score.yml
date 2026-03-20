@@ -33,3 +33,8 @@ min_vote_sum:
   type: number
   default: 0
   restriction_mode: A
+onehundred_percent_base:
+  type: string
+  required: true
+  enum: *rating_score_onehundred_percent_bases
+  restriction_mode: A
