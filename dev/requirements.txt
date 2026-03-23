@@ -11,7 +11,7 @@ simplejson==3.20.2
 debugpy==1.8.20
 requests==2.32.5
 psycopg[binary]==3.3.3
-python-sql==1.7.0
+python-sql==1.8.0
 
 # typing
 types-PyYAML==6.0.12.20250915
