@@ -46,6 +46,27 @@ END;
 $sequences_trigger$
 LANGUAGE plpgsql;
 
+CREATE OR REPLACE PROCEDURE log_field_change(
+    operation_var TEXT,
+    fqid_var TEXT,
+    fields TEXT[]
+) AS
+$log_field_change$
+BEGIN
+    INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp, updated_fields)
+    VALUES (operation_var, fqid_var, pg_current_xact_id(), now(), fields)
+    ON CONFLICT (operation, fqid, xact_id) DO UPDATE SET updated_fields = (
+        SELECT ARRAY(
+            SELECT DISTINCT e
+            FROM unnest(COALESCE(os_notify_log_t.updated_fields, '{}'::varchar[])) AS e
+            UNION
+            SELECT DISTINCT e
+            FROM unnest(COALESCE(EXCLUDED.updated_fields, '{}'::varchar[])) AS e
+        )
+    );
+END;
+$log_field_change$ LANGUAGE plpgsql;
+
 CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_modified_trigger$
 DECLARE
     escaped_table_name varchar;
@@ -71,17 +92,7 @@ BEGIN
         updated_fields_var := akeys((new_hstore - old_hstore) || (old_hstore - new_hstore));
     END IF;
 
-    INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp, updated_fields)
-    VALUES (operation_var, fqid_var, pg_current_xact_id(), 'now', updated_fields_var)
-    ON CONFLICT (operation,fqid,xact_id) DO UPDATE SET updated_fields = (
-        SELECT ARRAY(
-            SELECT DISTINCT e
-            FROM unnest(COALESCE(os_notify_log_t.updated_fields, '{}'::varchar[])) AS e
-            UNION
-            SELECT DISTINCT e
-            FROM unnest(COALESCE(EXCLUDED.updated_fields, '{}'::varchar[])) AS e
-        )
-    );
+    CALL log_field_change(operation_var, fqid_var, updated_fields_var);
 
     RETURN NULL;  -- AFTER TRIGGER needs no return
 END;
@@ -160,17 +171,16 @@ BEGIN
 
         IF foreign_id IS NOT NULL THEN
             fqid_var := foreign_table || '/' || foreign_id;
-            INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp, updated_fields)
-            VALUES ('update', fqid_var, pg_current_xact_id(), now(), ARRAY[fk_field])
-            ON CONFLICT (operation,fqid,xact_id) DO UPDATE SET updated_fields = (
-                SELECT ARRAY(
-                    SELECT DISTINCT e
-                    FROM unnest(COALESCE(os_notify_log_t.updated_fields, '{}'::varchar[])) AS e
-                    UNION
-                    SELECT DISTINCT e
-                    FROM unnest(COALESCE(EXCLUDED.updated_fields, '{}'::varchar[])) AS e
-                )
-            );
+            CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
+        END IF;
+
+        --when update there must be a notification for the old foreign_fqid
+        IF (TG_OP = 'UPDATE') THEN
+            EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING OLD;
+            IF foreign_id IS NOT NULL THEN
+                fqid_var := foreign_table || '/' || foreign_id;
+                CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
+            END IF;
         END IF;
 
         i := i + 3;
