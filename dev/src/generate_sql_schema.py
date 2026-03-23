@@ -1,3 +1,4 @@
+import logging
 import string
 from collections import defaultdict
 from collections.abc import Callable
@@ -20,6 +21,12 @@ from .helper_get_names import (
 
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 MODELS: dict[str, dict[str, Any]] = {}
+
+
+# Set log level for sqlfluff
+for name in logging.root.manager.loggerDict:
+    if "sqlfluff" in name:
+        logging.getLogger(name).setLevel(logging.WARN)
 
 
 class SchemaZoneTexts(TypedDict, total=False):
@@ -77,7 +84,21 @@ class GenerateCodeBlocks:
     def generate_the_code(
         cls,
     ) -> tuple[
-        str, str, str, str, str, list[str], str, str, str, str, str, str, str, list[str]
+        str,
+        str,
+        str,
+        str,
+        str,
+        list[str],
+        list[str],
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        list[str],
     ]:
         """
         Return values:
@@ -87,6 +108,7 @@ class GenerateCodeBlocks:
           alter_table_final_code: Changes on tables defining relations after, which should appear after all table/views definition to be sequence independant
           final_info_code: Detailed info about all relation fields.Types: relation, relation-list, generic-relation and generic-relation-list
           missing_handled_atributes: List of unhandled attributes. handled one's are to be set manually.
+          missing_handled_collections_meta_attributes: List of unhandled meta-attributes of the collection
           im_table_code: Code for intermediate tables.
               n:m-relations name schema: f"nm_{smaller-table-name}_{it's-fieldname}_{greater-table_name}" uses one per relation
               g:m-relations name schema: f"gm_{table_field.table}_{table_field.column}" of table with generic-list-field
@@ -117,7 +139,10 @@ class GenerateCodeBlocks:
             # "on_delete", # must have other name then the key-value-store one
             "sql",
             # "equal_fields", # Seems we need, see example_transactional.sql between meeting and groups?
-            # "unique",  # TODO: still to design
+            "unique",
+        }
+        collection_meta_handled_attributes = {
+            "unique_together",
         }
         pre_code: str = ""
         table_name_code: str = ""
@@ -131,6 +156,7 @@ class GenerateCodeBlocks:
         create_trigger_notify_code: str = ""
         final_info_code: str = ""
         missing_handled_attributes = []
+        missing_handled_collections_meta_attributes = set()
         im_table_code = ""
         errors: list[str] = []
 
@@ -139,10 +165,11 @@ class GenerateCodeBlocks:
                 cls.get_not_null_trigger_params(type_)
             )
 
-        for table_name, fields in InternalHelper.MODELS.items():
+        for table_name, data in InternalHelper.MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
                 continue
 
+            fields = data["fields"]
             schema_zone_texts = cast(SchemaZoneTexts, defaultdict(str))
             cls.intermediate_tables = {}
 
@@ -164,6 +191,23 @@ class GenerateCodeBlocks:
                         schema_zone_texts[k] += v or ""  # type: ignore
                     if error:
                         errors.append(Helper.prefix_error(error, table_name, fname))
+
+            if len(data) > 1:
+                for attr, value in data.items():
+                    match attr:
+                        case "fields":
+                            continue
+                        case "unique_together":
+                            schema_zone_texts[
+                                "table"
+                            ] += cls.get_constraint_unique_together(table_name, value)
+                        case _:
+                            if attr not in collection_meta_handled_attributes:
+                                missing_handled_collections_meta_attributes.add(attr)
+                            else:
+                                raise Exception(
+                                    f"Attribute '{attr}' set to be handled but actually unhandled."
+                                )
 
             if code := schema_zone_texts["table"]:
                 table_name_code += Helper.get_table_head(table_name)
@@ -205,6 +249,7 @@ class GenerateCodeBlocks:
             # TODO: needs to be filled in the get_*_relation_*_type functions
             if code := schema_zone_texts["create_trigger_notify"]:
                 create_trigger_notify_code += code + "\n"
+        print(missing_handled_collections_meta_attributes)
 
         return (
             pre_code,
@@ -213,6 +258,7 @@ class GenerateCodeBlocks:
             alter_table_final_code,
             final_info_code,
             missing_handled_attributes,
+            list(missing_handled_collections_meta_attributes),
             im_table_code,
             create_trigger_partitioned_sequences_code,
             create_trigger_1_1_relation_not_null_code,
@@ -402,9 +448,9 @@ class GenerateCodeBlocks:
             ] += cls.get_trigger_generate_partitioned_sequence(
                 table_name, fname, depend_field
             )
-            text[
-                "table"
-            ] += f"    CONSTRAINT unique_{table_name}_{fname} UNIQUE ({fname}, {depend_field}),\n"
+            text["table"] += Helper.get_unique_together_constraint_definition(
+                table_name, [fname, depend_field]
+            )
         return text, ""
 
     @classmethod
@@ -412,7 +458,7 @@ class GenerateCodeBlocks:
         cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
     ) -> tuple[SchemaZoneTexts, str]:
         text, subst = cls.get_text_for_simple_types(table_name, fname, fdata, type_)
-        subst["unique"] = " UNIQUE"
+        subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
         return text, ""
 
@@ -510,6 +556,7 @@ class GenerateCodeBlocks:
                 table_name,
                 foreign_table_field.table,
                 fname,
+                foreign_table_field.column,
                 foreign_table_field.ref_column,
                 initially_deferred,
             )
@@ -537,10 +584,6 @@ class GenerateCodeBlocks:
                             foreign_column,
                         )
                     )
-        if comment := fdata.get("description"):
-            text["post_view"] += Helper.get_post_view_comment(
-                HelperGetNames.get_view_name(table_name), fname, comment
-            )
         text["final_info"] = final_info
         return text, error
 
@@ -733,6 +776,19 @@ class GenerateCodeBlocks:
             query = f"select array_cat(({arr1}), ({arr2}))"
         return f"({query}) as {fname},\n"
 
+    @staticmethod
+    def get_constraint_unique_together(table_name: str, value: Any) -> str:
+        assert isinstance(
+            value, list
+        ), f"'{table_name}.yml/unique_together' must be a list of field names"
+        result = ""
+        for fields in value:
+            fields = [field_name.strip() for field_name in fields.split(",")]
+            result += Helper.get_unique_together_constraint_definition(
+                table_name, fields
+            )
+        return result
+
     @classmethod
     def get_trigger_generate_partitioned_sequence(
         cls, view_name: str, actual_field: str, depend_field: str
@@ -857,6 +913,7 @@ class GenerateCodeBlocks:
                 generic_plain_field_name = f"{own_table_field.column}_{foreign_table_field.table}_{foreign_table_field.ref_column}"
                 foreign_tables.append(foreign_table_field.table)
                 text["table"] += Helper.get_generic_combined_fields(
+                    table_name,
                     generic_plain_field_name,
                     own_table_field.column,
                     foreign_table_field,
@@ -866,7 +923,7 @@ class GenerateCodeBlocks:
                 ] += Helper.get_trigger_for_generic_relation(
                     table_name,
                     generic_plain_field_name,
-                    own_table_field.column,
+                    foreign_table_field.column,
                     foreign_table_field.table,
                 )
                 text[
@@ -926,10 +983,6 @@ class GenerateCodeBlocks:
                 f"{own_table_field.table}_{own_table_field.ref_column}",
                 own_table_field.intermediate_column,
             )
-            if comment := fdata.get("description"):
-                text["post_view"] += Helper.get_post_view_comment(
-                    HelperGetNames.get_view_name(table_name), fname, comment
-                )
 
         text["final_info"] = final_info
         return text, error
@@ -981,22 +1034,54 @@ class Helper:
         $sequences_trigger$
         LANGUAGE plpgsql;
 
+        CREATE OR REPLACE PROCEDURE log_field_change(
+            operation_var TEXT,
+            fqid_var TEXT,
+            fields TEXT[]
+        ) AS
+        $log_field_change$
+        BEGIN
+            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp, updated_fields)
+            VALUES (operation_var, fqid_var, pg_current_xact_id(), now(), fields)
+            ON CONFLICT (operation, fqid, xact_id) DO UPDATE SET updated_fields = (
+                SELECT ARRAY(
+                    SELECT DISTINCT e
+                    FROM unnest(COALESCE(os_notify_log_t.updated_fields, '{}'::varchar[])) AS e
+                    UNION
+                    SELECT DISTINCT e
+                    FROM unnest(COALESCE(EXCLUDED.updated_fields, '{}'::varchar[])) AS e
+                )
+            );
+        END;
+        $log_field_change$ LANGUAGE plpgsql;
+
         CREATE FUNCTION log_modified_models() RETURNS trigger AS $log_modified_trigger$
         DECLARE
             escaped_table_name varchar;
             operation_var TEXT;
             fqid_var TEXT;
+            updated_fields_var varchar(63)[];
+            old_hstore hstore;
+            new_hstore hstore;
         BEGIN
             escaped_table_name := TG_ARGV[0];
             operation_var := LOWER(TG_OP);
-            fqid_var :=  escaped_table_name || '/' || NEW.id;
+
+            -- Determine fqid (use OLD for deletes)
+            fqid_var := escaped_table_name || '/' || NEW.id;
             IF (TG_OP = 'DELETE') THEN
                 fqid_var := escaped_table_name || '/' || OLD.id;
             END IF;
 
-            INSERT INTO os_notify_log_t (operation, fqid, xact_id, timestamp)
-            VALUES (operation_var, fqid_var, pg_current_xact_id(), 'now')
-            ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
+            updated_fields_var := NULL;
+            IF (TG_OP = 'UPDATE') THEN
+                old_hstore := hstore(OLD);
+                new_hstore := hstore(NEW);
+                updated_fields_var := akeys((new_hstore - old_hstore) || (old_hstore - new_hstore));
+            END IF;
+
+            CALL log_field_change(operation_var, fqid_var, updated_fields_var);
+
             RETURN NULL;  -- AFTER TRIGGER needs no return
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
@@ -1055,6 +1140,7 @@ class Helper:
         DECLARE
             fqid_var TEXT;
             ref_column TEXT;
+            fk_field TEXT;
             foreign_table TEXT;
             foreign_id TEXT;
             i INTEGER := 0;
@@ -1063,6 +1149,7 @@ class Helper:
             WHILE i < TG_NARGS LOOP
                 foreign_table := TG_ARGV[i];
                 ref_column := TG_ARGV[i+1];
+                fk_field := TG_ARGV[i+2];
 
                 IF (TG_OP = 'DELETE') THEN
                     EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING OLD;
@@ -1072,12 +1159,19 @@ class Helper:
 
                 IF foreign_id IS NOT NULL THEN
                     fqid_var := foreign_table || '/' || foreign_id;
-                    INSERT INTO os_notify_log_t  (operation, fqid, xact_id, timestamp)
-                    VALUES ('update', fqid_var, pg_current_xact_id(), now())
-                    ON CONFLICT (operation,fqid,xact_id) DO NOTHING;
+                    CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
                 END IF;
 
-                i := i + 2;
+                --when update there must be a notification for the old foreign_fqid
+                IF (TG_OP = 'UPDATE') THEN
+                    EXECUTE format('SELECT ($1).%I', ref_column) INTO foreign_id USING OLD;
+                    IF foreign_id IS NOT NULL THEN
+                        fqid_var := foreign_table || '/' || foreign_id;
+                        CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
+                    END IF;
+                END IF;
+
+                i := i + 3;
             END LOOP;
 
             RETURN NULL;  -- AFTER TRIGGER needs no return
@@ -1088,6 +1182,7 @@ class Helper:
             id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             operation varchar(32),
             fqid varchar(256) NOT NULL,
+            updated_fields varchar(63)[],
             xact_id xid8,
             timestamp timestamptz,
             CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
@@ -1257,6 +1352,16 @@ class Helper:
         )
 
     @staticmethod
+    def get_inline_unique_constraint(table_name: str, fname: str) -> str:
+        return f" CONSTRAINT {HelperGetNames.get_unique_constraint_name(table_name, [fname])} UNIQUE"
+
+    @classmethod
+    def get_unique_together_constraint_definition(
+        cls, table: str, fields: list[str]
+    ) -> str:
+        return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE ({', '.join(fields)}),\n"
+
+    @staticmethod
     def get_check_enum(
         table_name: str, fname: str, enum_: list[Any], type_: str
     ) -> str:
@@ -1328,6 +1433,7 @@ class Helper:
         table_name: str,
         foreign_table: str,
         ref_column: str,
+        updated_field: str,
         fk_columns: list[str] | str,
         initially_deferred: bool = False,
         delete_action: str = "",
@@ -1338,7 +1444,7 @@ class Helper:
         )
         own_table = HelperGetNames.get_table_name(table_name)
         return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}');\n"""
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}', '{updated_field}');\n"""
 
     @staticmethod
     def get_nm_table_for_n_m_relation_lists(
@@ -1477,11 +1583,11 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         )
 
         table_name = HelperGetNames.get_table_name(nm_table_name)
-        trigger_name = f"tr_log_{table_name}"
+        trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
 
         return f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{foreign_table_field.table}','{field2}');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{own_table_field.column}','{foreign_table_field.table}','{field2}','{foreign_table_field.column}');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 """
@@ -1490,14 +1596,16 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
     def get_trigger_for_generic_relation(
         table_name: str,
         generic_plain_field_name: str,
-        own_column: str,
+        updated_field: str,
         foreign_table: str,
     ) -> str:
-        trigger_name = f"tr_log_{foreign_table}_{generic_plain_field_name}"
+        trigger_name = HelperGetNames.get_notify_related_trigger_name(
+            foreign_table, generic_plain_field_name
+        )
         own_table_name = HelperGetNames.get_table_name(table_name)
         return f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}','{updated_field}');
 """
 
     @staticmethod
@@ -1512,13 +1620,15 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{ge
             gm_content_field = HelperGetNames.get_gm_content_field(
                 own_table_field.intermediate_column, foreign_table_field.table
             )
-            trigger_name = f"tr_log_{gm_content_field}_{gm_table_name}"
+            trigger_name = HelperGetNames.get_notify_gm_related_trigger_name(
+                gm_content_field, gm_table_name
+            )
             own_table_name_with_ref_column = (
                 f"{own_table_field.table}_{own_table_field.ref_column}"
             )
             trigger_text += f"""
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{foreign_table_field.table}','{gm_content_field}');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{own_table_field.column}','{foreign_table_field.table}','{gm_content_field}','{foreign_table_field.column}');
 """
         trigger_text += f"""CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {gm_table_name}
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
@@ -1539,6 +1649,8 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         subst.update({"field_name": fname, "type": subst_type})
         if fdata.get("required"):
             subst["required"] = " NOT NULL"
+        if fdata.get("unique"):
+            subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         if (default := fdata.get("default")) is not None:
             if isinstance(default, str) or type_ in ("string", "text"):
                 subst["default"] = f" DEFAULT '{default}'"
@@ -1575,19 +1687,24 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 
     @staticmethod
     def get_post_view_comment(entity_name: str, fname: str, comment: str) -> str:
-        comment = comment.replace("'", "''")
+        comment = comment.replace("'", '"')
         return f"comment on column {entity_name}.{fname} is '{comment}';\n"
 
     @staticmethod
     def get_generic_combined_fields(
-        generic_plain_field_name: str, own_column: str, foreign_field: TableFieldType
+        table_name: str,
+        generic_plain_field_name: str,
+        own_column: str,
+        foreign_field: TableFieldType,
     ) -> str:
         foreign_table = foreign_field.table
         foreign_card, error = InternalHelper.get_cardinality(foreign_field)
         if error:
             raise Exception(error)
         if foreign_card.startswith("1"):
-            unique = " UNIQUE"
+            unique = Helper.get_inline_unique_constraint(
+                table_name, generic_plain_field_name
+            )
         else:
             unique = ""
         return f"    {generic_plain_field_name} integer{unique} GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
@@ -1734,6 +1851,7 @@ def main() -> None:
         alter_table_code,
         final_info_code,
         missing_handled_attributes,
+        missing_handled_collections_meta_attributes,
         im_table_code,
         create_trigger_partitioned_sequences_code,
         create_trigger_1_1_relation_not_null_code,
@@ -1788,6 +1906,11 @@ def main() -> None:
         dest.write(
             f"\n/*   Missing attribute handling for {', '.join(missing_handled_attributes)} */"
         )
+        print(missing_handled_collections_meta_attributes)
+        if missing_handled_collections_meta_attributes:
+            dest.write(
+                f"\n/*   Missing handling for collections _meta attributes: {', '.join(missing_handled_collections_meta_attributes)} */"
+            )
     if errors:
         print(f"Models file {DESTINATION} created with {len(errors)} errors/warnings\n")
         print("".join(errors))
