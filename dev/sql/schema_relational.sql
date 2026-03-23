@@ -251,14 +251,45 @@ BEGIN
         from_back_relation := TG_ARGV[i+4];
 
         IF from_back_relation IS TRUE THEN
-            EXECUTE format('SELECT ($1).id, ($1).%I', check_column) INTO foreign_id, foreign_val USING NEW;
-            EXECUTE format('SELECT "id", %I FROM %I WHERE %I = %L', check_column, own_table, ref_column, foreign_id) INTO own_id, own_val;
+            EXECUTE format(
+                'SELECT ($1).id, ($1).%I',
+                check_column
+            ) INTO foreign_id, foreign_val USING NEW;
+            EXECUTE format(
+                'SELECT "id", %I
+                FROM %I
+                WHERE %I = %L',
+                check_column,
+                own_table,
+                ref_column,
+                foreign_id
+            ) INTO own_id, own_val;
         ELSE
-            EXECUTE format('SELECT ($1).id, ($1).%I, ($1).%I', check_column, ref_column) INTO own_id, own_val, foreign_id USING NEW;
-            EXECUTE format('SELECT %I FROM %I WHERE "id" = %L', check_column, foreign_table, foreign_id) INTO foreign_val;
+            EXECUTE format(
+                'SELECT ($1).id, ($1).%I, ($1).%I',
+                check_column,
+                ref_column
+            ) INTO own_id, own_val, foreign_id USING NEW;
+            EXECUTE format(
+                'SELECT %I
+                FROM %I
+                WHERE "id" = %L',
+                check_column,
+                foreign_table,
+                foreign_id
+            ) INTO foreign_val;
         END IF;
 
-        PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
+        PERFORM raise_equality_exception(
+            check_column,
+            ref_column,
+            own_table,
+            own_id,
+            own_val,
+            foreign_table,
+            foreign_id,
+            foreign_val
+        );
 
         i := i + 5;
     END LOOP;
@@ -321,7 +352,16 @@ BEGIN
             foreign_id := r.c_id;
             foreign_val := r.c_val;
 
-            PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
+            PERFORM raise_equality_exception(
+                check_column,
+                ref_column,
+                own_table,
+                own_id,
+                own_val,
+                foreign_table,
+                foreign_id,
+                foreign_val
+            );
         END LOOP;
 
         i := i + 7;
@@ -365,10 +405,33 @@ BEGIN
         check_column := TG_ARGV[i+5];
         ref_column := TG_ARGV[i+6];
 
-        EXECUTE format('SELECT id, %I FROM %I WHERE id = ($1).%I', check_column, own_table, own_table_reference) INTO own_id, own_val USING NEW;
-        EXECUTE format('SELECT id, %I FROM %I WHERE id = ($1).%I', check_column, foreign_table, foreign_table_reference) INTO foreign_id, foreign_val USING NEW;
+        EXECUTE format(
+            'SELECT id, %I
+            FROM %I
+            WHERE id = ($1).%I',
+            check_column,
+            own_table,
+            own_table_reference
+        ) INTO own_id, own_val USING NEW;
+        EXECUTE format(
+            'SELECT id, %I
+            FROM %I
+            WHERE id = ($1).%I',
+            check_column,
+            foreign_table,
+            foreign_table_reference
+        ) INTO foreign_id, foreign_val USING NEW;
 
-        PERFORM raise_equality_exception(check_column, ref_column, own_table, own_id, own_val, foreign_table, foreign_id, foreign_val);
+        PERFORM raise_equality_exception(
+            check_column,
+            ref_column,
+            own_table,
+            own_id,
+            own_val,
+            foreign_table,
+            foreign_id,
+            foreign_val
+        );
 
         i := i + 7;
     END LOOP;
@@ -397,11 +460,29 @@ BEGIN
     WHILE i < TG_NARGS LOOP
         own_table := TG_ARGV[i];
         ref_column := TG_ARGV[i+1];
-        EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO own_id, own_val, user_id USING NEW;
+        EXECUTE format(
+            'SELECT ($1).id, ($1).meeting_id, ($1).%I',
+            ref_column
+        ) INTO own_id, own_val, user_id USING NEW;
         IF user_id IS NOT NULL THEN
-            EXECUTE format('SELECT meeting_id FROM meeting_user_t WHERE user_id = %L AND meeting_id = %L', user_id, own_val) INTO user_val;
+            EXECUTE format(
+                'SELECT meeting_id
+                FROM meeting_user_t
+                WHERE user_id = %L AND meeting_id = %L',
+                user_id,
+                own_val
+            ) INTO user_val;
 
-            PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', user_id, user_val);
+            PERFORM raise_equality_exception(
+                'meeting_id',
+                ref_column,
+                own_table,
+                own_id,
+                own_val,
+                'user',
+                user_id,
+                user_val
+            );
         END IF;
 
         i := i + 2;
@@ -430,10 +511,29 @@ BEGIN
     WHILE i < TG_NARGS LOOP
         own_table := TG_ARGV[i];
         ref_column := TG_ARGV[i+1];
-        EXECUTE format('SELECT ($1).user_id, ($1).meeting_id') INTO foreign_id, foreign_val USING OLD;
-        FOR own_id, own_val in EXECUTE format('SELECT id, meeting_id FROM %I WHERE %I = %L AND meeting_id = %L', own_table, ref_column, foreign_id, foreign_val) LOOP
+        EXECUTE format(
+            'SELECT ($1).user_id, ($1).meeting_id'
+        ) INTO foreign_id, foreign_val USING OLD;
+        FOR own_id, own_val in EXECUTE format(
+            'SELECT id, meeting_id
+            FROM %I
+            WHERE %I = %L AND meeting_id = %L',
+            own_table,
+            ref_column,
+            foreign_id,
+            foreign_val
+        ) LOOP
             IF own_id IS NOT NULL THEN
-                PERFORM raise_equality_exception('meeting_id', ref_column, own_table, own_id, own_val, 'user', foreign_id, NULL);
+                PERFORM raise_equality_exception(
+                    'meeting_id',
+                    ref_column,
+                    own_table,
+                    own_id,
+                    own_val,
+                    'user',
+                    foreign_id,
+                    NULL
+                );
             END IF;
         END LOOP;
 
@@ -457,10 +557,22 @@ BEGIN
     WHILE i < TG_NARGS LOOP
         table_name := TG_ARGV[i];
         ref_column := TG_ARGV[i+1];
-        EXECUTE format('SELECT ($1).id, ($1).meeting_id, ($1).%I', ref_column) INTO id, meeting_id, reference_id USING NEW;
+        EXECUTE format(
+            'SELECT ($1).id, ($1).meeting_id, ($1).%I', 
+            ref_column
+        ) INTO id, meeting_id, reference_id USING NEW;
 
         IF reference_id IS NOT NULL THEN
-            PERFORM raise_equality_exception('meeting_id', ref_column, table_name, id, reference_id, 'meeting', meeting_id, meeting_id::TEXT);
+            PERFORM raise_equality_exception(
+                'meeting_id',
+                ref_column,
+                table_name,
+                id,
+                reference_id,
+                'meeting',
+                meeting_id,
+                meeting_id::TEXT
+            );
         END IF;
 
         i := i + 2;
@@ -4140,24 +4252,16 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('motion_editor', 'motion', 'motion_id
 
 
 
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_submitter_withdraw_state_id AFTER INSERT OR UPDATE OF submitter_withdraw_state_id, workflow_id ON motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'workflow_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_submitter_withdraw_back_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'workflow_id', TRUE);
-
-
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_submitter_withdraw_state_id AFTER INSERT OR UPDATE OF submitter_withdraw_state_id, meeting_id ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_submitter_withdraw_back_ids AFTER INSERT ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_previous_state_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'workflow_id', 'previous_state_ids');
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT OR UPDATE OF next_state_id, previous_state_id ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('nm_motion_state_next_state_ids_motion_state_t', 'next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_submitter_withdraw_state_id AFTER INSERT OR UPDATE OF submitter_withdraw_state_id, workflow_id ON motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'workflow_id', FALSE);
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_submitter_withdraw_back_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'workflow_id', TRUE);
 
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_next_state_ids AFTER INSERT ON motion_state_t INITIALLY DEFERRED
@@ -4166,6 +4270,14 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_previous_state_ids 
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'meeting_id', 'previous_state_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT OR UPDATE OF next_state_id, previous_state_id ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('nm_motion_state_next_state_ids_motion_state_t', 'next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'meeting_id', 'next_state_ids');
+
+
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_previous_state_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'workflow_id', 'previous_state_ids');
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT OR UPDATE OF next_state_id, previous_state_id ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('nm_motion_state_next_state_ids_motion_state_t', 'next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
 
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_workflow_id AFTER INSERT OR UPDATE OF workflow_id, meeting_id ON motion_state_t INITIALLY DEFERRED
