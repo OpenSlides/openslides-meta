@@ -105,9 +105,15 @@ class HelperGetNames:
 
     @staticmethod
     def max_length(func: Callable) -> Callable:
+        """
+        Gets the name shortened to 56 characters plus 7 characters of its md5 hash.
+        """
+
         def wrapper(*args, **kwargs) -> str:  # type: ignore
             name = func(*args, **kwargs)
-            return HelperGetNames.get_shortened_name(name)
+            if len(name) > HelperGetNames.MAX_LEN:
+                name = f"{name[:56]}{hashlib.md5(name.encode()).hexdigest()[:7]}"
+            return name
 
         return wrapper
 
@@ -120,15 +126,6 @@ class HelperGetNames:
             return "".join([word[0] for word in words.split("_")])
         else:
             return words
-
-    @staticmethod
-    def get_shortened_name(name: str) -> str:
-        """
-        Gets the name shortened to 56 characters plus 7 characters of its md5 hash.
-        """
-        if len(name) > HelperGetNames.MAX_LEN:
-            name = f"{name[:56]}{hashlib.md5(name.encode()).hexdigest()[:7]}"
-        return name
 
     @staticmethod
     @max_length
