@@ -156,6 +156,7 @@ fields:
     type: relation
   organization_id:
     type: relation
+    default: 1
     reference: organization
     to: organization/theme_ids
     restriction_mode: A
