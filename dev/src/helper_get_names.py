@@ -104,11 +104,14 @@ class HelperGetNames:
 
     @staticmethod
     def max_length(func: Callable) -> Callable:
+        """
+        Gets the name shortened to 56 characters plus 7 characters of its md5 hash.
+        """
+
         def wrapper(*args, **kwargs) -> str:  # type: ignore
             name = func(*args, **kwargs)
-            assert (
-                len(name) <= HelperGetNames.MAX_LEN
-            ), f"Name '{name}' generated too long in function {func}!"
+            if len(name) > HelperGetNames.MAX_LEN:
+                name = f"{name[:56]}{hashlib.md5(name.encode()).hexdigest()[:7]}"
             return name
 
         return wrapper
@@ -122,16 +125,6 @@ class HelperGetNames:
             return "".join([word[0] for word in words.split("_")])
         else:
             return words
-
-    @staticmethod
-    @max_length
-    def get_shortened_name(name: str) -> str:
-        """
-        Gets the name shortened to 56 characters plus 7 characters of its md5 hash.
-        """
-        if len(name) > HelperGetNames.MAX_LEN:
-            name = f"{name[:56]}{hashlib.md5(name.encode()).hexdigest()[:7]}"
-        return name
 
     @staticmethod
     @max_length
@@ -203,6 +196,7 @@ class HelperGetNames:
         return f"valid_{fname}_part1"
 
     @staticmethod
+    @max_length
     def get_generic_unique_constraint_name(
         own_table_name_with_ref_column: str, own_table_column: str
     ) -> str:
@@ -211,21 +205,15 @@ class HelperGetNames:
         - {table_name}_{ref_column}
         - {owcolumn}
         """
-        return HelperGetNames.get_shortened_name(
-            f"unique_{own_table_name_with_ref_column}_{own_table_column}"
-        )
+        return f"unique_{own_table_name_with_ref_column}_{own_table_column}"
 
     @staticmethod
+    @max_length
     def get_unique_constraint_name(table_name: str, fields: list[str]) -> str:
-        return HelperGetNames.get_shortened_name(
-            f"unique_{table_name}_{'_'.join(fields)}"
-        )
+        return f"unique_{table_name}_{'_'.join(fields)}"
 
     @staticmethod
-    def get_enum_name_for_column(
-        table_name: str,
-        fname: str,
-    ) -> str:
+    def get_enum_name_for_column(table_name: str, fname: str) -> str:
         """gets the name of check enum constraint"""
         return HelperGetNames.get_enum_name(f"{table_name}_{fname}")
 
@@ -265,9 +253,7 @@ class HelperGetNames:
         fk_column: str,
     ) -> str:
         """gets the name of a foreign key constraint."""
-        return HelperGetNames.get_shortened_name(
-            f"fk_{own_table}_{own_column}_{foreign_table}_{fk_column}"
-        )
+        return f"fk_{own_table}_{own_column}_{foreign_table}_{fk_column}"
 
     @staticmethod
     @max_length
@@ -276,7 +262,7 @@ class HelperGetNames:
         own_column: str,
     ) -> str:
         """gets the name of a foreign key constraint."""
-        return HelperGetNames.get_shortened_name(f"idx_{own_table}_{own_column}")
+        return f"idx_{own_table}_{own_column}"
 
     @staticmethod
     def get_fk_and_index_name(
@@ -300,7 +286,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null"""
-        return HelperGetNames.get_shortened_name(f"tr_i_{table_name}_{column_name}")
+        return f"tr_i_{table_name}_{column_name}"
 
     @staticmethod
     @max_length
@@ -309,7 +295,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null"""
-        return HelperGetNames.get_shortened_name(f"tr_ud_{table_name}_{column_name}")
+        return f"tr_ud_{table_name}_{column_name}"
 
     @staticmethod
     @max_length
@@ -357,20 +343,23 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_notify_trigger_name(
-        table_name: str,
-    ) -> str:
+    def get_notify_trigger_name(table_name: str) -> str:
         """gets the name of the trigger for logging changes on models"""
-        return HelperGetNames.get_shortened_name(f"tr_log_{table_name}")
+        return f"tr_log_{table_name}"
 
     @staticmethod
     @max_length
-    def get_notify_related_trigger_name(
-        table_name: str,
-        column_name: str,
-    ) -> str:
+    def get_notify_related_trigger_name(table_name: str, column_name: str) -> str:
         """gets the name of the trigger for logging changes on related models"""
-        return HelperGetNames.get_shortened_name(f"tr_log_{table_name}_{column_name}")
+        return f"tr_log_{table_name}_{column_name}"
+
+    @staticmethod
+    @max_length
+    def get_notify_gm_related_trigger_name(
+        gm_content_field: str, gm_table_name: str
+    ) -> str:
+        """gets the name of the trigger for logging changes on g:m-tables"""
+        return f"tr_log_{gm_content_field}_{gm_table_name}"
 
 
 class InternalHelper:
