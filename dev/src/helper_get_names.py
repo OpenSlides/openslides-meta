@@ -218,23 +218,27 @@ class HelperGetNames:
         return HelperGetNames.get_enum_name(f"{table_name}_{fname}")
 
     @staticmethod
+    @max_length
     def get_enum_name(enum: str) -> str:
-        return HelperGetNames.get_shortened_name(f"enum_{enum}")
+        return f"enum_{enum}"
 
     @staticmethod
+    @max_length
     def get_minimum_constraint_name(fname: str) -> str:
         """gets the name of minimum constraint"""
-        return HelperGetNames.get_shortened_name(f"minimum_{fname}")
+        return f"minimum_{fname}"
 
     @staticmethod
+    @max_length
     def get_maximum_constraint_name(fname: str) -> str:
         """gets the name of maximum constraint"""
-        return HelperGetNames.get_shortened_name(f"maximum_{fname}")
+        return f"maximum_{fname}"
 
     @staticmethod
+    @max_length
     def get_minimum_maximum_constraint_name(fname: str) -> str:
         """gets the name of minimum and maximum constraint"""
-        return HelperGetNames.get_shortened_name(f"minimum_maximum_{fname}")
+        return f"minimum_maximum_{fname}"
 
     @staticmethod
     @max_length
