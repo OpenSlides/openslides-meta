@@ -1653,7 +1653,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             if isinstance(enum_, str):
                 enum_type = HelperGetNames.get_enum_name(enum_)
             elif isinstance(enum_, list) and all(
-                [isinstance(item, str) for item in enum_]
+                isinstance(item, str) for item in enum_
             ):
                 enum_type = HelperGetNames.get_enum_name_for_column(table_name, fname)
                 InternalHelper.ENUMS[enum_type] = enum_
