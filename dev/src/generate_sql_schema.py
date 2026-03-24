@@ -64,7 +64,8 @@ class SubstDict(TypedDict, total=False):
     primary_key: str
     required: str
     default: str
-    min_max_check: str
+    minimum: str
+    maximum: str
     minLength: str
     deferred: str
     check_enum: str
@@ -1243,7 +1244,7 @@ class Helper:
         "${parameter} := SUBSTRING(${table_t} FOR LENGTH(${table_t}) - 2);"
     )
     FIELD_TEMPLATE = string.Template(
-        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${min_max_check}${minLength}${default},\n"
+        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${minimum}${maximum}${minLength}${default},\n"
     )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
@@ -1679,23 +1680,15 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 raise Exception(
                     f"{table_name}.{fname}: seems to be an invalid default value"
                 )
-        minimum = fdata.get("minimum")
-        maximum = fdata.get("maximum")
-        if minimum is not None or maximum is not None:
-            checks = []
-            if minimum is not None:
-                checks.append(f"{fname} >= {minimum}")
-                constraint_name = (
-                    HelperGetNames.get_minimum_constraint_name(fname)
-                    if maximum is None
-                    else HelperGetNames.get_minimum_maximum_constraint_name(fname)
-                )
-            if maximum is not None:
-                checks.append(f"{fname} <= {maximum}")
-                if minimum is None:
-                    constraint_name = HelperGetNames.get_maximum_constraint_name(fname)
-            subst["min_max_check"] = (
-                f" CONSTRAINT {constraint_name} CHECK ({' AND '.join(checks)})"
+        if (minimum := fdata.get("minimum")) is not None:
+            min_constraint_name = HelperGetNames.get_minimum_constraint_name(fname)
+            subst["minimum"] = (
+                f" CONSTRAINT {min_constraint_name} CHECK ({fname} >= {minimum})"
+            )
+        if (maximum := fdata.get("maximum")) is not None:
+            max_constraint_name = HelperGetNames.get_maximum_constraint_name(fname)
+            subst["maximum"] = (
+                f" CONSTRAINT {max_constraint_name} CHECK ({fname} <= {maximum})"
             )
         if minLength := fdata.get("minLength"):
             minlength_constraint_name = HelperGetNames.get_minlength_constraint_name(

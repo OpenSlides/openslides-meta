@@ -236,12 +236,6 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_minimum_maximum_constraint_name(fname: str) -> str:
-        """gets the name of minimum and maximum constraint"""
-        return f"minimum_maximum_{fname}"
-
-    @staticmethod
-    @max_length
     def get_minlength_constraint_name(
         fname: str,
     ) -> str:

@@ -712,7 +712,7 @@ CREATE TABLE meeting_t (
     export_csv_encoding enum_meeting_export_csv_encoding DEFAULT 'utf-8',
     export_csv_separator varchar(256) DEFAULT ';',
     export_pdf_pagenumber_alignment enum_meeting_export_pdf_pagenumber_alignment DEFAULT 'center',
-    export_pdf_fontsize integer CONSTRAINT minimum_maximum_export_pdf_fontsize CHECK (export_pdf_fontsize >= 10 AND export_pdf_fontsize <= 12) DEFAULT 10,
+    export_pdf_fontsize integer CONSTRAINT minimum_export_pdf_fontsize CHECK (export_pdf_fontsize >= 10) CONSTRAINT maximum_export_pdf_fontsize CHECK (export_pdf_fontsize <= 12) DEFAULT 10,
     export_pdf_line_height double precision CONSTRAINT minimum_export_pdf_line_height CHECK (export_pdf_line_height >= 1.0) DEFAULT 1.25,
     export_pdf_page_margin_left integer CONSTRAINT minimum_export_pdf_page_margin_left CHECK (export_pdf_page_margin_left >= 0) DEFAULT 20,
     export_pdf_page_margin_top integer CONSTRAINT minimum_export_pdf_page_margin_top CHECK (export_pdf_page_margin_top >= 0) DEFAULT 25,
