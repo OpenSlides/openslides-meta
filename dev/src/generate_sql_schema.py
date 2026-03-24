@@ -1641,6 +1641,10 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
     def get_initials(
         table_name: str, fname: str, type_: str, fdata: dict[str, Any]
     ) -> tuple[SubstDict, SchemaZoneTexts]:
+        """
+        Helper method to generate common for all the field types data
+        or the column definitions.
+        """
         text = cast(SchemaZoneTexts, defaultdict(str))
         flist: list[str] = [
             cast(str, form[1])
