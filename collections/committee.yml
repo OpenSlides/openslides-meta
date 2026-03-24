@@ -100,4 +100,4 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
+    default: 1
