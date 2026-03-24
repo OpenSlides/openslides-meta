@@ -1658,9 +1658,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 enum_type = HelperGetNames.get_enum_name_for_column(table_name, fname)
                 InternalHelper.ENUMS[enum_type] = enum_
             else:
-                raise Exception(
-                    f"{table_name}.{fname}:is an unsupported enum value"
-                )
+                raise Exception(f"{table_name}.{fname}: is an unsupported enum value")
             if "[]" in fdata.get("type", ""):
                 enum_type += "[]"
         subst_type = enum_type or FIELD_TYPES[type_]["pg_type"]
