@@ -566,7 +566,6 @@ class GenerateCodeBlocks:
                 initially_deferred,
             )
         elif state == FieldSqlErrorType.SQL:
-            InternalHelper.MODELS[table_name]["fields"][fname]["is_view_field"] = True
             if sql := fix(fdata.get("sql", "")):
                 text["view"] = sql + ",\n"
             else:
@@ -642,7 +641,6 @@ class GenerateCodeBlocks:
                         raise Exception(
                             f"Tried to create im_table '{nm_table_name}' twice"
                         )
-            InternalHelper.MODELS[table_name]["fields"][fname]["is_view_field"] = True
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
             else:
@@ -996,8 +994,6 @@ class GenerateCodeBlocks:
 
 
 class Helper:
-    custom_view_sql: dict[str, dict[str, str]] = defaultdict(dict)
-
     FILE_TEMPLATE_HEADER = dedent("""
         -- schema_relational.sql for initial database setup OpenSlides
         -- Code generated. DO NOT EDIT.
@@ -1276,9 +1272,6 @@ class Helper:
     GM_INDEX_LINE_TEMPLATE = string.Template(
         "CREATE INDEX ${index} ON ${table_name} (${gm_content_field});"
     )
-    ENUM_LIST_TO_TEXT_LIST_LINE_TEMPLATE = string.Template(
-        "array(select unnest(${table_letter}.${field_name})::text) as ${field_name}"
-    )
 
     RELATION_LIST_AGENDA = dedent("""
         /*   Relation-list infos
@@ -1330,26 +1323,8 @@ class Helper:
         return code
 
     @staticmethod
-    def get_view_head(
-        table_name: str,
-    ) -> str:
-        view_custom_sql = Helper.custom_view_sql.get(table_name)
-        if not view_custom_sql:
-            fields = " *"
-        else:
-            fields = "\n" + ",\n".join(
-                [
-                    view_custom_sql.get(field_name)
-                    or f"{Helper.get_table_letter(table_name)}.{field_name}"
-                    for field_name, data in InternalHelper.get_all_fields(
-                        table_name
-                    ).items()
-                    if not InternalHelper.get_field_data(table_name, field_name).get(
-                        "is_view_field"
-                    )
-                ]
-            )
-        return f"\nCREATE VIEW {HelperGetNames.get_view_name(table_name)} AS SELECT{fields}"
+    def get_view_head(table_name: str) -> str:
+        return f"\nCREATE VIEW {HelperGetNames.get_view_name(table_name)} AS SELECT *"
 
     @staticmethod
     def get_view_body_end(table_name: str, code: str) -> str:
@@ -1688,14 +1663,6 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 )
             if "[]" in fdata.get("type", ""):
                 enum_type += "[]"
-                Helper.custom_view_sql[table_name][fname] = (
-                    Helper.ENUM_LIST_TO_TEXT_LIST_LINE_TEMPLATE.substitute(
-                        {
-                            "table_letter": Helper.get_table_letter(table_name),
-                            "field_name": fname,
-                        }
-                    )
-                )
         subst_type = enum_type or FIELD_TYPES[type_]["pg_type"]
         subst.update({"field_name": fname, "type": subst_type})
         if fdata.get("required"):

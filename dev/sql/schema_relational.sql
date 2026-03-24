@@ -1839,17 +1839,7 @@ CREATE VIEW "gender" AS SELECT *,
 FROM gender_t g;
 
 
-CREATE VIEW "group" AS SELECT
-g.id,
-g.external_id,
-g.name,
-array(select unnest(g.permissions)::text) as permissions,
-g.weight,
-g.used_as_motion_poll_default_id,
-g.used_as_assignment_poll_default_id,
-g.used_as_topic_poll_default_id,
-g.used_as_poll_default_id,
-g.meeting_id,
+CREATE VIEW "group" AS SELECT *,
 (select array_agg(n.meeting_user_id ORDER BY n.meeting_user_id) from nm_group_meeting_user_ids_meeting_user_t n where n.group_id = g.id) as meeting_user_ids,
 (select m.id from meeting_t m where m.default_group_id = g.id) as default_group_for_meeting_id,
 (select m.id from meeting_t m where m.admin_group_id = g.id) as admin_group_for_meeting_id,
@@ -2062,28 +2052,7 @@ FROM motion_comment_section_t m;
 CREATE VIEW "motion_editor" AS SELECT * FROM motion_editor_t m;
 
 
-CREATE VIEW "motion_state" AS SELECT
-m.id,
-m.name,
-m.weight,
-m.recommendation_label,
-m.is_internal,
-m.css_class,
-array(select unnest(m.restrictions)::text) as restrictions,
-m.allow_support,
-m.allow_create_poll,
-m.allow_submitter_edit,
-m.set_number,
-m.show_state_extension_field,
-m.show_recommendation_extension_field,
-m.merge_amendment_into_final,
-m.allow_motion_forwarding,
-m.allow_amendment_forwarding,
-m.set_workflow_timestamp,
-m.state_button_label,
-m.submitter_withdraw_state_id,
-m.workflow_id,
-m.meeting_id,
+CREATE VIEW "motion_state" AS SELECT *,
 (select array_agg(ms.id ORDER BY ms.id) from motion_state_t ms where ms.submitter_withdraw_state_id = m.id) as submitter_withdraw_back_ids,
 (select array_agg(n.next_state_id ORDER BY n.next_state_id) from nm_motion_state_next_state_ids_motion_state_t n where n.previous_state_id = m.id) as next_state_ids,
 (select array_agg(n.previous_state_id ORDER BY n.previous_state_id) from nm_motion_state_next_state_ids_motion_state_t n where n.next_state_id = m.id) as previous_state_ids,
