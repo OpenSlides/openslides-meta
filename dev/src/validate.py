@@ -268,6 +268,11 @@ class Checker:
             for attr in ["minimum", "maximum"]:
                 if attr in field:
                     self.validate_value_for_type(type, field[attr], collectionfield)
+            if "minimum" in field and "maximum" in field:
+                if field["minimum"] > field["maximum"]:
+                    self.errors.append(
+                        f"incorrect 'maximum' value for {collectionfield}: {field['maximum']}. Must be bigger or equal to 'minimum': {field['minimum']}."
+                    )
             if "default" in field:
                 base_error_message = f"incorrect 'default' value for {collectionfield}: {field['default']}. Allowed"
                 for attr, comparison_func in (
