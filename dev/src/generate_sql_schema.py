@@ -1659,7 +1659,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 InternalHelper.ENUMS[enum_type] = enum_
             else:
                 raise Exception(
-                    f"{table_name}.{fname}:seems to be an invalid enum value"
+                    f"{table_name}.{fname}:is an unsupported enum value"
                 )
             if "[]" in fdata.get("type", ""):
                 enum_type += "[]"
