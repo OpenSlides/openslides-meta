@@ -1,36 +1,44 @@
-id:
-  type: number
-  restriction_mode: A
-  constant: true
-  required: true
+unique_together:
+- meeting_user_id, content_object_id
 
-note:
-  type: HTMLStrict
-  restriction_mode: A
-star:
-  type: boolean
-  restriction_mode: A
+fields:
+  id:
+    type: number
+    restriction_mode: A
+    constant: true
+    required: true
 
-meeting_user_id:
-  type: relation
-  to: meeting_user/personal_note_ids
-  equal_fields: meeting_id
-  restriction_mode: A
-  required: true
-  constant: true
-content_object_id:
-  type: generic-relation
-  to:
-    collections:
+  note:
+    type: HTMLStrict
+    restriction_mode: A
+  star:
+    type: boolean
+    restriction_mode: A
+
+  meeting_user_id:
+    type: relation
+    reference: meeting_user
+    to: meeting_user/personal_note_ids
+    equal_fields: meeting_id
+    restriction_mode: A
+    required: true
+    constant: true
+  content_object_id:
+    type: generic-relation
+    reference:
     - motion
-    field: personal_note_ids
-  equal_fields: meeting_id
-  restriction_mode: A
-  constant: true
-meeting_id:
-  type: relation
-  to: meeting/personal_note_ids
-  required: true
-  restriction_mode: A
-  constant: true
+    to:
+      collections:
+      - motion
+      field: personal_note_ids
+    equal_fields: meeting_id
+    restriction_mode: A
+    constant: true
+  meeting_id:
+    type: relation
+    reference: meeting
+    to: meeting/personal_note_ids
+    required: true
+    restriction_mode: A
+    constant: true
 

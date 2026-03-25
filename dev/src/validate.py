@@ -1,12 +1,18 @@
 import re
 import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, cast
 
 import simplejson as json
 import yaml
 
-KEYSEPARATOR = "/"
+from .helper_get_names import (
+    DEFAULT_COLLECTION_META,
+    DEFAULT_COLLECTIONS_DIR,
+    KEYSEPARATOR,
+)
+
 MAX_FIELD_NAME_LENGTH = 63
 
 _collection_regex = r"[a-z](?:[a-z_]+[a-z]+)?"
@@ -19,9 +25,6 @@ COLLECTIONFIELD_REGEX = re.compile(f"^{_collection_regex}{KEYSEPARATOR}{_field_r
 DECIMAL_REGEX = re.compile(r"^-?(\d|[1-9]\d+)\.\d{6}$")
 COLOR_REGEX = re.compile(r"^#[0-9a-f]{6}$")
 
-DEFAULT_COLLECTIONS_DIR = str(
-    (Path(__file__).parent / ".." / ".." / "collections").resolve()
-)
 
 RELATION_TYPES = (
     "relation",
@@ -35,6 +38,7 @@ DATA_TYPES = (
     "number",
     "string[]",
     "number[]",
+    "text[]",
     "boolean",
     "JSON",
     "HTMLStrict",
@@ -56,6 +60,8 @@ OPTIONAL_ATTRIBUTES = (
     "required",
     "read_only",
     "constant",
+    "unique",
+    "sequence_scope",
 )
 
 
@@ -66,11 +72,19 @@ class CheckException(Exception):
 class Checker:
     def __init__(self, collections_dir: str) -> None:
         self.models: dict[str, Any] = {}
+        self.meta_data: dict[str, Any] = defaultdict(dict)
         self.errors: list[str] = []
         self._load_collections(collections_dir)
 
     def _load_collections(self, collections_dir: str) -> None:
+        meta_path = Path(DEFAULT_COLLECTION_META)
         collections_path = Path(collections_dir)
+
+        meta_text = ["_meta:\n"]
+        meta_text.extend(
+            f"  {line}"
+            for line in Path(meta_path).read_text().splitlines(keepends=True)
+        )
 
         if not collections_path.exists():
             raise CheckException(
@@ -89,8 +103,12 @@ class Checker:
 
         for yaml_file in yaml_files:
             try:
-                with open(yaml_file, "rb") as f:
-                    data = yaml.safe_load(f.read())
+                yaml_content = meta_text.copy() + [f"{yaml_file.stem}:\n"]
+                yaml_content.extend(
+                    f"  {line}"
+                    for line in Path(yaml_file).read_text().splitlines(keepends=True)
+                )
+                data = yaml.safe_load("".join(yaml_content))
 
                 if not isinstance(data, dict):
                     self.errors.append(
@@ -98,7 +116,11 @@ class Checker:
                     )
                     continue
 
-                self.models[yaml_file.stem] = data
+                for attr, value in data[yaml_file.stem].items():
+                    if attr == "fields":
+                        self.models[yaml_file.stem] = value
+                    else:
+                        self.meta_data[yaml_file.stem][attr] = value
 
             except yaml.YAMLError as e:
                 self.errors.append(f"Error parsing '{yaml_file.name}': {e}")
@@ -149,6 +171,10 @@ class Checker:
                 error = self.check_relation(collection, field_name, field)
                 if error:
                     self.errors.append(error)
+        for collection, data in self.meta_data.items():
+            for attr, values in data.items():
+                if attr == "unique_together":
+                    self.check_unique_together(collection, values)
 
     def check_field(
         self,
@@ -196,8 +222,18 @@ class Checker:
         if field.get("calculated"):
             return
 
+        if scope_field_name := field.get("sequence_scope", ""):
+            if type != "number":
+                self.errors.append(
+                    f"Sequences can only be generated for number fields. {collectionfield} is {type}."
+                )
+            if scope_field_name not in self.models[collection]:
+                self.errors.append(
+                    f"{scope_field_name} can not be used as a source of sequence scope since it is not part of {collection}."
+                )
+
         valid_attributes = list(OPTIONAL_ATTRIBUTES) + required_attributes
-        if type == "string[]":
+        if type in ["string[]", "text[]"]:
             valid_attributes.append("items")
             if "items" in field and "enum" not in field["items"]:
                 self.errors.append(
@@ -247,6 +283,11 @@ class Checker:
             valid_attributes.append("equal_fields")
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
+            valid_attributes.extend(("reference", "deferred", "sql"))
+            if "default" in field and field_name == "organization_id":
+                # added as a workaround to allow defaulting to the ONE_ORGANIZATION
+                print(f"Default in {collection}/{field_name} temporarily allowed.")
+                valid_attributes.append("default")
 
         for attr in field.keys():
             if attr not in valid_attributes:
@@ -256,6 +297,34 @@ class Checker:
 
         if not isinstance(field.get("description", ""), str):
             self.errors.append(f"Description of {collectionfield} must be a string.")
+
+    def check_unique_together(self, collection: str, constraints: Any) -> None:
+        if not isinstance(constraints, list):
+            self.errors.append(
+                f"Collection '{collection}': attribute unique_together must be a list."
+            )
+            return
+
+        collection_data = self.models[collection]
+        for constraint in constraints:
+            field_names = [name.strip() for name in constraint.split(",")]
+            if len(field_names) < 2:
+                self.errors.append(
+                    f"Invalid value '{constraint}' for unique_together constraint of '{collection}': at least 2 fields must be defined."
+                )
+            invalid_field_names = []
+            for field_name in field_names:
+                if field_name not in collection_data:
+                    invalid_field_names.append(field_name)
+                else:
+                    if collection_data[field_name].get("unique"):
+                        self.errors.append(
+                            f"Field '{field_name}' can not be used in a unique_together constraint for collection '{collection}' because it has 'unique: true'."
+                        )
+            if invalid_field_names:
+                self.errors.append(
+                    f"Some fields from the unique_together constraint '{constraint}' don't exist in the collection '{collection}': {', '.join(invalid_field_names)}."
+                )
 
     def validate_value_for_type(
         self, type_str: str, value: Any, collectionfield: str
@@ -274,7 +343,7 @@ class Checker:
                 self.errors.append(
                     f"Value '{value}' for '{collectionfield}' is not a {type_str}."
                 )
-        elif type_str in ("string[]", "number[]"):
+        elif type_str in ("string[]", "number[]", "text[]"):
             if not isinstance(value, list):
                 self.errors.append(
                     f"Value '{value}' for '{collectionfield}' is not a {type_str}."
