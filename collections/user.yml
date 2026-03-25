@@ -196,4 +196,5 @@ fields:
     required: true
     restriction_mode: F
     constant: true
+    default: 1
 
