@@ -471,11 +471,21 @@ class GenerateCodeBlocks:
         text.update(szt)
         if isinstance((tmp := subst["type"]), string.Template):
             if maxLength := fdata.get("maxLength"):
-                tmp = tmp.substitute({"maxLength": maxLength})
+                tmp = tmp.substitute(
+                    {
+                        "maxLength": maxLength,
+                        "field_name": fname,
+                        "table_name": table_name,
+                    }
+                )
             elif isinstance(type_, Decimal):
-                tmp = tmp.substitute({"maxLength": 6})
+                tmp = tmp.substitute(
+                    {"maxLength": 6, "field_name": fname, "table_name": table_name}
+                )
             elif isinstance(type_, str):  # string
-                tmp = tmp.substitute({"maxLength": 256})
+                tmp = tmp.substitute(
+                    {"maxLength": 256, "field_name": fname, "table_name": table_name}
+                )
             subst["type"] = tmp
         return text, subst
 
@@ -1086,6 +1096,15 @@ class Helper:
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
 
+        CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
+        BEGIN
+            PERFORM now() AT TIME ZONE tz;
+            RETURN TRUE;
+        EXCEPTION WHEN invalid_parameter_value THEN
+            RETURN FALSE;
+        END;
+        $$ language plpgsql STABLE;
+
         CREATE FUNCTION check_unique_ids_pair()
         RETURNS trigger
         AS $unique_ids_pair_trigger$
@@ -1652,7 +1671,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         if fdata.get("unique"):
             subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         if (default := fdata.get("default")) is not None:
-            if isinstance(default, str) or type_ in ("string", "text"):
+            if isinstance(default, str) or type_ in ("string", "text", "timezone"):
                 subst["default"] = f" DEFAULT '{default}'"
             elif isinstance(default, (int, bool, float)):
                 subst["default"] = f" DEFAULT {default}"
@@ -1812,6 +1831,12 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
     "text": {"pg_type": "text", "method": GenerateCodeBlocks.get_schema_simple_types},
+    "timezone": {
+        "pg_type": string.Template(
+            "text CONSTRAINT timezone_${table_name}_${field_name} CHECK (is_timezone(${field_name}))"
+        ),
+        "method": GenerateCodeBlocks.get_schema_simple_types,
+    },
     "relation": {"pg_type": "integer", "method": GenerateCodeBlocks.get_relation_type},
     "relation-list": {
         "pg_type": "integer[]",
