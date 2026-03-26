@@ -44,6 +44,9 @@ fields:
   location:
     type: string
     restriction_mode: F
+  time_zone:
+    type: timezone
+    restriction_mode: F
   start_time:
     type: timestamp
     restriction_mode: F
