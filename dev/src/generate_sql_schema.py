@@ -68,6 +68,7 @@ class SubstDict(TypedDict, total=False):
     minLength: str
     deferred: str
     check_enum: str
+    check_timezone: str
     unique: str
 
 
@@ -1239,7 +1240,7 @@ class Helper:
         "${parameter} := SUBSTRING(${table_t} FOR LENGTH(${table_t}) - 2);"
     )
     FIELD_TEMPLATE = string.Template(
-        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${minimum}${minLength}${default},\n"
+        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${check_timezone}${minimum}${minLength}${default},\n"
     )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
@@ -1671,6 +1672,10 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             enum_ := fdata.get("items", {}).get("enum")
         ):
             subst["check_enum"] = Helper.get_check_enum(table_name, fname, enum_, type_)
+        if type_ == "timezone":
+            subst["check_timezone"] = (
+                f" CONSTRAINT {HelperGetNames.get_timezone_constraint_name(table_name, fname)} CHECK (is_timezone({fname}))"
+            )
         if (minimum := fdata.get("minimum")) is not None:
             minimum_constraint_name = HelperGetNames.get_minimum_constraint_name(fname)
             subst["minimum"] = (
@@ -1817,9 +1822,7 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
     },
     "text": {"pg_type": "text", "method": GenerateCodeBlocks.get_schema_simple_types},
     "timezone": {
-        "pg_type": string.Template(
-            "text CONSTRAINT timezone_${table_name}_${field_name} CHECK (is_timezone(${field_name}))"
-        ),
+        "pg_type": "text",
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
     "relation": {"pg_type": "integer", "method": GenerateCodeBlocks.get_relation_type},
