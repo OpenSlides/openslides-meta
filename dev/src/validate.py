@@ -272,7 +272,7 @@ class Checker:
             if "minimum" in field and "maximum" in field:
                 if field["minimum"] > field["maximum"]:
                     self.errors.append(
-                        f"Incorrect 'maximum' and 'minimum' value for {collectionfield}: 'maximum' ({field['maximum']}) must be bigger or equal to 'minimum' ({field['minimum']})."
+                        f"Incorrect 'maximum' and 'minimum' values for {collectionfield}: 'maximum' ({field['maximum']}) must be bigger or equal to 'minimum' ({field['minimum']})."
                     )
             if "default" in field:
                 base_error_message = f"incorrect 'default' value for {collectionfield}: {field['default']}. Allowed"

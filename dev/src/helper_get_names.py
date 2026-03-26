@@ -214,7 +214,7 @@ class HelperGetNames:
 
     @staticmethod
     def get_enum_name_for_column(table_name: str, fname: str) -> str:
-        """gets the name of check enum constraint"""
+        """gets the name of the enum type"""
         return HelperGetNames.get_enum_name(f"{table_name}_{fname}")
 
     @staticmethod
@@ -390,14 +390,6 @@ class InternalHelper:
             cls.ENUMS[HelperGetNames.get_enum_name(name)] = values
         cls.check_field_length()
         return cls.MODELS, checksum
-
-    @classmethod
-    def get_all_fields(cls, collection: str) -> dict[str, Any]:
-        return cls.MODELS[collection]["fields"]
-
-    @classmethod
-    def get_field_data(cls, collection: str, field_name: str) -> dict[str, Any]:
-        return cls.get_all_fields(collection)[field_name]
 
     @classmethod
     def check_field_length(cls) -> None:
