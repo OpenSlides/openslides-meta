@@ -65,6 +65,7 @@ class SubstDict(TypedDict, total=False):
     required: str
     default: str
     minimum: str
+    maximum: str
     minLength: str
     deferred: str
     check_enum: str
@@ -90,6 +91,7 @@ class GenerateCodeBlocks:
         str,
         str,
         str,
+        str,
         list[str],
         list[str],
         str,
@@ -103,6 +105,7 @@ class GenerateCodeBlocks:
     ]:
         """
         Return values:
+          enum_definitions: definitions of the enum types
           pre_code: Type definitions, generated trigger definitions etc., which should all appear before first table definitions
           table_name_code: All table definitions
           view_name_code: All view definitions, after all views, because of view field definition by sql
@@ -129,6 +132,7 @@ class GenerateCodeBlocks:
             "type",
             "restriction_mode",
             "minimum",
+            "maximum",
             "calculated",
             "description",
             "read_only",
@@ -145,6 +149,7 @@ class GenerateCodeBlocks:
         collection_meta_handled_attributes = {
             "unique_together",
         }
+        enum_definitions: str = ""
         pre_code: str = ""
         table_name_code: str = ""
         view_name_code: str = ""
@@ -250,9 +255,10 @@ class GenerateCodeBlocks:
             # TODO: needs to be filled in the get_*_relation_*_type functions
             if code := schema_zone_texts["create_trigger_notify"]:
                 create_trigger_notify_code += code + "\n"
-        print(missing_handled_collections_meta_attributes)
+        enum_definitions = Helper.get_enum_types_definitions()
 
         return (
+            enum_definitions,
             pre_code,
             table_name_code,
             view_name_code,
@@ -1236,11 +1242,14 @@ class Helper:
             END;
             $$not_null_trigger$$ language plpgsql;
         """))
+    ENUM_DEFINITION_TEMPLATE = string.Template(
+        "CREATE TYPE ${name} AS ENUM (${values});\n\n"
+    )
     COLLECTION_FROM_TABLE_TEMPLATE = string.Template(
         "${parameter} := SUBSTRING(${table_t} FOR LENGTH(${table_t}) - 2);"
     )
     FIELD_TEMPLATE = string.Template(
-        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${check_timezone}${minimum}${minLength}${default},\n"
+        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${check_timezone}${minimum}${maximum}${minLength}${default},\n"
     )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
@@ -1367,23 +1376,16 @@ class Helper:
         return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE ({', '.join(fields)}),\n"
 
     @staticmethod
-    def get_check_enum(
-        table_name: str, fname: str, enum_: list[Any], type_: str
-    ) -> str:
-        check_enum_constraint_name = HelperGetNames.get_check_enum_constraint_name(
-            table_name, fname
-        )
-        if type_.startswith("number"):
-            enumeration = ", ".join([str(item) for item in enum_])
-        elif type_.startswith("string"):
-            enumeration = ", ".join([f"'{item}'" for item in enum_])
-        else:
-            raise Exception(f"enum for type {type_} not implemented")
-        if type_.endswith("[]"):
-            condition = f"{fname} <@ ARRAY[{enumeration}]::varchar[]"
-        else:
-            condition = f"{fname} IN ({enumeration})"
-        return f" CONSTRAINT {check_enum_constraint_name} CHECK ({condition})"
+    def get_enum_types_definitions() -> str:
+        result = "\n"
+        for name, values in InternalHelper.ENUMS.items():
+            result += Helper.ENUM_DEFINITION_TEMPLATE.substitute(
+                {
+                    "name": name,
+                    "values": ", ".join([f"'{item}'" for item in values]),
+                }
+            )
+        return result
 
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
@@ -1644,13 +1646,31 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
     def get_initials(
         table_name: str, fname: str, type_: str, fdata: dict[str, Any]
     ) -> tuple[SubstDict, SchemaZoneTexts]:
+        """
+        Helper method to generate common constraints and type definitions for all columns.
+        """
         text = cast(SchemaZoneTexts, defaultdict(str))
         flist: list[str] = [
             cast(str, form[1])
             for form in Formatter().parse(Helper.FIELD_TEMPLATE.template)
         ]
         subst: SubstDict = cast(SubstDict, {k: "" for k in flist})
-        subst_type = FIELD_TYPES[type_]["pg_type"]
+        enum_type: str | None = None
+        if (enum_ := fdata.get("enum")) or (
+            enum_ := fdata.get("items", {}).get("enum")
+        ):
+            if isinstance(enum_, str):
+                enum_type = HelperGetNames.get_enum_name(enum_)
+            elif isinstance(enum_, list) and all(
+                isinstance(item, str) for item in enum_
+            ):
+                enum_type = HelperGetNames.get_enum_name_for_column(table_name, fname)
+                InternalHelper.ENUMS[enum_type] = enum_
+            else:
+                raise Exception(f"{table_name}.{fname}: is an unsupported enum value")
+            if "[]" in fdata.get("type", ""):
+                enum_type += "[]"
+        subst_type = enum_type or FIELD_TYPES[type_]["pg_type"]
         subst.update({"field_name": fname, "type": subst_type})
         if fdata.get("required"):
             subst["required"] = " NOT NULL"
@@ -1668,18 +1688,19 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 raise Exception(
                     f"{table_name}.{fname}: seems to be an invalid default value"
                 )
-        if (enum_ := fdata.get("enum")) or (
-            enum_ := fdata.get("items", {}).get("enum")
-        ):
-            subst["check_enum"] = Helper.get_check_enum(table_name, fname, enum_, type_)
         if type_ == "timezone":
             subst["check_timezone"] = (
                 f" CONSTRAINT {HelperGetNames.get_timezone_constraint_name(table_name, fname)} CHECK (is_timezone({fname}))"
             )
         if (minimum := fdata.get("minimum")) is not None:
-            minimum_constraint_name = HelperGetNames.get_minimum_constraint_name(fname)
+            min_constraint_name = HelperGetNames.get_minimum_constraint_name(fname)
             subst["minimum"] = (
-                f" CONSTRAINT {minimum_constraint_name} CHECK ({fname} >= {minimum})"
+                f" CONSTRAINT {min_constraint_name} CHECK ({fname} >= {minimum})"
+            )
+        if (maximum := fdata.get("maximum")) is not None:
+            max_constraint_name = HelperGetNames.get_maximum_constraint_name(fname)
+            subst["maximum"] = (
+                f" CONSTRAINT {max_constraint_name} CHECK ({fname} <= {maximum})"
             )
         if minLength := fdata.get("minLength"):
             minlength_constraint_name = HelperGetNames.get_minlength_constraint_name(
@@ -1854,6 +1875,7 @@ def main() -> None:
     _, checksum = InternalHelper.read_models_yml()
 
     (
+        enum_definitions,
         pre_code,
         table_name_code,
         view_name_code,
@@ -1873,6 +1895,8 @@ def main() -> None:
     with open(DESTINATION, "w") as dest:
         dest.write(Helper.FILE_TEMPLATE_HEADER)
         dest.write("-- MODELS_YML_CHECKSUM = " + repr(checksum) + "\n")
+        dest.write("\n\n-- ENUM definitions\n")
+        dest.write(enum_definitions)
         dest.write("\n\n-- Function and meta table definitions\n")
         dest.write(Helper.FILE_TEMPLATE_CONSTANT_DEFINITIONS)
         dest.write(pre_code)
@@ -1915,7 +1939,6 @@ def main() -> None:
         dest.write(
             f"\n/*   Missing attribute handling for {', '.join(missing_handled_attributes)} */"
         )
-        print(missing_handled_collections_meta_attributes)
         if missing_handled_collections_meta_attributes:
             dest.write(
                 f"\n/*   Missing handling for collections _meta attributes: {', '.join(missing_handled_collections_meta_attributes)} */"

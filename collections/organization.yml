@@ -59,7 +59,7 @@ fields:
   default_language:
     type: string
     restriction_mode: A
-    enum: *languages
+    enum: languages
     default: en
   time_zone:
     type: timezone
