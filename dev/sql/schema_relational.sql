@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '920698136903c2ec6553a28fb633d26f'
+-- MODELS_YML_CHECKSUM = '01f03f53e7cc61a58a1f78196273fe5e'
 
 
 -- ENUM definitions
@@ -167,6 +167,15 @@ BEGIN
     RETURN NULL;  -- AFTER TRIGGER needs no return
 END;
 $log_modified_trigger$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
+BEGIN
+    PERFORM now() AT TIME ZONE tz;
+    RETURN TRUE;
+EXCEPTION WHEN invalid_parameter_value THEN
+    RETURN FALSE;
+END;
+$$ language plpgsql STABLE;
 
 CREATE FUNCTION check_unique_ids_pair()
 RETURNS trigger
@@ -680,6 +689,7 @@ CREATE TABLE meeting_t (
     is_archived_in_organization_id integer,
     description varchar(100),
     location varchar(256),
+    time_zone text CONSTRAINT timezone_meeting_time_zone CHECK (is_timezone(time_zone)),
     start_time timestamptz,
     end_time timestamptz,
     locked_from_inside boolean,
@@ -1144,6 +1154,7 @@ CREATE TABLE organization_t (
     limit_of_meetings integer CONSTRAINT minimum_limit_of_meetings CHECK (limit_of_meetings >= 0) DEFAULT 0,
     limit_of_users integer CONSTRAINT minimum_limit_of_users CHECK (limit_of_users >= 0) DEFAULT 0,
     default_language enum_languages DEFAULT 'en',
+    time_zone text CONSTRAINT timezone_organization_time_zone CHECK (is_timezone(time_zone)),
     require_duplicate_from boolean,
     enable_anonymous boolean,
     restrict_editing_same_level_committee_admins boolean,

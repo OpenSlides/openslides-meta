@@ -50,6 +50,7 @@ DATA_TYPES = (
     "color",
     "text",
     "text[]",
+    "timezone",
 )
 
 
