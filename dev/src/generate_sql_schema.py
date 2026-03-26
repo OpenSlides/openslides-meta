@@ -1647,8 +1647,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         table_name: str, fname: str, type_: str, fdata: dict[str, Any]
     ) -> tuple[SubstDict, SchemaZoneTexts]:
         """
-        Helper method to generate common for all the field types data
-        or the column definitions.
+        Helper method to generate common constraints and type definitions for all columns.
         """
         text = cast(SchemaZoneTexts, defaultdict(str))
         flist: list[str] = [
