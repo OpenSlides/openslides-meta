@@ -352,6 +352,12 @@ class HelperGetNames:
         """gets the name of the trigger for logging changes on g:m-tables"""
         return f"tr_log_{gm_content_field}_{gm_table_name}"
 
+    @staticmethod
+    @max_length
+    def get_timezone_constraint_name(table_name: str, field_name: str) -> str:
+        """gets the name of the constraint for timezone fields"""
+        return f"timezone_{table_name}_{field_name}"
+
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}
