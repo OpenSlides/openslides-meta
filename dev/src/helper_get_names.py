@@ -219,6 +219,12 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_required_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of required constraint"""
+        return f"required_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
     def get_minimum_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of minimum constraint"""
         return f"minimum_{table_name}_{fname}"

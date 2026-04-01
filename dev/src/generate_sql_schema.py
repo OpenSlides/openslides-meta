@@ -1652,7 +1652,12 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         subst_type = FIELD_TYPES[type_]["pg_type"]
         subst.update({"field_name": fname, "type": subst_type})
         if fdata.get("required"):
-            subst["required"] = " NOT NULL"
+            if fname == "id":
+                subst["required"] = " NOT NULL"
+            else:
+                subst["required"] = (
+                    f" CONSTRAINT {HelperGetNames.get_required_constraint_name(table_name, fname)} NOT NULL"
+                )
         if fdata.get("unique"):
             subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         if (default := fdata.get("default")) is not None:
