@@ -249,6 +249,12 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_nm_pk_constraint_name(nm_table_name: str) -> str:
+        """gets the name of a foreign key constraint."""
+        return f"pk_{nm_table_name}"
+
+    @staticmethod
+    @max_length
     def get_fk_constraint_name(
         own_table: str,
         own_column: str,

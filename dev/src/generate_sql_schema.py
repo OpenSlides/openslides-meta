@@ -1245,7 +1245,7 @@ class Helper:
             CREATE TABLE ${table_name} (
                 ${field1} integer NOT NULL CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
                 ${field2} integer NOT NULL CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
-                PRIMARY KEY (${list_of_keys})
+                CONSTRAINT ${pk_constraint_name} PRIMARY KEY (${list_of_keys})
             );
             CREATE INDEX ${index_1} ON ${table_name} (${field1});
             CREATE INDEX ${index_2} ON ${table_name} (${field2});
@@ -1482,6 +1482,9 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "fk_name_2": fk_idx2[0],
                 "index_2": fk_idx2[1],
                 "table2": table2,
+                "pk_constraint_name": HelperGetNames.get_nm_pk_constraint_name(
+                    table_name
+                ),
                 "list_of_keys": ", ".join([field1, field2]),
             }
         )

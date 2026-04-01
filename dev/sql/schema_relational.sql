@@ -1502,7 +1502,7 @@ CREATE TABLE vote_t (
 CREATE TABLE nm_chat_group_read_group_ids_group_t (
     chat_group_id integer NOT NULL CONSTRAINT fk_nm_chat_group_read_group_ids_group_t_chat_group_id_chc0b2569 REFERENCES chat_group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     group_id integer NOT NULL CONSTRAINT fk_nm_chat_group_read_group_ids_group_t_group_id_group_t_id REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (chat_group_id, group_id)
+    CONSTRAINT pk_nm_chat_group_read_group_ids_group_t PRIMARY KEY (chat_group_id, group_id)
 );
 CREATE INDEX idx_nm_chat_group_read_group_ids_group_t_chat_group_id ON nm_chat_group_read_group_ids_group_t (chat_group_id);
 CREATE INDEX idx_nm_chat_group_read_group_ids_group_t_group_id ON nm_chat_group_read_group_ids_group_t (group_id);
@@ -1510,7 +1510,7 @@ CREATE INDEX idx_nm_chat_group_read_group_ids_group_t_group_id ON nm_chat_group_
 CREATE TABLE nm_chat_group_write_group_ids_group_t (
     chat_group_id integer NOT NULL CONSTRAINT fk_nm_chat_group_write_group_ids_group_t_chat_group_id_cc085d6c REFERENCES chat_group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     group_id integer NOT NULL CONSTRAINT fk_nm_chat_group_write_group_ids_group_t_group_id_group_t_id REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (chat_group_id, group_id)
+    CONSTRAINT pk_nm_chat_group_write_group_ids_group_t PRIMARY KEY (chat_group_id, group_id)
 );
 CREATE INDEX idx_nm_chat_group_write_group_ids_group_t_chat_group_id ON nm_chat_group_write_group_ids_group_t (chat_group_id);
 CREATE INDEX idx_nm_chat_group_write_group_ids_group_t_group_id ON nm_chat_group_write_group_ids_group_t (group_id);
@@ -1518,7 +1518,7 @@ CREATE INDEX idx_nm_chat_group_write_group_ids_group_t_group_id ON nm_chat_group
 CREATE TABLE nm_committee_manager_ids_user_t (
     committee_id integer NOT NULL CONSTRAINT fk_nm_committee_manager_ids_user_t_committee_id_committee_t_id REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     user_id integer NOT NULL CONSTRAINT fk_nm_committee_manager_ids_user_t_user_id_user_t_id REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (committee_id, user_id)
+    CONSTRAINT pk_nm_committee_manager_ids_user_t PRIMARY KEY (committee_id, user_id)
 );
 CREATE INDEX idx_nm_committee_manager_ids_user_t_committee_id ON nm_committee_manager_ids_user_t (committee_id);
 CREATE INDEX idx_nm_committee_manager_ids_user_t_user_id ON nm_committee_manager_ids_user_t (user_id);
@@ -1526,7 +1526,7 @@ CREATE INDEX idx_nm_committee_manager_ids_user_t_user_id ON nm_committee_manager
 CREATE TABLE nm_committee_all_child_ids_committee_t (
     all_child_id integer NOT NULL CONSTRAINT fk_nm_committee_all_child_ids_committee_t_all_child_id_cc86a8b2 REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     all_parent_id integer NOT NULL CONSTRAINT fk_nm_committee_all_child_ids_committee_t_all_parent_id_014ed42 REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (all_child_id, all_parent_id)
+    CONSTRAINT pk_nm_committee_all_child_ids_committee_t PRIMARY KEY (all_child_id, all_parent_id)
 );
 CREATE INDEX idx_nm_committee_all_child_ids_committee_t_all_child_id ON nm_committee_all_child_ids_committee_t (all_child_id);
 CREATE INDEX idx_nm_committee_all_child_ids_committee_t_all_parent_id ON nm_committee_all_child_ids_committee_t (all_parent_id);
@@ -1534,7 +1534,7 @@ CREATE INDEX idx_nm_committee_all_child_ids_committee_t_all_parent_id ON nm_comm
 CREATE TABLE nm_committee_forward_to_committee_ids_committee_t (
     forward_to_committee_id integer NOT NULL CONSTRAINT fk_nm_committee_forward_to_committee_ids_committee_t_fora987475 REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     receive_forwardings_from_committee_id integer NOT NULL CONSTRAINT fk_nm_committee_forward_to_committee_ids_committee_t_rec0dc00a3 REFERENCES committee_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (forward_to_committee_id, receive_forwardings_from_committee_id)
+    CONSTRAINT pk_nm_committee_forward_to_committee_ids_committee_t PRIMARY KEY (forward_to_committee_id, receive_forwardings_from_committee_id)
 );
 CREATE INDEX idx_nm_committee_forward_to_committee_ids_committee_t_fo5507b60 ON nm_committee_forward_to_committee_ids_committee_t (forward_to_committee_id);
 CREATE INDEX idx_nm_committee_forward_to_committee_ids_committee_t_re9215b1e ON nm_committee_forward_to_committee_ids_committee_t (receive_forwardings_from_committee_id);
@@ -1542,7 +1542,7 @@ CREATE INDEX idx_nm_committee_forward_to_committee_ids_committee_t_re9215b1e ON 
 CREATE TABLE nm_group_meeting_user_ids_meeting_user_t (
     group_id integer NOT NULL CONSTRAINT fk_nm_group_meeting_user_ids_meeting_user_t_group_id_group_t_id REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     meeting_user_id integer NOT NULL CONSTRAINT fk_nm_group_meeting_user_ids_meeting_user_t_meeting_userd442927 REFERENCES meeting_user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (group_id, meeting_user_id)
+    CONSTRAINT pk_nm_group_meeting_user_ids_meeting_user_t PRIMARY KEY (group_id, meeting_user_id)
 );
 CREATE INDEX idx_nm_group_meeting_user_ids_meeting_user_t_group_id ON nm_group_meeting_user_ids_meeting_user_t (group_id);
 CREATE INDEX idx_nm_group_meeting_user_ids_meeting_user_t_meeting_user_id ON nm_group_meeting_user_ids_meeting_user_t (meeting_user_id);
@@ -1550,7 +1550,7 @@ CREATE INDEX idx_nm_group_meeting_user_ids_meeting_user_t_meeting_user_id ON nm_
 CREATE TABLE nm_group_mmagi_meeting_mediafile_t (
     group_id integer NOT NULL CONSTRAINT fk_nm_group_mmagi_meeting_mediafile_t_group_id_group_t_id REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     meeting_mediafile_id integer NOT NULL CONSTRAINT fk_nm_group_mmagi_meeting_mediafile_t_meeting_mediafile_6a1f41a REFERENCES meeting_mediafile_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (group_id, meeting_mediafile_id)
+    CONSTRAINT pk_nm_group_mmagi_meeting_mediafile_t PRIMARY KEY (group_id, meeting_mediafile_id)
 );
 CREATE INDEX idx_nm_group_mmagi_meeting_mediafile_t_group_id ON nm_group_mmagi_meeting_mediafile_t (group_id);
 CREATE INDEX idx_nm_group_mmagi_meeting_mediafile_t_meeting_mediafile_id ON nm_group_mmagi_meeting_mediafile_t (meeting_mediafile_id);
@@ -1558,7 +1558,7 @@ CREATE INDEX idx_nm_group_mmagi_meeting_mediafile_t_meeting_mediafile_id ON nm_g
 CREATE TABLE nm_group_mmiagi_meeting_mediafile_t (
     group_id integer NOT NULL CONSTRAINT fk_nm_group_mmiagi_meeting_mediafile_t_group_id_group_t_id REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     meeting_mediafile_id integer NOT NULL CONSTRAINT fk_nm_group_mmiagi_meeting_mediafile_t_meeting_mediafile1728d31 REFERENCES meeting_mediafile_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (group_id, meeting_mediafile_id)
+    CONSTRAINT pk_nm_group_mmiagi_meeting_mediafile_t PRIMARY KEY (group_id, meeting_mediafile_id)
 );
 CREATE INDEX idx_nm_group_mmiagi_meeting_mediafile_t_group_id ON nm_group_mmiagi_meeting_mediafile_t (group_id);
 CREATE INDEX idx_nm_group_mmiagi_meeting_mediafile_t_meeting_mediafile_id ON nm_group_mmiagi_meeting_mediafile_t (meeting_mediafile_id);
@@ -1566,7 +1566,7 @@ CREATE INDEX idx_nm_group_mmiagi_meeting_mediafile_t_meeting_mediafile_id ON nm_
 CREATE TABLE nm_group_read_comment_section_ids_motion_comment_section_t (
     group_id integer NOT NULL CONSTRAINT fk_nm_group_read_comment_section_ids_motion_comment_sectd992bd3 REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     motion_comment_section_id integer NOT NULL CONSTRAINT fk_nm_group_read_comment_section_ids_motion_comment_sect2d17ce5 REFERENCES motion_comment_section_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (group_id, motion_comment_section_id)
+    CONSTRAINT pk_nm_group_read_comment_section_ids_motion_comment_section_t PRIMARY KEY (group_id, motion_comment_section_id)
 );
 CREATE INDEX idx_nm_group_read_comment_section_ids_motion_comment_secb9c23c0 ON nm_group_read_comment_section_ids_motion_comment_section_t (group_id);
 CREATE INDEX idx_nm_group_read_comment_section_ids_motion_comment_sec520054a ON nm_group_read_comment_section_ids_motion_comment_section_t (motion_comment_section_id);
@@ -1574,7 +1574,7 @@ CREATE INDEX idx_nm_group_read_comment_section_ids_motion_comment_sec520054a ON 
 CREATE TABLE nm_group_write_comment_section_ids_motion_comment_section_t (
     group_id integer NOT NULL CONSTRAINT fk_nm_group_write_comment_section_ids_motion_comment_sec39cad7b REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     motion_comment_section_id integer NOT NULL CONSTRAINT fk_nm_group_write_comment_section_ids_motion_comment_sec9ffa691 REFERENCES motion_comment_section_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (group_id, motion_comment_section_id)
+    CONSTRAINT pk_nm_group_write_comment_section_ids_motion_comment_section_t PRIMARY KEY (group_id, motion_comment_section_id)
 );
 CREATE INDEX idx_nm_group_write_comment_section_ids_motion_comment_sed5732f3 ON nm_group_write_comment_section_ids_motion_comment_section_t (group_id);
 CREATE INDEX idx_nm_group_write_comment_section_ids_motion_comment_se3ab0450 ON nm_group_write_comment_section_ids_motion_comment_section_t (motion_comment_section_id);
@@ -1582,7 +1582,7 @@ CREATE INDEX idx_nm_group_write_comment_section_ids_motion_comment_se3ab0450 ON 
 CREATE TABLE nm_group_poll_ids_poll_t (
     group_id integer NOT NULL CONSTRAINT fk_nm_group_poll_ids_poll_t_group_id_group_t_id REFERENCES group_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     poll_id integer NOT NULL CONSTRAINT fk_nm_group_poll_ids_poll_t_poll_id_poll_t_id REFERENCES poll_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (group_id, poll_id)
+    CONSTRAINT pk_nm_group_poll_ids_poll_t PRIMARY KEY (group_id, poll_id)
 );
 CREATE INDEX idx_nm_group_poll_ids_poll_t_group_id ON nm_group_poll_ids_poll_t (group_id);
 CREATE INDEX idx_nm_group_poll_ids_poll_t_poll_id ON nm_group_poll_ids_poll_t (poll_id);
@@ -1590,7 +1590,7 @@ CREATE INDEX idx_nm_group_poll_ids_poll_t_poll_id ON nm_group_poll_ids_poll_t (p
 CREATE TABLE nm_meeting_present_user_ids_user_t (
     meeting_id integer NOT NULL CONSTRAINT fk_nm_meeting_present_user_ids_user_t_meeting_id_meeting_t_id REFERENCES meeting_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     user_id integer NOT NULL CONSTRAINT fk_nm_meeting_present_user_ids_user_t_user_id_user_t_id REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (meeting_id, user_id)
+    CONSTRAINT pk_nm_meeting_present_user_ids_user_t PRIMARY KEY (meeting_id, user_id)
 );
 CREATE INDEX idx_nm_meeting_present_user_ids_user_t_meeting_id ON nm_meeting_present_user_ids_user_t (meeting_id);
 CREATE INDEX idx_nm_meeting_present_user_ids_user_t_user_id ON nm_meeting_present_user_ids_user_t (user_id);
@@ -1613,7 +1613,7 @@ CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_66fb18e ON 
 CREATE TABLE nm_meeting_user_structure_level_ids_structure_level_t (
     meeting_user_id integer NOT NULL CONSTRAINT fk_nm_meeting_user_structure_level_ids_structure_level_t8c0bc42 REFERENCES meeting_user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     structure_level_id integer NOT NULL CONSTRAINT fk_nm_meeting_user_structure_level_ids_structure_level_ta594d12 REFERENCES structure_level_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (meeting_user_id, structure_level_id)
+    CONSTRAINT pk_nm_meeting_user_structure_level_ids_structure_level_t PRIMARY KEY (meeting_user_id, structure_level_id)
 );
 CREATE INDEX idx_nm_meeting_user_structure_level_ids_structure_level_a842d49 ON nm_meeting_user_structure_level_ids_structure_level_t (meeting_user_id);
 CREATE INDEX idx_nm_meeting_user_structure_level_ids_structure_level_abd5dca ON nm_meeting_user_structure_level_ids_structure_level_t (structure_level_id);
@@ -1621,7 +1621,7 @@ CREATE INDEX idx_nm_meeting_user_structure_level_ids_structure_level_abd5dca ON 
 CREATE TABLE nm_motion_all_derived_motion_ids_motion_t (
     all_derived_motion_id integer NOT NULL CONSTRAINT fk_nm_motion_all_derived_motion_ids_motion_t_all_derived87fec12 REFERENCES motion_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     all_origin_id integer NOT NULL CONSTRAINT fk_nm_motion_all_derived_motion_ids_motion_t_all_origin_c37696a REFERENCES motion_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (all_derived_motion_id, all_origin_id)
+    CONSTRAINT pk_nm_motion_all_derived_motion_ids_motion_t PRIMARY KEY (all_derived_motion_id, all_origin_id)
 );
 CREATE INDEX idx_nm_motion_all_derived_motion_ids_motion_t_all_derivee757fda ON nm_motion_all_derived_motion_ids_motion_t (all_derived_motion_id);
 CREATE INDEX idx_nm_motion_all_derived_motion_ids_motion_t_all_origin_id ON nm_motion_all_derived_motion_ids_motion_t (all_origin_id);
@@ -1629,7 +1629,7 @@ CREATE INDEX idx_nm_motion_all_derived_motion_ids_motion_t_all_origin_id ON nm_m
 CREATE TABLE nm_motion_identical_motion_ids_motion_t (
     identical_motion_id_1 integer NOT NULL CONSTRAINT fk_nm_motion_identical_motion_ids_motion_t_identical_motcb3785b REFERENCES motion_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     identical_motion_id_2 integer NOT NULL CONSTRAINT fk_nm_motion_identical_motion_ids_motion_t_identical_mot4e10b0c REFERENCES motion_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (identical_motion_id_1, identical_motion_id_2)
+    CONSTRAINT pk_nm_motion_identical_motion_ids_motion_t PRIMARY KEY (identical_motion_id_1, identical_motion_id_2)
 );
 CREATE INDEX idx_nm_motion_identical_motion_ids_motion_t_identical_mo6988270 ON nm_motion_identical_motion_ids_motion_t (identical_motion_id_1);
 CREATE INDEX idx_nm_motion_identical_motion_ids_motion_t_identical_moe0b67bf ON nm_motion_identical_motion_ids_motion_t (identical_motion_id_2);
@@ -1659,7 +1659,7 @@ CREATE INDEX idx_gm_motion_recommendation_extension_reference_ids_t_r1489537 ON 
 CREATE TABLE nm_motion_state_next_state_ids_motion_state_t (
     next_state_id integer NOT NULL CONSTRAINT fk_nm_motion_state_next_state_ids_motion_state_t_next_st820d55c REFERENCES motion_state_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     previous_state_id integer NOT NULL CONSTRAINT fk_nm_motion_state_next_state_ids_motion_state_t_previou40712f2 REFERENCES motion_state_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (next_state_id, previous_state_id)
+    CONSTRAINT pk_nm_motion_state_next_state_ids_motion_state_t PRIMARY KEY (next_state_id, previous_state_id)
 );
 CREATE INDEX idx_nm_motion_state_next_state_ids_motion_state_t_next_state_id ON nm_motion_state_next_state_ids_motion_state_t (next_state_id);
 CREATE INDEX idx_nm_motion_state_next_state_ids_motion_state_t_previoa964ca1 ON nm_motion_state_next_state_ids_motion_state_t (previous_state_id);
@@ -1680,7 +1680,7 @@ CREATE INDEX idx_gm_organization_tag_tagged_ids_t_tagged_id_meeting_id ON gm_org
 CREATE TABLE nm_poll_voted_ids_user_t (
     poll_id integer NOT NULL CONSTRAINT fk_nm_poll_voted_ids_user_t_poll_id_poll_t_id REFERENCES poll_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
     user_id integer NOT NULL CONSTRAINT fk_nm_poll_voted_ids_user_t_user_id_user_t_id REFERENCES user_t (id) ON DELETE CASCADE INITIALLY DEFERRED,
-    PRIMARY KEY (poll_id, user_id)
+    CONSTRAINT pk_nm_poll_voted_ids_user_t PRIMARY KEY (poll_id, user_id)
 );
 CREATE INDEX idx_nm_poll_voted_ids_user_t_poll_id ON nm_poll_voted_ids_user_t (poll_id);
 CREATE INDEX idx_nm_poll_voted_ids_user_t_user_id ON nm_poll_voted_ids_user_t (user_id);
