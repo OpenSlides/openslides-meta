@@ -1243,8 +1243,16 @@ class Helper:
     )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${field1} integer CONSTRAINT ${required_constraint_name_1} NOT NULL CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
-                ${field2} integer CONSTRAINT ${required_constraint_name_2} NOT NULL CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field1} integer
+                    CONSTRAINT ${required_constraint_name_1} NOT NULL
+                    CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id)
+                    ON DELETE CASCADE
+                    INITIALLY DEFERRED,
+                ${field2} integer
+                    CONSTRAINT ${required_constraint_name_2} NOT NULL
+                    CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id)
+                    ON DELETE CASCADE
+                    INITIALLY DEFERRED,
                 CONSTRAINT ${pk_constraint_name} PRIMARY KEY (${list_of_keys})
             );
             CREATE INDEX ${index_1} ON ${table_name} (${field1});
@@ -1252,8 +1260,13 @@ class Helper:
         """))
     INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${own_table_name_with_ref_column} integer CONSTRAINT ${required_constraint_name_1} NOT NULL CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
-                ${own_table_column} varchar(100) CONSTRAINT ${required_constraint_name_2} NOT NULL,
+                ${own_table_name_with_ref_column} integer
+                    CONSTRAINT ${required_constraint_name_1} NOT NULL
+                    CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column})
+                    ON DELETE CASCADE
+                    INITIALLY DEFERRED,
+                ${own_table_column} varchar(100)
+                    CONSTRAINT ${required_constraint_name_2} NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
                 CONSTRAINT ${unique_constraint_name} UNIQUE (${own_table_name_with_ref_column}, ${own_table_column})
@@ -1263,7 +1276,15 @@ class Helper:
             ${content_field_indices}
         """))
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer CONSTRAINT ${constraint_name} GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
+        indent(
+            dedent("""\
+            ${gm_content_field} integer
+                CONSTRAINT ${constraint_name} GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED
+                CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id)
+                ON DELETE CASCADE
+                INITIALLY DEFERRED,"""),
+            "    ",
+        )
     )
     GM_INDEX_LINE_TEMPLATE = string.Template(
         "CREATE INDEX ${index} ON ${table_name} (${gm_content_field});"
