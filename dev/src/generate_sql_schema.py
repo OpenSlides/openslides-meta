@@ -1243,8 +1243,8 @@ class Helper:
     )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${field1} integer NOT NULL CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
-                ${field2} integer NOT NULL CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field1} integer CONSTRAINT ${required_constraint_name_1} NOT NULL CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${field2} integer CONSTRAINT ${required_constraint_name_2} NOT NULL CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
                 CONSTRAINT ${pk_constraint_name} PRIMARY KEY (${list_of_keys})
             );
             CREATE INDEX ${index_1} ON ${table_name} (${field1});
@@ -1252,8 +1252,8 @@ class Helper:
         """))
     INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${own_table_name_with_ref_column} integer NOT NULL CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
-                ${own_table_column} varchar(100) NOT NULL,
+                ${own_table_name_with_ref_column} integer CONSTRAINT ${required_constraint_name_1} NOT NULL CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
+                ${own_table_column} varchar(100) CONSTRAINT ${required_constraint_name_2} NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
                 CONSTRAINT ${unique_constraint_name} UNIQUE (${own_table_name_with_ref_column}, ${own_table_column})
@@ -1478,10 +1478,16 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "fk_name_1": fk_idx1[0],
                 "index_1": fk_idx1[1],
                 "table1": table1,
+                "required_constraint_name_1": HelperGetNames.get_required_constraint_name(
+                    nm_table_name, field1
+                ),
                 "field2": field2,
                 "fk_name_2": fk_idx2[0],
                 "index_2": fk_idx2[1],
                 "table2": table2,
+                "required_constraint_name_2": HelperGetNames.get_required_constraint_name(
+                    nm_table_name, field2
+                ),
                 "pk_constraint_name": HelperGetNames.get_nm_pk_constraint_name(
                     table_name
                 ),
@@ -1563,6 +1569,12 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "own_table_column": own_table_column,
                 "tuple_of_foreign_table_names": joined_table_names,
                 "foreign_table_ref_lines": "\n".join(foreign_table_ref_lines),
+                "required_constraint_name_1": HelperGetNames.get_required_constraint_name(
+                    gm_table_name, own_table_name_with_ref_column
+                ),
+                "required_constraint_name_2": HelperGetNames.get_required_constraint_name(
+                    gm_table_name, own_table_column
+                ),
                 "valid_constraint_name": HelperGetNames.get_generic_valid_constraint_name(
                     own_table_field.table, own_table_column
                 ),
