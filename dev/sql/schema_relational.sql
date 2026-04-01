@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'cb707d59834a71a69f4df94501b0f78d'
+-- MODELS_YML_CHECKSUM = '8261a62ff9b57eddacbe38e7bd27ccd0'
 
 
 -- Function and meta table definitions
@@ -1062,8 +1062,7 @@ CREATE TABLE option_t (
     content_object_id_poll_candidate_list_id integer CONSTRAINT unique_option_content_object_id_poll_candidate_list_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'poll_candidate_list' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','user','poll_candidate_list')),
     meeting_id integer NOT NULL,
-    CONSTRAINT unique_option_content_object_id_poll_id UNIQUE (content_object_id, poll_id),
-    CONSTRAINT unique_option_text_poll_id UNIQUE (text, poll_id)
+    CONSTRAINT unique_option_content_object_id_poll_id UNIQUE (content_object_id, poll_id)
 );
 
 
