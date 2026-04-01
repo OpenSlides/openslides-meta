@@ -1076,7 +1076,7 @@ class GenerateCodeBlocks:
                 )
                 sql += dedent(f"""
                     CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('{own_table_field.table}', '{own_table_field.column}');
+                    FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('{own_table_field.table}', '{own_table_field.column}', 'meeting_user_t');
                     CREATE CONSTRAINT TRIGGER {back_trigger_name} AFTER DELETE ON meeting_user_t INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('{own_table_field.table}', '{own_table_field.column}');
 
@@ -1182,7 +1182,7 @@ class GenerateCodeBlocks:
                 )
                 sql += dedent(f"""
                     CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('{own_table_field.table}', '{specified_relation_field}');
+                    FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('{own_table_field.table}', '{specified_relation_field}', 'meeting_user_t');
                     CREATE CONSTRAINT TRIGGER {back_trigger_name} AFTER DELETE ON meeting_user_t INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('{own_table_field.table}', '{specified_relation_field}');
 
@@ -1851,6 +1851,7 @@ class Helper:
         -- expects in this order:
         -- * own table name (i.e. name of table that isn't user),
         -- * user relation field in said table for which the check was triggered
+        -- * the name of the meeting_user table (necessary for migrations)
         -- checks if meeting_id of NEW is equal to meeting_id of connected user,
         -- which is grandfathered in from whichever meeting_user connects that user to that meeting.
         CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_user()
@@ -1862,12 +1863,14 @@ class Helper:
             own_id INTEGER;
             own_val TEXT;
             own_table TEXT;
+            muser_table_identifier TEXT;
             i INTEGER := 0;
         BEGIN
 
             WHILE i < TG_NARGS LOOP
                 own_table := TG_ARGV[i];
                 ref_column := TG_ARGV[i+1];
+                muser_table_identifier := TG_ARGV[i+2];
                 EXECUTE format(
                     'SELECT ($1).id, ($1).meeting_id, ($1).%I',
                     ref_column
@@ -1875,8 +1878,9 @@ class Helper:
                 IF user_id IS NOT NULL THEN
                     EXECUTE format(
                         'SELECT meeting_id
-                        FROM meeting_user_t
+                        FROM %I
                         WHERE user_id = %L AND meeting_id = %L',
+                        muser_table_identifier,
                         user_id,
                         own_val
                     ) INTO user_val;
@@ -1893,7 +1897,7 @@ class Helper:
                     );
                 END IF;
 
-                i := i + 2;
+                i := i + 3;
             END LOOP;
 
             RETURN NULL;  -- AFTER TRIGGER needs no return

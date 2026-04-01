@@ -345,10 +345,10 @@ BEGIN
 
         own_id = NEW.id;
         FOR r in EXECUTE format('
-            SELECT a.%I AS a_val, c.id AS c_id, c.%I AS c_val 
-            FROM %I a 
-                JOIN %I b ON b.%I = a.id 
-                JOIN %I c ON b.%I = c.id 
+            SELECT a.%I AS a_val, c.id AS c_id, c.%I AS c_val
+            FROM %I a
+                JOIN %I b ON b.%I = a.id
+                JOIN %I c ON b.%I = c.id
             WHERE a.id = $1',
             check_column,
             check_column,
@@ -453,6 +453,7 @@ $check_equals_intermediate_trigger$ LANGUAGE plpgsql;
 -- expects in this order:
 -- * own table name (i.e. name of table that isn't user),
 -- * user relation field in said table for which the check was triggered
+-- * the name of the meeting_user table (necessary for migrations)
 -- checks if meeting_id of NEW is equal to meeting_id of connected user,
 -- which is grandfathered in from whichever meeting_user connects that user to that meeting.
 CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_user()
@@ -464,12 +465,14 @@ DECLARE
     own_id INTEGER;
     own_val TEXT;
     own_table TEXT;
+    muser_table_identifier TEXT;
     i INTEGER := 0;
 BEGIN
 
     WHILE i < TG_NARGS LOOP
         own_table := TG_ARGV[i];
         ref_column := TG_ARGV[i+1];
+        muser_table_identifier := TG_ARGV[i+2];
         EXECUTE format(
             'SELECT ($1).id, ($1).meeting_id, ($1).%I',
             ref_column
@@ -477,8 +480,9 @@ BEGIN
         IF user_id IS NOT NULL THEN
             EXECUTE format(
                 'SELECT meeting_id
-                FROM meeting_user_t
+                FROM %I
                 WHERE user_id = %L AND meeting_id = %L',
+                muser_table_identifier,
                 user_id,
                 own_val
             ) INTO user_val;
@@ -495,7 +499,7 @@ BEGIN
             );
         END IF;
 
-        i := i + 2;
+        i := i + 3;
     END LOOP;
 
     RETURN NULL;  -- AFTER TRIGGER needs no return
@@ -568,7 +572,7 @@ BEGIN
         table_name := TG_ARGV[i];
         ref_column := TG_ARGV[i+1];
         EXECUTE format(
-            'SELECT ($1).id, ($1).meeting_id, ($1).%I', 
+            'SELECT ($1).id, ($1).meeting_id, ($1).%I',
             ref_column
         ) INTO id, meeting_id, reference_id USING NEW;
 
@@ -4356,7 +4360,7 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'motion', 'content_object_i
 
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_user_id AFTER INSERT ON option_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('option', 'content_object_id_user_id');
+FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('option', 'content_object_id_user_id', 'meeting_user_t');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_user_id_back AFTER DELETE ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('option', 'content_object_id_user_id');
 
