@@ -250,7 +250,6 @@ class GenerateCodeBlocks:
             # TODO: needs to be filled in the get_*_relation_*_type functions
             if code := schema_zone_texts["create_trigger_notify"]:
                 create_trigger_notify_code += code + "\n"
-        print(missing_handled_collections_meta_attributes)
 
         return (
             pre_code,
@@ -1921,7 +1920,6 @@ def main() -> None:
         dest.write(
             f"\n/*   Missing attribute handling for {', '.join(missing_handled_attributes)} */"
         )
-        print(missing_handled_collections_meta_attributes)
         if missing_handled_collections_meta_attributes:
             dest.write(
                 f"\n/*   Missing handling for collections _meta attributes: {', '.join(missing_handled_collections_meta_attributes)} */"
