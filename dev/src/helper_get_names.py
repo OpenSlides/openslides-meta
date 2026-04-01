@@ -190,11 +190,9 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_generic_valid_constraint_name(
-        fname: str,
-    ) -> str:
+    def get_generic_valid_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of a generic valid constraint"""
-        return f"valid_{fname}_part1"
+        return f"valid_{table_name}_{fname}_part1"
 
     @staticmethod
     @max_length
@@ -221,19 +219,15 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_minimum_constraint_name(
-        fname: str,
-    ) -> str:
+    def get_minimum_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of minimum constraint"""
-        return f"minimum_{fname}"
+        return f"minimum_{table_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_minlength_constraint_name(
-        fname: str,
-    ) -> str:
+    def get_minlength_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of minLength constraint"""
-        return f"minlength_{fname}"
+        return f"minlength_{table_name}_{fname}"
 
     @staticmethod
     @max_length

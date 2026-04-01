@@ -932,7 +932,7 @@ class GenerateCodeBlocks:
                     initially_deferred,
                 )
             text["table"] += Helper.get_generic_field_constraint(
-                own_table_field.column, foreign_tables
+                own_table_field.table, own_table_field.column, foreign_tables
             )
         text["final_info"] = final_info
         return text, error
@@ -1559,7 +1559,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "tuple_of_foreign_table_names": joined_table_names,
                 "foreign_table_ref_lines": "\n".join(foreign_table_ref_lines),
                 "valid_constraint_name": HelperGetNames.get_generic_valid_constraint_name(
-                    own_table_column
+                    own_table_field.table, own_table_column
                 ),
                 "unique_constraint_name": HelperGetNames.get_generic_unique_constraint_name(
                     own_table_name_with_ref_column, own_table_column
@@ -1677,13 +1677,15 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 f" CONSTRAINT {HelperGetNames.get_timezone_constraint_name(table_name, fname)} CHECK (is_timezone({fname}))"
             )
         if (minimum := fdata.get("minimum")) is not None:
-            minimum_constraint_name = HelperGetNames.get_minimum_constraint_name(fname)
+            minimum_constraint_name = HelperGetNames.get_minimum_constraint_name(
+                table_name, fname
+            )
             subst["minimum"] = (
                 f" CONSTRAINT {minimum_constraint_name} CHECK ({fname} >= {minimum})"
             )
         if minLength := fdata.get("minLength"):
             minlength_constraint_name = HelperGetNames.get_minlength_constraint_name(
-                fname
+                table_name, fname
             )
             subst["minLength"] = (
                 f" CONSTRAINT {minlength_constraint_name} CHECK (char_length({fname}) >= {minLength})"
@@ -1719,8 +1721,12 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         return f"    {generic_plain_field_name} integer{unique} GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
 
     @staticmethod
-    def get_generic_field_constraint(own_column: str, foreign_tables: list[str]) -> str:
-        constraint_name = HelperGetNames.get_generic_valid_constraint_name(own_column)
+    def get_generic_field_constraint(
+        collection: str, own_column: str, foreign_tables: list[str]
+    ) -> str:
+        constraint_name = HelperGetNames.get_generic_valid_constraint_name(
+            collection, own_column
+        )
         return f"""    CONSTRAINT {constraint_name} CHECK (split_part({own_column}, '/', 1) IN ('{"','".join(foreign_tables)}')),\n"""
 
     @staticmethod
