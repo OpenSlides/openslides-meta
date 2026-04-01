@@ -1661,13 +1661,30 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         if fdata.get("unique"):
             subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         if (default := fdata.get("default")) is not None:
+            DEFAULT_CONSTRAINT_TEMPLATE = string.Template(
+                " CONSTRAINT ${constraint_name} DEFAULT ${default}"
+            )
+            constraint_name = HelperGetNames.get_default_constraint_name(
+                table_name, fname
+            )
+
             if isinstance(default, str) or type_ in ("string", "text", "timezone"):
-                subst["default"] = f" DEFAULT '{default}'"
+                subst["default"] = DEFAULT_CONSTRAINT_TEMPLATE.substitute(
+                    {"constraint_name": constraint_name, "default": f"'{default}'"}
+                )
             elif isinstance(default, (int, bool, float)):
-                subst["default"] = f" DEFAULT {default}"
+                subst["default"] = DEFAULT_CONSTRAINT_TEMPLATE.substitute(
+                    {"constraint_name": constraint_name, "default": default}
+                )
             elif isinstance(default, list):
-                tmp = '{"' + '", "'.join(default) + '"}' if default else "{}"
-                subst["default"] = f" DEFAULT '{tmp}'"
+                subst["default"] = DEFAULT_CONSTRAINT_TEMPLATE.substitute(
+                    {
+                        "constraint_name": constraint_name,
+                        "default": (
+                            '{"' + '", "'.join(default) + '"}' if default else "'{}'"
+                        ),
+                    }
+                )
             else:
                 raise Exception(
                     f"{table_name}.{fname}: seems to be an invalid default value"
