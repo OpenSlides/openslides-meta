@@ -417,10 +417,10 @@ CREATE TABLE agenda_item_t (
     level integer,
     weight integer,
     content_object_id varchar(100) CONSTRAINT required_agenda_item_content_object_id NOT NULL,
-    content_object_id_motion_id integer CONSTRAINT unique_agenda_item_content_object_id_motion_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_motion_block_id integer CONSTRAINT unique_agenda_item_content_object_id_motion_block_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_assignment_id integer CONSTRAINT unique_agenda_item_content_object_id_assignment_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_topic_id integer CONSTRAINT unique_agenda_item_content_object_id_topic_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_id integer CONSTRAINT unique_agenda_item_content_object_id_motion_id UNIQUE CONSTRAINT generated_always_as_agenda_item_content_object_id_motion_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_block_id integer CONSTRAINT unique_agenda_item_content_object_id_motion_block_id UNIQUE CONSTRAINT generated_always_as_agenda_item_content_object_id_motion6edbb3a GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_assignment_id integer CONSTRAINT unique_agenda_item_content_object_id_assignment_id UNIQUE CONSTRAINT generated_always_as_agenda_item_content_object_id_assignment_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_topic_id integer CONSTRAINT unique_agenda_item_content_object_id_topic_id UNIQUE CONSTRAINT generated_always_as_agenda_item_content_object_id_topic_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_agenda_item_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','motion_block','assignment','topic')),
     parent_id integer,
     meeting_id integer CONSTRAINT required_agenda_item_meeting_id NOT NULL
@@ -530,9 +530,9 @@ CREATE TABLE history_entry_t (
     entries text[],
     original_model_id varchar(256),
     model_id varchar(100),
-    model_id_user_id integer GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'user' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    model_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'motion' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    model_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'assignment' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    model_id_user_id integer CONSTRAINT generated_always_as_history_entry_model_id_user_id GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'user' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    model_id_motion_id integer CONSTRAINT generated_always_as_history_entry_model_id_motion_id GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'motion' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    model_id_assignment_id integer CONSTRAINT generated_always_as_history_entry_model_id_assignment_id GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'assignment' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_history_entry_model_id_part1 CHECK (split_part(model_id, '/', 1) IN ('user','motion','assignment')),
     position_id integer CONSTRAINT required_history_entry_position_id NOT NULL,
     meeting_id integer
@@ -569,11 +569,11 @@ CREATE TABLE list_of_speakers_t (
     CONSTRAINT unique_list_of_speakers_sequential_number_meeting_id UNIQUE (sequential_number, meeting_id),
     moderator_notes text,
     content_object_id varchar(100) CONSTRAINT required_list_of_speakers_content_object_id NOT NULL,
-    content_object_id_motion_id integer CONSTRAINT unique_list_of_speakers_content_object_id_motion_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_motion_block_id integer CONSTRAINT unique_list_of_speakers_content_object_id_motion_block_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_assignment_id integer CONSTRAINT unique_list_of_speakers_content_object_id_assignment_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_topic_id integer CONSTRAINT unique_list_of_speakers_content_object_id_topic_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_meeting_mediafile_id integer CONSTRAINT unique_list_of_speakers_content_object_id_meeting_mediafile_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'meeting_mediafile' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_id integer CONSTRAINT unique_list_of_speakers_content_object_id_motion_id UNIQUE CONSTRAINT generated_always_as_list_of_speakers_content_object_id_m4822372 GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_block_id integer CONSTRAINT unique_list_of_speakers_content_object_id_motion_block_id UNIQUE CONSTRAINT generated_always_as_list_of_speakers_content_object_id_m50027ab GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_assignment_id integer CONSTRAINT unique_list_of_speakers_content_object_id_assignment_id UNIQUE CONSTRAINT generated_always_as_list_of_speakers_content_object_id_abe56f76 GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_topic_id integer CONSTRAINT unique_list_of_speakers_content_object_id_topic_id UNIQUE CONSTRAINT generated_always_as_list_of_speakers_content_object_id_topic_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_meeting_mediafile_id integer CONSTRAINT unique_list_of_speakers_content_object_id_meeting_mediafile_id UNIQUE CONSTRAINT generated_always_as_list_of_speakers_content_object_id_m07d8b8d GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'meeting_mediafile' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_list_of_speakers_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','motion_block','assignment','topic','meeting_mediafile')),
     meeting_id integer CONSTRAINT required_list_of_speakers_meeting_id NOT NULL
 );
@@ -596,8 +596,8 @@ CREATE TABLE mediafile_t (
     published_to_meetings_in_organization_id integer,
     parent_id integer,
     owner_id varchar(100) CONSTRAINT required_mediafile_owner_id NOT NULL,
-    owner_id_meeting_id integer GENERATED ALWAYS AS (CASE WHEN split_part(owner_id, '/', 1) = 'meeting' THEN cast(split_part(owner_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    owner_id_organization_id integer GENERATED ALWAYS AS (CASE WHEN split_part(owner_id, '/', 1) = 'organization' THEN cast(split_part(owner_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    owner_id_meeting_id integer CONSTRAINT generated_always_as_mediafile_owner_id_meeting_id GENERATED ALWAYS AS (CASE WHEN split_part(owner_id, '/', 1) = 'meeting' THEN cast(split_part(owner_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    owner_id_organization_id integer CONSTRAINT generated_always_as_mediafile_owner_id_organization_id GENERATED ALWAYS AS (CASE WHEN split_part(owner_id, '/', 1) = 'organization' THEN cast(split_part(owner_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_mediafile_owner_id_part1 CHECK (split_part(owner_id, '/', 1) IN ('meeting','organization')),
     CONSTRAINT unique_mediafile_title_parent_id_owner_id UNIQUE (title, parent_id, owner_id)
 );
@@ -1058,9 +1058,9 @@ CREATE TABLE option_t (
     poll_id integer,
     used_as_global_option_in_poll_id integer CONSTRAINT unique_option_used_as_global_option_in_poll_id UNIQUE,
     content_object_id varchar(100),
-    content_object_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_user_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'user' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_poll_candidate_list_id integer CONSTRAINT unique_option_content_object_id_poll_candidate_list_id UNIQUE GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'poll_candidate_list' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_id integer CONSTRAINT generated_always_as_option_content_object_id_motion_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_user_id integer CONSTRAINT generated_always_as_option_content_object_id_user_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'user' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_poll_candidate_list_id integer CONSTRAINT unique_option_content_object_id_poll_candidate_list_id UNIQUE CONSTRAINT generated_always_as_option_content_object_id_poll_candidd7449d9 GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'poll_candidate_list' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_option_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','user','poll_candidate_list')),
     meeting_id integer CONSTRAINT required_option_meeting_id NOT NULL,
     CONSTRAINT unique_option_content_object_id_poll_id UNIQUE (content_object_id, poll_id)
@@ -1133,7 +1133,7 @@ CREATE TABLE personal_note_t (
     star boolean,
     meeting_user_id integer CONSTRAINT required_personal_note_meeting_user_id NOT NULL,
     content_object_id varchar(100),
-    content_object_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_id integer CONSTRAINT generated_always_as_personal_note_content_object_id_motion_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_personal_note_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion')),
     meeting_id integer CONSTRAINT required_personal_note_meeting_id NOT NULL,
     CONSTRAINT unique_personal_note_meeting_user_id_content_object_id UNIQUE (meeting_user_id, content_object_id)
@@ -1176,9 +1176,9 @@ CREATE TABLE poll_t (
     sequential_number integer CONSTRAINT required_poll_sequential_number NOT NULL,
     CONSTRAINT unique_poll_sequential_number_meeting_id UNIQUE (sequential_number, meeting_id),
     content_object_id varchar(100) CONSTRAINT required_poll_content_object_id NOT NULL,
-    content_object_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_id integer CONSTRAINT generated_always_as_poll_content_object_id_motion_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_assignment_id integer CONSTRAINT generated_always_as_poll_content_object_id_assignment_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_topic_id integer CONSTRAINT generated_always_as_poll_content_object_id_topic_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_poll_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','assignment','topic')),
     global_option_id integer CONSTRAINT unique_poll_global_option_id UNIQUE,
     meeting_id integer CONSTRAINT required_poll_meeting_id NOT NULL
@@ -1225,17 +1225,17 @@ CREATE TABLE projection_t (
     preview_projector_id integer,
     history_projector_id integer,
     content_object_id varchar(100) CONSTRAINT required_projection_content_object_id NOT NULL,
-    content_object_id_meeting_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'meeting' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_meeting_mediafile_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'meeting_mediafile' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_list_of_speakers_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'list_of_speakers' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_motion_block_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_agenda_item_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'agenda_item' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_poll_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'poll' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_projector_message_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'projector_message' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_projector_countdown_id integer GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'projector_countdown' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_meeting_id integer CONSTRAINT generated_always_as_projection_content_object_id_meeting_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'meeting' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_id integer CONSTRAINT generated_always_as_projection_content_object_id_motion_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_meeting_mediafile_id integer CONSTRAINT generated_always_as_projection_content_object_id_meeting51b9977 GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'meeting_mediafile' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_list_of_speakers_id integer CONSTRAINT generated_always_as_projection_content_object_id_list_of6e51c6f GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'list_of_speakers' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_motion_block_id integer CONSTRAINT generated_always_as_projection_content_object_id_motion_31fedd3 GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion_block' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_assignment_id integer CONSTRAINT generated_always_as_projection_content_object_id_assignment_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'assignment' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_agenda_item_id integer CONSTRAINT generated_always_as_projection_content_object_id_agenda_item_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'agenda_item' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_topic_id integer CONSTRAINT generated_always_as_projection_content_object_id_topic_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_poll_id integer CONSTRAINT generated_always_as_projection_content_object_id_poll_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'poll' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_projector_message_id integer CONSTRAINT generated_always_as_projection_content_object_id_project05617d4 GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'projector_message' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    content_object_id_projector_countdown_id integer CONSTRAINT generated_always_as_projection_content_object_id_project708e3f9 GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'projector_countdown' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_projection_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('meeting','motion','meeting_mediafile','list_of_speakers','motion_block','assignment','agenda_item','topic','poll','projector_message','projector_countdown')),
     meeting_id integer CONSTRAINT required_projection_meeting_id NOT NULL
 );
@@ -1598,9 +1598,9 @@ CREATE INDEX idx_nm_meeting_present_user_ids_user_t_user_id ON nm_meeting_presen
 CREATE TABLE gm_meeting_mediafile_attachment_ids_t (
     meeting_mediafile_id integer NOT NULL CONSTRAINT fk_gm_meeting_mediafile_attachment_ids_t_meeting_mediaficc00c2e REFERENCES meeting_mediafile_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     attachment_id varchar(100) NOT NULL,
-    attachment_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'motion' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_meeting_mediafile_attachment_ids_t_attachment_id_mec23f0c REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
-    attachment_id_topic_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'topic' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_meeting_mediafile_attachment_ids_t_attachment_id_tf2c2308 REFERENCES topic_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
-    attachment_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'assignment' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_meeting_mediafile_attachment_ids_t_attachment_id_af0f87e8 REFERENCES assignment_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    attachment_id_motion_id integer CONSTRAINT generated_always_as_meeting_mediafile_attachment_id GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'motion' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_meeting_mediafile_attachment_ids_t_attachment_id_mec23f0c REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    attachment_id_topic_id integer CONSTRAINT generated_always_as_meeting_mediafile_attachment_id GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'topic' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_meeting_mediafile_attachment_ids_t_attachment_id_tf2c2308 REFERENCES topic_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    attachment_id_assignment_id integer CONSTRAINT generated_always_as_meeting_mediafile_attachment_id GENERATED ALWAYS AS (CASE WHEN split_part(attachment_id, '/', 1) = 'assignment' THEN cast(split_part(attachment_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_meeting_mediafile_attachment_ids_t_attachment_id_af0f87e8 REFERENCES assignment_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_meeting_mediafile_attachment_id_part1 CHECK (split_part(attachment_id, '/', 1) IN ('motion', 'topic', 'assignment')),
     CONSTRAINT unique_meeting_mediafile_id_attachment_id UNIQUE (meeting_mediafile_id, attachment_id)
 );
@@ -1637,7 +1637,7 @@ CREATE INDEX idx_nm_motion_identical_motion_ids_motion_t_identical_moe0b67bf ON 
 CREATE TABLE gm_motion_state_extension_reference_ids_t (
     motion_id integer NOT NULL CONSTRAINT fk_gm_motion_state_extension_reference_ids_t_motion_id_m49e5f09 REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     state_extension_reference_id varchar(100) NOT NULL,
-    state_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(state_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(state_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_motion_state_extension_reference_ids_t_state_exten1eb8dcc REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    state_extension_reference_id_motion_id integer CONSTRAINT generated_always_as_motion_state_extension_reference_id GENERATED ALWAYS AS (CASE WHEN split_part(state_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(state_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_motion_state_extension_reference_ids_t_state_exten1eb8dcc REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_motion_state_extension_reference_id_part1 CHECK (split_part(state_extension_reference_id, '/', 1) IN ('motion')),
     CONSTRAINT unique_motion_id_state_extension_reference_id UNIQUE (motion_id, state_extension_reference_id)
 );
@@ -1648,7 +1648,7 @@ CREATE INDEX idx_gm_motion_state_extension_reference_ids_t_state_extee77cee3 ON 
 CREATE TABLE gm_motion_recommendation_extension_reference_ids_t (
     motion_id integer NOT NULL CONSTRAINT fk_gm_motion_recommendation_extension_reference_ids_t_mo331611e REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     recommendation_extension_reference_id varchar(100) NOT NULL,
-    recommendation_extension_reference_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(recommendation_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(recommendation_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_motion_recommendation_extension_reference_ids_t_re6acbf83 REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    recommendation_extension_reference_id_motion_id integer CONSTRAINT generated_always_as_motion_recommendation_extension_refe8d13a13 GENERATED ALWAYS AS (CASE WHEN split_part(recommendation_extension_reference_id, '/', 1) = 'motion' THEN cast(split_part(recommendation_extension_reference_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_motion_recommendation_extension_reference_ids_t_re6acbf83 REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_motion_recommendation_extension_reference_id_part1 CHECK (split_part(recommendation_extension_reference_id, '/', 1) IN ('motion')),
     CONSTRAINT unique_motion_id_recommendation_extension_reference_id UNIQUE (motion_id, recommendation_extension_reference_id)
 );
@@ -1667,8 +1667,8 @@ CREATE INDEX idx_nm_motion_state_next_state_ids_motion_state_t_previoa964ca1 ON 
 CREATE TABLE gm_organization_tag_tagged_ids_t (
     organization_tag_id integer NOT NULL CONSTRAINT fk_gm_organization_tag_tagged_ids_t_organization_tag_id_4c0ab0b REFERENCES organization_tag_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     tagged_id varchar(100) NOT NULL,
-    tagged_id_committee_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'committee' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_organization_tag_tagged_ids_t_tagged_id_committee_c4b8172 REFERENCES committee_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
-    tagged_id_meeting_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'meeting' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_organization_tag_tagged_ids_t_tagged_id_meeting_id97a619f REFERENCES meeting_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    tagged_id_committee_id integer CONSTRAINT generated_always_as_organization_tag_tagged_id GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'committee' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_organization_tag_tagged_ids_t_tagged_id_committee_c4b8172 REFERENCES committee_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    tagged_id_meeting_id integer CONSTRAINT generated_always_as_organization_tag_tagged_id GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'meeting' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_organization_tag_tagged_ids_t_tagged_id_meeting_id97a619f REFERENCES meeting_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_organization_tag_tagged_id_part1 CHECK (split_part(tagged_id, '/', 1) IN ('committee', 'meeting')),
     CONSTRAINT unique_organization_tag_id_tagged_id UNIQUE (organization_tag_id, tagged_id)
 );
@@ -1688,9 +1688,9 @@ CREATE INDEX idx_nm_poll_voted_ids_user_t_user_id ON nm_poll_voted_ids_user_t (u
 CREATE TABLE gm_tag_tagged_ids_t (
     tag_id integer NOT NULL CONSTRAINT fk_gm_tag_tagged_ids_t_tag_id_tag_t_id REFERENCES tag_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     tagged_id varchar(100) NOT NULL,
-    tagged_id_agenda_item_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'agenda_item' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_tag_tagged_ids_t_tagged_id_agenda_item_id_agenda_item_id REFERENCES agenda_item_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
-    tagged_id_assignment_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'assignment' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_tag_tagged_ids_t_tagged_id_assignment_id_assignment_id REFERENCES assignment_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
-    tagged_id_motion_id integer GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'motion' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_tag_tagged_ids_t_tagged_id_motion_id_motion_id REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    tagged_id_agenda_item_id integer CONSTRAINT generated_always_as_tag_tagged_id GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'agenda_item' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_tag_tagged_ids_t_tagged_id_agenda_item_id_agenda_item_id REFERENCES agenda_item_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    tagged_id_assignment_id integer CONSTRAINT generated_always_as_tag_tagged_id GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'assignment' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_tag_tagged_ids_t_tagged_id_assignment_id_assignment_id REFERENCES assignment_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
+    tagged_id_motion_id integer CONSTRAINT generated_always_as_tag_tagged_id GENERATED ALWAYS AS (CASE WHEN split_part(tagged_id, '/', 1) = 'motion' THEN cast(split_part(tagged_id, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT fk_gm_tag_tagged_ids_t_tagged_id_motion_id_motion_id REFERENCES motion_t(id) ON DELETE CASCADE INITIALLY DEFERRED,
     CONSTRAINT valid_tag_tagged_id_part1 CHECK (split_part(tagged_id, '/', 1) IN ('agenda_item', 'assignment', 'motion')),
     CONSTRAINT unique_tag_id_tagged_id UNIQUE (tag_id, tagged_id)
 );

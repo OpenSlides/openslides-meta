@@ -1263,7 +1263,7 @@ class Helper:
             ${content_field_indices}
         """))
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
+        "    ${gm_content_field} integer CONSTRAINT ${constraint_name} GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
     )
     GM_INDEX_LINE_TEMPLATE = string.Template(
         "CREATE INDEX ${index} ON ${table_name} (${gm_content_field});"
@@ -1519,6 +1519,9 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "foreign_table_name": HelperGetNames.get_table_name(foreign_table_name),
                 "foreign_view_name": foreign_table_name,
                 "gm_content_field": gm_content_field,
+                "constraint_name": HelperGetNames.get_generated_always_as_constraint_name(
+                    own_table_field.table, own_table_column
+                ),
             }
             foreign_table_ref_lines.append(
                 Helper.GM_FOREIGN_TABLE_LINE_TEMPLATE.substitute(subst_dict)
@@ -1739,7 +1742,12 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             )
         else:
             unique = ""
-        return f"    {generic_plain_field_name} integer{unique} GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
+        generated_always_as_constraint_name = (
+            HelperGetNames.get_generated_always_as_constraint_name(
+                table_name, generic_plain_field_name
+            )
+        )
+        return f"    {generic_plain_field_name} integer{unique} CONSTRAINT {generated_always_as_constraint_name} GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
 
     @staticmethod
     def get_generic_field_constraint(
