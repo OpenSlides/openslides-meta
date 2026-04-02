@@ -1437,6 +1437,17 @@ class Helper:
             f"CHECK ({fname} is null or {fname} ~* '^#[a-f0-9]{{6}}$')",
         )
 
+    @staticmethod
+    def get_inline_generated_always_as_constraint(
+        own_table: str, generic_fname: str, own_column: str, foreign_table: str
+    ) -> str:
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_generated_always_as_constraint_name(
+                own_table, generic_fname
+            ),
+            f"GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED",
+        )
+
     @classmethod
     def get_unique_together_constraint_definition(
         cls, table: str, fields: list[str]
@@ -1819,11 +1830,8 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         else:
             unique = ""
 
-        generated_always_as = Helper.get_constraint_with_line_break(
-            HelperGetNames.get_generated_always_as_constraint_name(
-                table_name, generic_plain_field_name
-            ),
-            f"GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED",
+        generated_always_as = Helper.get_inline_generated_always_as_constraint(
+            table_name, generic_plain_field_name, own_column, foreign_table
         )
 
         return f"    {generic_plain_field_name} integer{unique}{generated_always_as},\n"
