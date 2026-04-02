@@ -1401,7 +1401,7 @@ class Helper:
         )
 
     @staticmethod
-    def get_inline_default_constraint(table_name: str, fname: str, default: Any) -> str:
+    def get_inline_default_constraint(table_name: str, fname: str, default: str) -> str:
         return Helper.get_constraint_with_line_break(
             HelperGetNames.get_default_constraint_name(table_name, fname),
             f"DEFAULT {default}",
@@ -1760,23 +1760,20 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         if (default := fdata.get("default")) is not None:
             if isinstance(default, str) or type_ in ("string", "text", "timezone"):
-                subst["default"] = Helper.get_inline_default_constraint(
-                    table_name, fname, f"'{default}'"
-                )
+                default_value = f"'{default}'"
             elif isinstance(default, (int, bool, float)):
-                subst["default"] = Helper.get_inline_default_constraint(
-                    table_name, fname, default
-                )
+                default_value = str(default)
             elif isinstance(default, list):
-                subst["default"] = Helper.get_inline_default_constraint(
-                    table_name,
-                    fname,
-                    '{"' + '", "'.join(default) + '"}' if default else "'{}'",
+                default_value = (
+                    '{"' + '", "'.join(default) + '"}' if default else "'{}'"
                 )
             else:
                 raise Exception(
                     f"{table_name}.{fname}: seems to be an invalid default value"
                 )
+            subst["default"] = Helper.get_inline_default_constraint(
+                table_name, fname, default_value
+            )
         if (enum_ := fdata.get("enum")) or (
             enum_ := fdata.get("items", {}).get("enum")
         ):
