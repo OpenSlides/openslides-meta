@@ -1919,7 +1919,6 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "pg_type": "timestamptz",
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
-    #
     "color": {
         "pg_type": string.Template("varchar(7)${color_constraint}"),
         "method": GenerateCodeBlocks.get_schema_color,
