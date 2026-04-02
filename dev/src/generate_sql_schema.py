@@ -1377,8 +1377,56 @@ class Helper:
         )
 
     @staticmethod
+    def get_constraint_with_line_break(constraint_name: str, check: str) -> str:
+        """
+        Returns contraint with the given name and check.
+        Adds line break and indentation.
+        """
+        return f"\n        CONSTRAINT {constraint_name} {check}"
+
+    @staticmethod
     def get_inline_unique_constraint(table_name: str, fname: str) -> str:
-        return f" CONSTRAINT {HelperGetNames.get_unique_constraint_name(table_name, [fname])} UNIQUE"
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_unique_constraint_name(table_name, [fname]),
+            "UNIQUE",
+        )
+
+    @staticmethod
+    def get_inline_required_constraint(table_name: str, fname: str) -> str:
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_required_constraint_name(table_name, fname),
+            "NOT NULL",
+        )
+
+    @staticmethod
+    def get_inline_default_constraint(table_name: str, fname: str, default: Any) -> str:
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_default_constraint_name(table_name, fname),
+            f"DEFAULT {default}",
+        )
+
+    @staticmethod
+    def get_inline_timezone_constraint(table_name: str, fname: str) -> str:
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_timezone_constraint_name(table_name, fname),
+            f"CHECK (is_timezone({fname}))",
+        )
+
+    @staticmethod
+    def get_inline_minimum_constraint(table_name: str, fname: str, minimum: int) -> str:
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_minimum_constraint_name(table_name, fname),
+            f"CHECK ({fname} >= {minimum})",
+        )
+
+    @staticmethod
+    def get_inline_minlength_constraint(
+        table_name: str, fname: str, minLength: int
+    ) -> str:
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_minlength_constraint_name(table_name, fname),
+            f"CHECK (char_length({fname}) >= {minLength})",
+        )
 
     @classmethod
     def get_unique_together_constraint_definition(
@@ -1403,7 +1451,9 @@ class Helper:
             condition = f"{fname} <@ ARRAY[{enumeration}]::varchar[]"
         else:
             condition = f"{fname} IN ({enumeration})"
-        return f" CONSTRAINT {check_enum_constraint_name} CHECK ({condition})"
+        return Helper.get_constraint_with_line_break(
+            check_enum_constraint_name, f"CHECK ({condition})"
+        )
 
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
@@ -1694,35 +1744,25 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             if fname == "id":
                 subst["required"] = " NOT NULL"
             else:
-                subst["required"] = (
-                    f" CONSTRAINT {HelperGetNames.get_required_constraint_name(table_name, fname)} NOT NULL"
+                subst["required"] = Helper.get_inline_required_constraint(
+                    table_name, fname
                 )
         if fdata.get("unique"):
             subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         if (default := fdata.get("default")) is not None:
-            DEFAULT_CONSTRAINT_TEMPLATE = string.Template(
-                " CONSTRAINT ${constraint_name} DEFAULT ${default}"
-            )
-            constraint_name = HelperGetNames.get_default_constraint_name(
-                table_name, fname
-            )
-
             if isinstance(default, str) or type_ in ("string", "text", "timezone"):
-                subst["default"] = DEFAULT_CONSTRAINT_TEMPLATE.substitute(
-                    {"constraint_name": constraint_name, "default": f"'{default}'"}
+                subst["default"] = Helper.get_inline_default_constraint(
+                    table_name, fname, f"'{default}'"
                 )
             elif isinstance(default, (int, bool, float)):
-                subst["default"] = DEFAULT_CONSTRAINT_TEMPLATE.substitute(
-                    {"constraint_name": constraint_name, "default": default}
+                subst["default"] = Helper.get_inline_default_constraint(
+                    table_name, fname, default
                 )
             elif isinstance(default, list):
-                subst["default"] = DEFAULT_CONSTRAINT_TEMPLATE.substitute(
-                    {
-                        "constraint_name": constraint_name,
-                        "default": (
-                            '{"' + '", "'.join(default) + '"}' if default else "'{}'"
-                        ),
-                    }
+                subst["default"] = Helper.get_inline_default_constraint(
+                    table_name,
+                    fname,
+                    '{"' + '", "'.join(default) + '"}' if default else "'{}'",
                 )
             else:
                 raise Exception(
@@ -1733,22 +1773,16 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         ):
             subst["check_enum"] = Helper.get_check_enum(table_name, fname, enum_, type_)
         if type_ == "timezone":
-            subst["check_timezone"] = (
-                f" CONSTRAINT {HelperGetNames.get_timezone_constraint_name(table_name, fname)} CHECK (is_timezone({fname}))"
+            subst["check_timezone"] = Helper.get_inline_timezone_constraint(
+                table_name, fname
             )
         if (minimum := fdata.get("minimum")) is not None:
-            minimum_constraint_name = HelperGetNames.get_minimum_constraint_name(
-                table_name, fname
-            )
-            subst["minimum"] = (
-                f" CONSTRAINT {minimum_constraint_name} CHECK ({fname} >= {minimum})"
+            subst["minimum"] = Helper.get_inline_minimum_constraint(
+                table_name, fname, minimum
             )
         if minLength := fdata.get("minLength"):
-            minlength_constraint_name = HelperGetNames.get_minlength_constraint_name(
-                table_name, fname
-            )
-            subst["minLength"] = (
-                f" CONSTRAINT {minlength_constraint_name} CHECK (char_length({fname}) >= {minLength})"
+            subst["minLength"] = Helper.get_inline_minlength_constraint(
+                table_name, fname, minLength
             )
         if comment := fdata.get("description"):
             text["alter_table"] = Helper.get_post_view_comment(
@@ -1778,12 +1812,15 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             )
         else:
             unique = ""
-        generated_always_as_constraint_name = (
+
+        generated_always_as = Helper.get_constraint_with_line_break(
             HelperGetNames.get_generated_always_as_constraint_name(
                 table_name, generic_plain_field_name
-            )
+            ),
+            f"GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED",
         )
-        return f"    {generic_plain_field_name} integer{unique} CONSTRAINT {generated_always_as_constraint_name} GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
+
+        return f"    {generic_plain_field_name} integer{unique}{generated_always_as},\n"
 
     @staticmethod
     def get_generic_field_constraint(
