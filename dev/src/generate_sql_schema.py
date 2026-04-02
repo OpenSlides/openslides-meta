@@ -1243,18 +1243,21 @@ class Helper:
     FIELD_TEMPLATE = string.Template(
         "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${check_timezone}${minimum}${minLength}${default},\n"
     )
+    N_M_RELATIONAL_FIELD_TEMPLATE = string.Template(
+        indent(
+            dedent("""\
+        ${field} integer
+            CONSTRAINT ${required_constraint_name} NOT NULL
+            CONSTRAINT ${fk_name} REFERENCES ${table} (id)
+            ON DELETE CASCADE
+            INITIALLY DEFERRED,"""),
+            "    ",
+        )
+    )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${field1} integer
-                    CONSTRAINT ${required_constraint_name_1} NOT NULL
-                    CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id)
-                    ON DELETE CASCADE
-                    INITIALLY DEFERRED,
-                ${field2} integer
-                    CONSTRAINT ${required_constraint_name_2} NOT NULL
-                    CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id)
-                    ON DELETE CASCADE
-                    INITIALLY DEFERRED,
+            ${field1_definition}
+            ${field2_definition}
                 CONSTRAINT ${pk_constraint_name} PRIMARY KEY (${list_of_keys})
             );
             CREATE INDEX ${index_1} ON ${table_name} (${field1});
@@ -1565,20 +1568,30 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
             {
                 "table_name": table_name,
+                "field1_definition": Helper.N_M_RELATIONAL_FIELD_TEMPLATE.substitute(
+                    {
+                        "field": field1,
+                        "required_constraint_name": HelperGetNames.get_required_constraint_name(
+                            nm_table_name, field1
+                        ),
+                        "fk_name": fk_idx1[0],
+                        "table": table1,
+                    }
+                ),
+                "field2_definition": Helper.N_M_RELATIONAL_FIELD_TEMPLATE.substitute(
+                    {
+                        "field": field2,
+                        "required_constraint_name": HelperGetNames.get_required_constraint_name(
+                            nm_table_name, field2
+                        ),
+                        "fk_name": fk_idx2[0],
+                        "table": table2,
+                    }
+                ),
                 "field1": field1,
-                "fk_name_1": fk_idx1[0],
                 "index_1": fk_idx1[1],
-                "table1": table1,
-                "required_constraint_name_1": HelperGetNames.get_required_constraint_name(
-                    nm_table_name, field1
-                ),
                 "field2": field2,
-                "fk_name_2": fk_idx2[0],
                 "index_2": fk_idx2[1],
-                "table2": table2,
-                "required_constraint_name_2": HelperGetNames.get_required_constraint_name(
-                    nm_table_name, field2
-                ),
                 "pk_constraint_name": HelperGetNames.get_nm_pk_constraint_name(
                     table_name
                 ),
