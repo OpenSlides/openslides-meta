@@ -243,6 +243,12 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_color_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of minLength constraint"""
+        return f"color_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
     def get_generated_always_as_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of minLength constraint"""
         return f"generated_always_as_{table_name}_{fname}"

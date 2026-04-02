@@ -493,7 +493,9 @@ class GenerateCodeBlocks:
         subst, szt = Helper.get_initials(table_name, fname, type_, fdata)
         text.update(szt)
         tmpl = FIELD_TYPES[type_]["pg_type"]
-        subst["type"] = tmpl.substitute({"field_name": fname})
+        subst["type"] = tmpl.substitute(
+            {"color_constraint": Helper.get_inline_color_constraint(table_name, fname)}
+        )
         text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
         return text, ""
 
@@ -1428,6 +1430,13 @@ class Helper:
             f"CHECK (char_length({fname}) >= {minLength})",
         )
 
+    @staticmethod
+    def get_inline_color_constraint(table_name: str, fname: str) -> str:
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_color_constraint_name(table_name, fname),
+            f"CHECK ({fname} is null or {fname} ~* '^#[a-f0-9]{{6}}$')",
+        )
+
     @classmethod
     def get_unique_together_constraint_definition(
         cls, table: str, fields: list[str]
@@ -1910,10 +1919,9 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "pg_type": "timestamptz",
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
+    #
     "color": {
-        "pg_type": string.Template(
-            "varchar(7) CHECK (${field_name} is null or ${field_name} ~* '^#[a-f0-9]{6}$$')"
-        ),
+        "pg_type": string.Template("varchar(7)${color_constraint}"),
         "method": GenerateCodeBlocks.get_schema_color,
     },
     "string[]": {
