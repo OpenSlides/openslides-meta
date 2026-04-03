@@ -1446,6 +1446,13 @@ class Helper:
         )
 
     @staticmethod
+    def get_inline_maximum_constraint(table_name: str, fname: str, maximum: int) -> str:
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_maximum_constraint_name(table_name, fname),
+            f"CHECK ({fname} <= {maximum})",
+        )
+
+    @staticmethod
     def get_inline_minlength_constraint(
         table_name: str, fname: str, minLength: int
     ) -> str:
@@ -1837,9 +1844,8 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 table_name, fname, minimum
             )
         if (maximum := fdata.get("maximum")) is not None:
-            max_constraint_name = HelperGetNames.get_maximum_constraint_name(fname)
-            subst["maximum"] = (
-                f" CONSTRAINT {max_constraint_name} CHECK ({fname} <= {maximum})"
+            subst["maximum"] = Helper.get_inline_maximum_constraint(
+                table_name, fname, maximum
             )
         if minLength := fdata.get("minLength"):
             subst["minLength"] = Helper.get_inline_minlength_constraint(

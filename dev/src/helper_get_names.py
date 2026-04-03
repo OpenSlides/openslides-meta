@@ -240,9 +240,9 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_maximum_constraint_name(fname: str) -> str:
+    def get_maximum_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of maximum constraint"""
-        return f"maximum_{fname}"
+        return f"maximum_{table_name}_{fname}"
 
     @staticmethod
     @max_length

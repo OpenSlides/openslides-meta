@@ -825,7 +825,8 @@ CREATE TABLE meeting_t (
     export_pdf_pagenumber_alignment enum_meeting_export_pdf_pagenumber_alignment
         CONSTRAINT default_meeting_export_pdf_pagenumber_alignment DEFAULT 'center',
     export_pdf_fontsize integer
-        CONSTRAINT minimum_meeting_export_pdf_fontsize CHECK (export_pdf_fontsize >= 10) CONSTRAINT maximum_export_pdf_fontsize CHECK (export_pdf_fontsize <= 12)
+        CONSTRAINT minimum_meeting_export_pdf_fontsize CHECK (export_pdf_fontsize >= 10)
+        CONSTRAINT maximum_meeting_export_pdf_fontsize CHECK (export_pdf_fontsize <= 12)
         CONSTRAINT default_meeting_export_pdf_fontsize DEFAULT 10,
     export_pdf_line_height double precision
         CONSTRAINT minimum_meeting_export_pdf_line_height CHECK (export_pdf_line_height >= 1.0)
