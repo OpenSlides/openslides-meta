@@ -1,3 +1,4 @@
+import logging
 import string
 from collections import defaultdict
 from collections.abc import Callable
@@ -20,6 +21,12 @@ from .helper_get_names import (
 
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 MODELS: dict[str, dict[str, Any]] = {}
+
+
+# Set log level for sqlfluff
+for name in logging.root.manager.loggerDict:
+    if "sqlfluff" in name:
+        logging.getLogger(name).setLevel(logging.WARN)
 
 
 class SchemaZoneTexts(TypedDict, total=False):
@@ -248,11 +255,7 @@ class GenerateCodeBlocks:
             # TODO: needs to be filled in the get_*_relation_*_type functions
             if code := schema_zone_texts["create_trigger_notify"]:
                 create_trigger_notify_code += code + "\n"
-<<<<<<< HEAD
-        print(missing_handled_collections_meta_attributes)
-=======
         enum_definitions = Helper.get_enum_types_definitions()
->>>>>>> ec550aa (Use real enums (#424))
 
         return (
             enum_definitions,
@@ -497,7 +500,9 @@ class GenerateCodeBlocks:
         subst, szt = Helper.get_initials(table_name, fname, type_, fdata)
         text.update(szt)
         tmpl = FIELD_TYPES[type_]["pg_type"]
-        subst["type"] = tmpl.substitute({"field_name": fname})
+        subst["type"] = tmpl.substitute(
+            {"color_constraint": Helper.get_inline_color_constraint(table_name, fname)}
+        )
         text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
         return text, ""
 
@@ -935,7 +940,7 @@ class GenerateCodeBlocks:
                     initially_deferred,
                 )
             text["table"] += Helper.get_generic_field_constraint(
-                own_table_field.column, foreign_tables
+                own_table_field.table, own_table_field.column, foreign_tables
             )
         text["final_info"] = final_info
         return text, error
@@ -1259,19 +1264,35 @@ class Helper:
             "    ",
         )
     )
+    N_M_RELATIONAL_FIELD_TEMPLATE = string.Template(
+        indent(
+            dedent("""\
+        ${field} integer
+            CONSTRAINT ${required_constraint_name} NOT NULL
+            CONSTRAINT ${fk_name} REFERENCES ${table} (id)
+            ON DELETE CASCADE
+            INITIALLY DEFERRED,"""),
+            "    ",
+        )
+    )
     INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${field1} integer NOT NULL CONSTRAINT ${fk_name_1} REFERENCES ${table1} (id) ON DELETE CASCADE INITIALLY DEFERRED,
-                ${field2} integer NOT NULL CONSTRAINT ${fk_name_2} REFERENCES ${table2} (id) ON DELETE CASCADE INITIALLY DEFERRED,
-                PRIMARY KEY (${list_of_keys})
+            ${field1_definition}
+            ${field2_definition}
+                CONSTRAINT ${pk_constraint_name} PRIMARY KEY (${list_of_keys})
             );
             CREATE INDEX ${index_1} ON ${table_name} (${field1});
             CREATE INDEX ${index_2} ON ${table_name} (${field2});
         """))
     INTERMEDIATE_TABLE_G_M_RELATION_TEMPLATE = string.Template(dedent("""
             CREATE TABLE ${table_name} (
-                ${own_table_name_with_ref_column} integer NOT NULL CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column}) ON DELETE CASCADE INITIALLY DEFERRED,
-                ${own_table_column} varchar(100) NOT NULL,
+                ${own_table_name_with_ref_column} integer
+                    CONSTRAINT ${required_constraint_name_1} NOT NULL
+                    CONSTRAINT ${fk_name} REFERENCES ${own_table_name}(${own_table_ref_column})
+                    ON DELETE CASCADE
+                    INITIALLY DEFERRED,
+                ${own_table_column} varchar(100)
+                    CONSTRAINT ${required_constraint_name_2} NOT NULL,
             ${foreign_table_ref_lines}
                 CONSTRAINT ${valid_constraint_name} CHECK (split_part(${own_table_column}, '/', 1) IN ${tuple_of_foreign_table_names}),
                 CONSTRAINT ${unique_constraint_name} UNIQUE (${own_table_name_with_ref_column}, ${own_table_column})
@@ -1281,7 +1302,15 @@ class Helper:
             ${content_field_indices}
         """))
     GM_FOREIGN_TABLE_LINE_TEMPLATE = string.Template(
-        "    ${gm_content_field} integer GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id) ON DELETE CASCADE INITIALLY DEFERRED,"
+        indent(
+            dedent("""\
+            ${gm_content_field} integer
+                CONSTRAINT ${constraint_name} GENERATED ALWAYS AS (CASE WHEN split_part(${own_table_column}, '/', 1) = '${foreign_view_name}' THEN cast(split_part(${own_table_column}, '/', 2) AS INTEGER) ELSE null END) STORED
+                CONSTRAINT ${fk_name} REFERENCES ${foreign_table_name}(id)
+                ON DELETE CASCADE
+                INITIALLY DEFERRED,"""),
+            "    ",
+        )
     )
     GM_INDEX_LINE_TEMPLATE = string.Template(
         "CREATE INDEX ${index} ON ${table_name} (${gm_content_field});"
@@ -1374,10 +1403,15 @@ class Helper:
         )
 
     @staticmethod
+    def get_constraint_with_line_break(constraint_name: str, check: str) -> str:
+        """
+        Returns contraint with the given name and check.
+        Adds line break and indentation.
+        """
+        return f"\n        CONSTRAINT {constraint_name} {check}"
+
+    @staticmethod
     def get_inline_unique_constraint(table_name: str, fname: str) -> str:
-<<<<<<< HEAD
-        return f" CONSTRAINT {HelperGetNames.get_unique_constraint_name(table_name, [fname])} UNIQUE"
-=======
         return Helper.get_constraint_with_line_break(
             HelperGetNames.get_unique_constraint_name(table_name, [fname]),
             "UNIQUE",
@@ -1444,7 +1478,6 @@ class Helper:
             ),
             f"GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED",
         )
->>>>>>> ec550aa (Use real enums (#424))
 
     @classmethod
     def get_unique_together_constraint_definition(
@@ -1453,25 +1486,6 @@ class Helper:
         return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE ({', '.join(fields)}),\n"
 
     @staticmethod
-<<<<<<< HEAD
-    def get_check_enum(
-        table_name: str, fname: str, enum_: list[Any], type_: str
-    ) -> str:
-        check_enum_constraint_name = HelperGetNames.get_check_enum_constraint_name(
-            table_name, fname
-        )
-        if type_.startswith("number"):
-            enumeration = ", ".join([str(item) for item in enum_])
-        elif type_.startswith("string"):
-            enumeration = ", ".join([f"'{item}'" for item in enum_])
-        else:
-            raise Exception(f"enum for type {type_} not implemented")
-        if type_.endswith("[]"):
-            condition = f"{fname} <@ ARRAY[{enumeration}]::varchar[]"
-        else:
-            condition = f"{fname} IN ({enumeration})"
-        return f" CONSTRAINT {check_enum_constraint_name} CHECK ({condition})"
-=======
     def get_enum_types_definitions() -> str:
         result = "\n"
         for name, values in InternalHelper.ENUMS.items():
@@ -1482,7 +1496,6 @@ class Helper:
                 }
             )
         return result
->>>>>>> ec550aa (Use real enums (#424))
 
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
@@ -1574,14 +1587,33 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
             {
                 "table_name": table_name,
+                "field1_definition": Helper.N_M_RELATIONAL_FIELD_TEMPLATE.substitute(
+                    {
+                        "field": field1,
+                        "required_constraint_name": HelperGetNames.get_required_constraint_name(
+                            nm_table_name, field1
+                        ),
+                        "fk_name": fk_idx1[0],
+                        "table": table1,
+                    }
+                ),
+                "field2_definition": Helper.N_M_RELATIONAL_FIELD_TEMPLATE.substitute(
+                    {
+                        "field": field2,
+                        "required_constraint_name": HelperGetNames.get_required_constraint_name(
+                            nm_table_name, field2
+                        ),
+                        "fk_name": fk_idx2[0],
+                        "table": table2,
+                    }
+                ),
                 "field1": field1,
-                "fk_name_1": fk_idx1[0],
                 "index_1": fk_idx1[1],
-                "table1": table1,
                 "field2": field2,
-                "fk_name_2": fk_idx2[0],
                 "index_2": fk_idx2[1],
-                "table2": table2,
+                "pk_constraint_name": HelperGetNames.get_nm_pk_constraint_name(
+                    table_name
+                ),
                 "list_of_keys": ", ".join([field1, field2]),
             }
         )
@@ -1619,6 +1651,9 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "foreign_table_name": HelperGetNames.get_table_name(foreign_table_name),
                 "foreign_view_name": foreign_table_name,
                 "gm_content_field": gm_content_field,
+                "constraint_name": HelperGetNames.get_generated_always_as_constraint_name(
+                    own_table_field.table, own_table_column
+                ),
             }
             foreign_table_ref_lines.append(
                 Helper.GM_FOREIGN_TABLE_LINE_TEMPLATE.substitute(subst_dict)
@@ -1657,8 +1692,14 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 "own_table_column": own_table_column,
                 "tuple_of_foreign_table_names": joined_table_names,
                 "foreign_table_ref_lines": "\n".join(foreign_table_ref_lines),
+                "required_constraint_name_1": HelperGetNames.get_required_constraint_name(
+                    gm_table_name, own_table_name_with_ref_column
+                ),
+                "required_constraint_name_2": HelperGetNames.get_required_constraint_name(
+                    gm_table_name, own_table_column
+                ),
                 "valid_constraint_name": HelperGetNames.get_generic_valid_constraint_name(
-                    own_table_column
+                    own_table_field.table, own_table_column
                 ),
                 "unique_constraint_name": HelperGetNames.get_generic_unique_constraint_name(
                     own_table_name_with_ref_column, own_table_column
@@ -1770,50 +1811,45 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         subst_type = enum_type or FIELD_TYPES[type_]["pg_type"]
         subst.update({"field_name": fname, "type": subst_type})
         if fdata.get("required"):
-            subst["required"] = " NOT NULL"
+            if fname == "id":
+                subst["required"] = " NOT NULL"
+            else:
+                subst["required"] = Helper.get_inline_required_constraint(
+                    table_name, fname
+                )
         if fdata.get("unique"):
             subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         if (default := fdata.get("default")) is not None:
             if isinstance(default, str) or type_ in ("string", "text", "timezone"):
-                subst["default"] = f" DEFAULT '{default}'"
+                default_value = f"'{default}'"
             elif isinstance(default, (int, bool, float)):
-                subst["default"] = f" DEFAULT {default}"
+                default_value = str(default)
             elif isinstance(default, list):
-                tmp = '{"' + '", "'.join(default) + '"}' if default else "{}"
-                subst["default"] = f" DEFAULT '{tmp}'"
+                default_value = (
+                    '{"' + '", "'.join(default) + '"}' if default else "'{}'"
+                )
             else:
                 raise Exception(
                     f"{table_name}.{fname}: seems to be an invalid default value"
                 )
-<<<<<<< HEAD
-        if (enum_ := fdata.get("enum")) or (
-            enum_ := fdata.get("items", {}).get("enum")
-        ):
-            subst["check_enum"] = Helper.get_check_enum(table_name, fname, enum_, type_)
-=======
             subst["default"] = Helper.get_inline_default_constraint(
                 table_name, fname, default_value
             )
->>>>>>> ec550aa (Use real enums (#424))
         if type_ == "timezone":
-            subst["check_timezone"] = (
-                f" CONSTRAINT {HelperGetNames.get_timezone_constraint_name(table_name, fname)} CHECK (is_timezone({fname}))"
+            subst["check_timezone"] = Helper.get_inline_timezone_constraint(
+                table_name, fname
             )
         if (minimum := fdata.get("minimum")) is not None:
-            minimum_constraint_name = HelperGetNames.get_minimum_constraint_name(fname)
-            subst["minimum"] = (
-                f" CONSTRAINT {minimum_constraint_name} CHECK ({fname} >= {minimum})"
+            subst["minimum"] = Helper.get_inline_minimum_constraint(
+                table_name, fname, minimum
             )
         if (maximum := fdata.get("maximum")) is not None:
             subst["maximum"] = Helper.get_inline_maximum_constraint(
                 table_name, fname, maximum
             )
         if minLength := fdata.get("minLength"):
-            minlength_constraint_name = HelperGetNames.get_minlength_constraint_name(
-                fname
-            )
-            subst["minLength"] = (
-                f" CONSTRAINT {minlength_constraint_name} CHECK (char_length({fname}) >= {minLength})"
+            subst["minLength"] = Helper.get_inline_minlength_constraint(
+                table_name, fname, minLength
             )
         if comment := fdata.get("description"):
             text["alter_table"] = Helper.get_post_view_comment(
@@ -1843,11 +1879,20 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             )
         else:
             unique = ""
-        return f"    {generic_plain_field_name} integer{unique} GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED,\n"
+
+        generated_always_as = Helper.get_inline_generated_always_as_constraint(
+            table_name, generic_plain_field_name, own_column, foreign_table
+        )
+
+        return f"    {generic_plain_field_name} integer{unique}{generated_always_as},\n"
 
     @staticmethod
-    def get_generic_field_constraint(own_column: str, foreign_tables: list[str]) -> str:
-        constraint_name = HelperGetNames.get_generic_valid_constraint_name(own_column)
+    def get_generic_field_constraint(
+        collection: str, own_column: str, foreign_tables: list[str]
+    ) -> str:
+        constraint_name = HelperGetNames.get_generic_valid_constraint_name(
+            collection, own_column
+        )
         return f"""    CONSTRAINT {constraint_name} CHECK (split_part({own_column}, '/', 1) IN ('{"','".join(foreign_tables)}')),\n"""
 
     @staticmethod
@@ -1930,9 +1975,7 @@ FIELD_TYPES: dict[str, dict[str, Any]] = {
         "method": GenerateCodeBlocks.get_schema_simple_types,
     },
     "color": {
-        "pg_type": string.Template(
-            "varchar(7) CHECK (${field_name} is null or ${field_name} ~* '^#[a-f0-9]{6}$$')"
-        ),
+        "pg_type": string.Template("varchar(7)${color_constraint}"),
         "method": GenerateCodeBlocks.get_schema_color,
     },
     "string[]": {
@@ -2045,7 +2088,6 @@ def main() -> None:
         dest.write(
             f"\n/*   Missing attribute handling for {', '.join(missing_handled_attributes)} */"
         )
-        print(missing_handled_collections_meta_attributes)
         if missing_handled_collections_meta_attributes:
             dest.write(
                 f"\n/*   Missing handling for collections _meta attributes: {', '.join(missing_handled_collections_meta_attributes)} */"
