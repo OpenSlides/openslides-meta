@@ -190,11 +190,9 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_generic_valid_constraint_name(
-        fname: str,
-    ) -> str:
+    def get_generic_valid_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of a generic valid constraint"""
-        return f"valid_{fname}_part1"
+        return f"valid_{table_name}_{fname}_part1"
 
     @staticmethod
     @max_length
@@ -221,19 +219,45 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_minimum_constraint_name(
-        fname: str,
-    ) -> str:
-        """gets the name of minimum constraint"""
-        return f"minimum_{fname}"
+    def get_required_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of required constraint"""
+        return f"required_{table_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_minlength_constraint_name(
-        fname: str,
-    ) -> str:
+    def get_default_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of default constraint"""
+        return f"default_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_minimum_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of minimum constraint"""
+        return f"minimum_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_minlength_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of minLength constraint"""
-        return f"minlength_{fname}"
+        return f"minlength_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_color_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of minLength constraint"""
+        return f"color_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_generated_always_as_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of minLength constraint"""
+        return f"generated_always_as_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_nm_pk_constraint_name(nm_table_name: str) -> str:
+        """gets the name of a foreign key constraint."""
+        return f"pk_{nm_table_name}"
 
     @staticmethod
     @max_length
