@@ -16,20 +16,20 @@ DEFAULT_COLLECTIONS_DIR = os.path.join(ROOT, "collections")
 
 
 def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
-    joined_collections = ["_meta:\n"]
+    result = {}
 
-    meta_text = Path(meta_file).read_text()
-    joined_collections.extend(
-        f"  {line}" for line in meta_text.splitlines(keepends=True)
-    )
+    with open(meta_file, encoding="utf-8") as f:
+        meta_data = yaml.safe_load(f)
+        result["_meta"] = meta_data
 
     collections_path = Path(collections_dir)
     yaml_files = sorted(collections_path.glob("*.yml"))
 
     for yaml_file in yaml_files:
-        joined_collections.append(f"{yaml_file.stem}:\n")
-        for line in yaml_file.read_text().splitlines(keepends=True):
-            joined_collections.append(f"  {line}")
+        with open(yaml_file, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+            result[yaml_file.stem] = data
 
     header = (
         "# GENERATED FILE - DO NOT EDIT MANUALLY\n"
@@ -37,7 +37,6 @@ def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
         "---\n"
     )
 
-    result = yaml.safe_load("".join(joined_collections))
     yaml_body = yaml.dump(
         result,
         default_flow_style=False,
@@ -212,10 +211,14 @@ class HelperGetNames:
         return f"unique_{table_name}_{'_'.join(fields)}"
 
     @staticmethod
+    def get_enum_name_for_column(table_name: str, fname: str) -> str:
+        """gets the name of the enum type"""
+        return HelperGetNames.get_enum_name(f"{table_name}_{fname}")
+
+    @staticmethod
     @max_length
-    def get_check_enum_constraint_name(table_name: str, fname: str) -> str:
-        """gets the name of check enum constraint"""
-        return f"enum_{table_name}_{fname}"
+    def get_enum_name(enum: str) -> str:
+        return f"enum_{enum}"
 
     @staticmethod
     @max_length
@@ -237,6 +240,12 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_maximum_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of maximum constraint"""
+        return f"maximum_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
     def get_minlength_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of minLength constraint"""
         return f"minlength_{table_name}_{fname}"
@@ -244,19 +253,19 @@ class HelperGetNames:
     @staticmethod
     @max_length
     def get_color_constraint_name(table_name: str, fname: str) -> str:
-        """gets the name of minLength constraint"""
+        """gets the name of color constraint"""
         return f"color_{table_name}_{fname}"
 
     @staticmethod
     @max_length
     def get_generated_always_as_constraint_name(table_name: str, fname: str) -> str:
-        """gets the name of minLength constraint"""
+        """gets the name of GENERATED ALWAYS AS constraint"""
         return f"generated_always_as_{table_name}_{fname}"
 
     @staticmethod
     @max_length
     def get_nm_pk_constraint_name(nm_table_name: str) -> str:
-        """gets the name of a foreign key constraint."""
+        """gets the name of a primary key constraint"""
         return f"pk_{nm_table_name}"
 
     @staticmethod
@@ -385,6 +394,7 @@ class HelperGetNames:
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}
+    ENUMS: dict[str, list[str]] = {}
     checksum: str = ""
     ref_compiled = compiled = re.compile(r"(^\w+\b).*?\((.*?)\)")
 
@@ -402,6 +412,8 @@ class InternalHelper:
 
         # Load and parse models.yml
         cls.MODELS = yaml.safe_load(models_yml)
+        for name, values in cls.MODELS["_meta"].get("enum_definitions", {}).items():
+            cls.ENUMS[HelperGetNames.get_enum_name(name)] = values
         cls.check_field_length()
         return cls.MODELS, checksum
 

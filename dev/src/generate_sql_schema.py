@@ -1,3 +1,4 @@
+import logging
 import string
 from collections import defaultdict
 from collections.abc import Callable
@@ -20,6 +21,12 @@ from .helper_get_names import (
 
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 MODELS: dict[str, dict[str, Any]] = {}
+
+
+# Set log level for sqlfluff
+for name in logging.root.manager.loggerDict:
+    if "sqlfluff" in name:
+        logging.getLogger(name).setLevel(logging.WARN)
 
 
 class SchemaZoneTexts(TypedDict, total=False):
@@ -58,6 +65,7 @@ class SubstDict(TypedDict, total=False):
     required: str
     default: str
     minimum: str
+    maximum: str
     minLength: str
     deferred: str
     check_enum: str
@@ -83,6 +91,7 @@ class GenerateCodeBlocks:
         str,
         str,
         str,
+        str,
         list[str],
         list[str],
         str,
@@ -96,6 +105,7 @@ class GenerateCodeBlocks:
     ]:
         """
         Return values:
+          enum_definitions: definitions of the enum types
           pre_code: Type definitions, generated trigger definitions etc., which should all appear before first table definitions
           table_name_code: All table definitions
           view_name_code: All view definitions, after all views, because of view field definition by sql
@@ -122,6 +132,7 @@ class GenerateCodeBlocks:
             "type",
             "restriction_mode",
             "minimum",
+            "maximum",
             "calculated",
             "description",
             "read_only",
@@ -138,6 +149,7 @@ class GenerateCodeBlocks:
         collection_meta_handled_attributes = {
             "unique_together",
         }
+        enum_definitions: str = ""
         pre_code: str = ""
         table_name_code: str = ""
         view_name_code: str = ""
@@ -243,8 +255,10 @@ class GenerateCodeBlocks:
             # TODO: needs to be filled in the get_*_relation_*_type functions
             if code := schema_zone_texts["create_trigger_notify"]:
                 create_trigger_notify_code += code + "\n"
+        enum_definitions = Helper.get_enum_types_definitions()
 
         return (
+            enum_definitions,
             pre_code,
             table_name_code,
             view_name_code,
@@ -1230,11 +1244,25 @@ class Helper:
             END;
             $$not_null_trigger$$ language plpgsql;
         """))
+    ENUM_DEFINITION_TEMPLATE = string.Template(
+        "CREATE TYPE ${name} AS ENUM (${values});\n\n"
+    )
     COLLECTION_FROM_TABLE_TEMPLATE = string.Template(
         "${parameter} := SUBSTRING(${table_t} FOR LENGTH(${table_t}) - 2);"
     )
     FIELD_TEMPLATE = string.Template(
-        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${check_timezone}${minimum}${minLength}${default},\n"
+        "    ${field_name} ${type}${primary_key}${required}${unique}${check_enum}${check_timezone}${minimum}${maximum}${minLength}${default},\n"
+    )
+    N_M_RELATIONAL_FIELD_TEMPLATE = string.Template(
+        indent(
+            dedent("""\
+        ${field} integer
+            CONSTRAINT ${required_constraint_name} NOT NULL
+            CONSTRAINT ${fk_name} REFERENCES ${table} (id)
+            ON DELETE CASCADE
+            INITIALLY DEFERRED,"""),
+            "    ",
+        )
     )
     N_M_RELATIONAL_FIELD_TEMPLATE = string.Template(
         indent(
@@ -1418,6 +1446,13 @@ class Helper:
         )
 
     @staticmethod
+    def get_inline_maximum_constraint(table_name: str, fname: str, maximum: int) -> str:
+        return Helper.get_constraint_with_line_break(
+            HelperGetNames.get_maximum_constraint_name(table_name, fname),
+            f"CHECK ({fname} <= {maximum})",
+        )
+
+    @staticmethod
     def get_inline_minlength_constraint(
         table_name: str, fname: str, minLength: int
     ) -> str:
@@ -1451,25 +1486,16 @@ class Helper:
         return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE ({', '.join(fields)}),\n"
 
     @staticmethod
-    def get_check_enum(
-        table_name: str, fname: str, enum_: list[Any], type_: str
-    ) -> str:
-        check_enum_constraint_name = HelperGetNames.get_check_enum_constraint_name(
-            table_name, fname
-        )
-        if type_.startswith("number"):
-            enumeration = ", ".join([str(item) for item in enum_])
-        elif type_.startswith("string"):
-            enumeration = ", ".join([f"'{item}'" for item in enum_])
-        else:
-            raise Exception(f"enum for type {type_} not implemented")
-        if type_.endswith("[]"):
-            condition = f"{fname} <@ ARRAY[{enumeration}]::varchar[]"
-        else:
-            condition = f"{fname} IN ({enumeration})"
-        return Helper.get_constraint_with_line_break(
-            check_enum_constraint_name, f"CHECK ({condition})"
-        )
+    def get_enum_types_definitions() -> str:
+        result = "\n"
+        for name, values in InternalHelper.ENUMS.items():
+            result += Helper.ENUM_DEFINITION_TEMPLATE.substitute(
+                {
+                    "name": name,
+                    "values": ", ".join([f"'{item}'" for item in values]),
+                }
+            )
+        return result
 
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
@@ -1758,13 +1784,31 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
     def get_initials(
         table_name: str, fname: str, type_: str, fdata: dict[str, Any]
     ) -> tuple[SubstDict, SchemaZoneTexts]:
+        """
+        Helper method to generate common constraints and type definitions for all columns.
+        """
         text = cast(SchemaZoneTexts, defaultdict(str))
         flist: list[str] = [
             cast(str, form[1])
             for form in Formatter().parse(Helper.FIELD_TEMPLATE.template)
         ]
         subst: SubstDict = cast(SubstDict, {k: "" for k in flist})
-        subst_type = FIELD_TYPES[type_]["pg_type"]
+        enum_type: str | None = None
+        if (enum_ := fdata.get("enum")) or (
+            enum_ := fdata.get("items", {}).get("enum")
+        ):
+            if isinstance(enum_, str):
+                enum_type = HelperGetNames.get_enum_name(enum_)
+            elif isinstance(enum_, list) and all(
+                isinstance(item, str) for item in enum_
+            ):
+                enum_type = HelperGetNames.get_enum_name_for_column(table_name, fname)
+                InternalHelper.ENUMS[enum_type] = enum_
+            else:
+                raise Exception(f"{table_name}.{fname}: is an unsupported enum value")
+            if "[]" in fdata.get("type", ""):
+                enum_type += "[]"
+        subst_type = enum_type or FIELD_TYPES[type_]["pg_type"]
         subst.update({"field_name": fname, "type": subst_type})
         if fdata.get("required"):
             if fname == "id":
@@ -1791,10 +1835,6 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             subst["default"] = Helper.get_inline_default_constraint(
                 table_name, fname, default_value
             )
-        if (enum_ := fdata.get("enum")) or (
-            enum_ := fdata.get("items", {}).get("enum")
-        ):
-            subst["check_enum"] = Helper.get_check_enum(table_name, fname, enum_, type_)
         if type_ == "timezone":
             subst["check_timezone"] = Helper.get_inline_timezone_constraint(
                 table_name, fname
@@ -1802,6 +1842,10 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         if (minimum := fdata.get("minimum")) is not None:
             subst["minimum"] = Helper.get_inline_minimum_constraint(
                 table_name, fname, minimum
+            )
+        if (maximum := fdata.get("maximum")) is not None:
+            subst["maximum"] = Helper.get_inline_maximum_constraint(
+                table_name, fname, maximum
             )
         if minLength := fdata.get("minLength"):
             subst["minLength"] = Helper.get_inline_minlength_constraint(
@@ -1980,6 +2024,7 @@ def main() -> None:
     _, checksum = InternalHelper.read_models_yml()
 
     (
+        enum_definitions,
         pre_code,
         table_name_code,
         view_name_code,
@@ -1999,6 +2044,8 @@ def main() -> None:
     with open(DESTINATION, "w") as dest:
         dest.write(Helper.FILE_TEMPLATE_HEADER)
         dest.write("-- MODELS_YML_CHECKSUM = " + repr(checksum) + "\n")
+        dest.write("\n\n-- ENUM definitions\n")
+        dest.write(enum_definitions)
         dest.write("\n\n-- Function and meta table definitions\n")
         dest.write(Helper.FILE_TEMPLATE_CONSTANT_DEFINITIONS)
         dest.write(pre_code)
