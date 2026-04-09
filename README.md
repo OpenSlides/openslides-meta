@@ -22,8 +22,8 @@ Each collection-file has the following format:
     - float: Numbers that are expected to be non-integer. Formatted as in rfc7159.
     - decimal(X): Decimal values represented as a string with X decimal places.
       At the moment we support only X == 6.
-    - timestamp: Datetime as a unix timestamp. Why a number? This enables queries
-      in the DB. And we do not need more precision than 1 second.
+    - timestamp: Datetime as a utc datetime object.
+    - timezone: Text field with the constraint that the content must be a valid timezone string as far as the postgres database is concerned. (i.e. the `name` values from postgres-inbuilt view `pg_timezone_names`)
     - <T>[]: This indicates and arbitrary array of the given type. At the moment
       we support only some types. You can add JSON Schema properties for items
       using the extra property `items`
