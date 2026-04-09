@@ -24,7 +24,7 @@ fields:
   backend:
     type: string
     required: true
-    enum: *poll_backends
+    enum: poll_backends
     default: fast
     restriction_mode: A
   is_pseudoanonymized:
@@ -78,7 +78,7 @@ fields:
   onehundred_percent_base:
     type: string
     required: true
-    enum: *onehundred_percent_bases
+    enum: onehundred_percent_bases
     default: disabled
     restriction_mode: A
   votesvalid:

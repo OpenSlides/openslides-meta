@@ -16,20 +16,20 @@ DEFAULT_COLLECTIONS_DIR = os.path.join(ROOT, "collections")
 
 
 def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
-    joined_collections = ["_meta:\n"]
+    result = {}
 
-    meta_text = Path(meta_file).read_text()
-    joined_collections.extend(
-        f"  {line}" for line in meta_text.splitlines(keepends=True)
-    )
+    with open(meta_file, encoding="utf-8") as f:
+        meta_data = yaml.safe_load(f)
+        result["_meta"] = meta_data
 
     collections_path = Path(collections_dir)
     yaml_files = sorted(collections_path.glob("*.yml"))
 
     for yaml_file in yaml_files:
-        joined_collections.append(f"{yaml_file.stem}:\n")
-        for line in yaml_file.read_text().splitlines(keepends=True):
-            joined_collections.append(f"  {line}")
+        with open(yaml_file, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+            result[yaml_file.stem] = data
 
     header = (
         "# GENERATED FILE - DO NOT EDIT MANUALLY\n"
@@ -37,7 +37,6 @@ def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
         "---\n"
     )
 
-    result = yaml.safe_load("".join(joined_collections))
     yaml_body = yaml.dump(
         result,
         default_flow_style=False,
@@ -105,11 +104,14 @@ class HelperGetNames:
 
     @staticmethod
     def max_length(func: Callable) -> Callable:
+        """
+        Gets the name shortened to 56 characters plus 7 characters of its md5 hash.
+        """
+
         def wrapper(*args, **kwargs) -> str:  # type: ignore
             name = func(*args, **kwargs)
-            assert (
-                len(name) <= HelperGetNames.MAX_LEN
-            ), f"Name '{name}' generated too long in function {func}!"
+            if len(name) > HelperGetNames.MAX_LEN:
+                name = f"{name[:56]}{hashlib.md5(name.encode()).hexdigest()[:7]}"
             return name
 
         return wrapper
@@ -123,16 +125,6 @@ class HelperGetNames:
             return "".join([word[0] for word in words.split("_")])
         else:
             return words
-
-    @staticmethod
-    @max_length
-    def get_shortened_name(name: str) -> str:
-        """
-        Gets the name shortened to 56 characters plus 7 characters of its md5 hash.
-        """
-        if len(name) > HelperGetNames.MAX_LEN:
-            name = f"{name[:56]}{hashlib.md5(name.encode()).hexdigest()[:7]}"
-        return name
 
     @staticmethod
     @max_length
@@ -197,13 +189,12 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_generic_valid_constraint_name(
-        fname: str,
-    ) -> str:
+    def get_generic_valid_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of a generic valid constraint"""
-        return f"valid_{fname}_part1"
+        return f"valid_{table_name}_{fname}_part1"
 
     @staticmethod
+    @max_length
     def get_generic_unique_constraint_name(
         own_table_name_with_ref_column: str, own_table_column: str
     ) -> str:
@@ -212,40 +203,70 @@ class HelperGetNames:
         - {table_name}_{ref_column}
         - {owcolumn}
         """
-        return HelperGetNames.get_shortened_name(
-            f"unique_{own_table_name_with_ref_column}_{own_table_column}"
-        )
+        return f"unique_{own_table_name_with_ref_column}_{own_table_column}"
 
     @staticmethod
+    @max_length
     def get_unique_constraint_name(table_name: str, fields: list[str]) -> str:
-        return HelperGetNames.get_shortened_name(
-            f"unique_{table_name}_{'_'.join(fields)}"
-        )
+        return f"unique_{table_name}_{'_'.join(fields)}"
+
+    @staticmethod
+    def get_enum_name_for_column(table_name: str, fname: str) -> str:
+        """gets the name of the enum type"""
+        return HelperGetNames.get_enum_name(f"{table_name}_{fname}")
 
     @staticmethod
     @max_length
-    def get_check_enum_constraint_name(
-        table_name: str,
-        fname: str,
-    ) -> str:
-        """gets the name of check enum constraint"""
-        return f"enum_{table_name}_{fname}"
+    def get_enum_name(enum: str) -> str:
+        return f"enum_{enum}"
 
     @staticmethod
     @max_length
-    def get_minimum_constraint_name(
-        fname: str,
-    ) -> str:
+    def get_required_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of required constraint"""
+        return f"required_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_default_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of default constraint"""
+        return f"default_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_minimum_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of minimum constraint"""
-        return f"minimum_{fname}"
+        return f"minimum_{table_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_minlength_constraint_name(
-        fname: str,
-    ) -> str:
+    def get_maximum_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of maximum constraint"""
+        return f"maximum_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_minlength_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of minLength constraint"""
-        return f"minlength_{fname}"
+        return f"minlength_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_color_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of color constraint"""
+        return f"color_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_generated_always_as_constraint_name(table_name: str, fname: str) -> str:
+        """gets the name of GENERATED ALWAYS AS constraint"""
+        return f"generated_always_as_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
+    def get_nm_pk_constraint_name(nm_table_name: str) -> str:
+        """gets the name of a primary key constraint"""
+        return f"pk_{nm_table_name}"
 
     @staticmethod
     @max_length
@@ -256,9 +277,7 @@ class HelperGetNames:
         fk_column: str,
     ) -> str:
         """gets the name of a foreign key constraint."""
-        return HelperGetNames.get_shortened_name(
-            f"fk_{own_table}_{own_column}_{foreign_table}_{fk_column}"
-        )
+        return f"fk_{own_table}_{own_column}_{foreign_table}_{fk_column}"
 
     @staticmethod
     @max_length
@@ -267,7 +286,7 @@ class HelperGetNames:
         own_column: str,
     ) -> str:
         """gets the name of a foreign key constraint."""
-        return HelperGetNames.get_shortened_name(f"idx_{own_table}_{own_column}")
+        return f"idx_{own_table}_{own_column}"
 
     @staticmethod
     def get_fk_and_index_name(
@@ -291,7 +310,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null"""
-        return HelperGetNames.get_shortened_name(f"tr_i_{table_name}_{column_name}")
+        return f"tr_i_{table_name}_{column_name}"
 
     @staticmethod
     @max_length
@@ -300,7 +319,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null"""
-        return HelperGetNames.get_shortened_name(f"tr_ud_{table_name}_{column_name}")
+        return f"tr_ud_{table_name}_{column_name}"
 
     @staticmethod
     @max_length
@@ -348,24 +367,66 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_notify_trigger_name(
-        table_name: str,
-    ) -> str:
+    def get_notify_trigger_name(table_name: str) -> str:
         """gets the name of the trigger for logging changes on models"""
-        return HelperGetNames.get_shortened_name(f"tr_log_{table_name}")
+        return f"tr_log_{table_name}"
 
     @staticmethod
     @max_length
-    def get_notify_related_trigger_name(
-        table_name: str,
-        column_name: str,
-    ) -> str:
+    def get_notify_related_trigger_name(table_name: str, column_name: str) -> str:
         """gets the name of the trigger for logging changes on related models"""
-        return HelperGetNames.get_shortened_name(f"tr_log_{table_name}_{column_name}")
+        return f"tr_log_{table_name}_{column_name}"
+
+    @staticmethod
+    @max_length
+    def get_notify_gm_related_trigger_name(
+        gm_content_field: str, gm_table_name: str
+    ) -> str:
+        """gets the name of the trigger for logging changes on g:m-tables"""
+        return f"tr_log_{gm_content_field}_{gm_table_name}"
+
+    @staticmethod
+    @max_length
+    def get_timezone_constraint_name(table_name: str, field_name: str) -> str:
+        """gets the name of the constraint for timezone fields"""
+        return f"timezone_{table_name}_{field_name}"
+
+    @staticmethod
+    def get_equal_field_trigger_name_helper(
+        equal_field: str, table_name: str, column: str, foreign_table: str | None
+    ) -> str:
+        base = f"equal_{equal_field}_on_{table_name}_{column}"
+        if foreign_table:
+            base += f"_{foreign_table}"
+        return base
+
+    @staticmethod
+    @max_length
+    def get_equal_field_trigger_name(
+        equal_field: str, table_name: str, column: str, foreign_table: str | None = None
+    ) -> str:
+        return HelperGetNames.get_equal_field_trigger_name_helper(
+            equal_field, table_name, column, foreign_table
+        )
+
+    @staticmethod
+    @max_length
+    def get_equal_field_intermediate_trigger_name(
+        equal_field: str, table_name: str, column: str, foreign_table: str | None = None
+    ) -> str:
+        return f"{HelperGetNames.get_equal_field_trigger_name_helper(equal_field, table_name, column, foreign_table)}_intermediate"
+
+    @staticmethod
+    @max_length
+    def get_equal_field_back_trigger_name(
+        equal_field: str, table_name: str, column: str, foreign_table: str | None = None
+    ) -> str:
+        return f"{HelperGetNames.get_equal_field_trigger_name_helper(equal_field, table_name, column, foreign_table)}_back"
 
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}
+    ENUMS: dict[str, list[str]] = {}
     checksum: str = ""
     ref_compiled = compiled = re.compile(r"(^\w+\b).*?\((.*?)\)")
 
@@ -383,6 +444,8 @@ class InternalHelper:
 
         # Load and parse models.yml
         cls.MODELS = yaml.safe_load(models_yml)
+        for name, values in cls.MODELS["_meta"].get("enum_definitions", {}).items():
+            cls.ENUMS[HelperGetNames.get_enum_name(name)] = values
         cls.check_field_length()
         return cls.MODELS, checksum
 
