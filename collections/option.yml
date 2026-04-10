@@ -35,7 +35,6 @@ fields:
   used_as_global_option_in_poll_id:
     type: relation
     to: poll/global_option_id
-    reference: poll
     equal_fields: meeting_id
     restriction_mode: A
     constant: true
