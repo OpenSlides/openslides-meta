@@ -550,9 +550,7 @@ class GenerateCodeBlocks:
                 text, error = cls.get_schema_simple_types(
                     table_name, fname, fdata, "number"
                 )
-            if own_table_field.field_def.get(
-                "equal_fields"
-            ) or foreign_table_field.field_def.get("equal_fields"):
+            if cls.get_equal_fields(own_table_field,foreign_table_field):
                 text["create_trigger_equal_fields_code"] = (
                     cls.get_trigger_check_equal_fields_for_1_x(
                         own_table_field, foreign_table_field, state
@@ -921,19 +919,20 @@ class GenerateCodeBlocks:
     @classmethod
     def get_equal_fields(
         cls,
-        table_field: TableFieldType,
+        *table_fields: TableFieldType,
     ) -> list[str]:
-        equal_fields = table_field.field_def.get("equal_fields")
-        if isinstance(equal_fields, list):
-            return equal_fields
-        elif isinstance(equal_fields, str):
-            return [equal_fields]
-        elif not equal_fields:
-            return []
-        else:
-            raise Exception(
-                f"Could not write equal_fields trigger for {table_field.column}: Unknown setting."
-            )
+        result: set[str] = set()
+        for table_field in table_fields:
+            equal_fields = table_field.field_def.get("equal_fields")
+            if isinstance(equal_fields, list):
+                result.update(equal_fields)
+            elif isinstance(equal_fields, str):
+                result.add(equal_fields)
+            elif equal_fields:
+                raise Exception(
+                    f"Invalid equal_fields for {table_field.column}: Unknown setting."
+                )
+        return list(result)
 
     @classmethod
     def equal_fields_state_check(
@@ -954,21 +953,22 @@ class GenerateCodeBlocks:
     ) -> tuple[str, bool]:
         """
         Checks the configuration of the relation and returns:
-        - The name of the table/view that should be used
+        - The name of the table that should be used
         - If the field can be updated
         """
         with_update = False
-        use_view = False
+        view_field_error = False
         collection = table_field.table
         for field in fields:
             if isinstance(field, TableFieldType):
                 # Assume that these are always primary
                 field_def = field.field_def
             elif collection == "user" and field == "meeting_id":
-                if fail_on_user_meeting_id:
-                    raise Exception(
-                        f"Cannot generate equal_fields trigger: user/meeting_id handling not implemented for {table_field.collectionfield}"
-                    )
+                # TODO: See whether the validate changes really prevent the below code from being called for anything else
+                # if fail_on_user_meeting_id:
+                #     raise Exception(
+                #         f"Cannot generate equal_fields trigger: user/meeting_id handling not implemented for {table_field.collectionfield}"
+                #     )
                 field_def = InternalHelper.get_models("meeting_user", "meeting_id")
                 own_table_field = TableFieldType(
                     "meeting_user", "meeting_id", field_def
@@ -976,7 +976,7 @@ class GenerateCodeBlocks:
                 foreign_table_fields: TableFieldType | list[TableFieldType] = (
                     TableFieldType(collection, field, field_def)
                 )
-                fse_type, primary, b, c = InternalHelper.check_relation_definitions(
+                fse_type, *_ = InternalHelper.check_relation_definitions(
                     own_table_field,
                     [
                         own_table_field.get_definitions_from_foreign(
@@ -989,10 +989,11 @@ class GenerateCodeBlocks:
                         "Cannot generate sql_schema: meeting_user/meeting_id sql schema was changed in an incompatible manner. Please fix the generator code accordingly."
                     )
             elif collection == "meeting" and field == "meeting_id":
-                if fail_on_meeting_meeting_id:
-                    raise Exception(
-                        f"Cannot generate equal_fields trigger: meeting/meeting_id handling not implemented for {table_field.collectionfield}"
-                    )
+                # TODO: See whether the validate changes really prevent the below code from being called for anything else
+                # if fail_on_meeting_meeting_id:
+                #     raise Exception(
+                #         f"Cannot generate equal_fields trigger: meeting/meeting_id handling not implemented for {table_field.collectionfield}"
+                #     )
                 field_def = None
             else:
                 field_def = InternalHelper.get_models(collection, field)
@@ -1015,16 +1016,16 @@ class GenerateCodeBlocks:
                                 field_def.get("to"), field_def.get("reference")
                             )
                         )
-                    fse_type, primary, b, c = InternalHelper.check_relation_definitions(
+                    fse_type, *_ = InternalHelper.check_relation_definitions(
                         own_table_field, foreign_table_fields
                     )
                     if fse_type != FieldSqlErrorType.FIELD or field_def.get("sql"):
-                        use_view = True
+                        view_field_error = True
                 elif field_def.get("sql"):
-                    use_view = True
+                    view_field_error = True
             if field_def and not field_def.get("constant"):
                 with_update = True
-        if use_view:
+        if view_field_error:
             raise Exception(
                 f"Cannot generate equal_fields triggers for {table_field.collectionfield}: One of the fields is a view field"
             )
@@ -1045,12 +1046,7 @@ class GenerateCodeBlocks:
         state: FieldSqlErrorType,
     ) -> str:
         cls.equal_fields_state_check(state, own_table_field)
-        equal_fields = list(
-            {
-                *cls.get_equal_fields(own_table_field),
-                *cls.get_equal_fields(foreign_table_field),
-            }
-        )
+        equal_fields = cls.get_equal_fields(own_table_field,foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1109,12 +1105,7 @@ class GenerateCodeBlocks:
         own_intermediate_field: str,
         foreign_intermediate_field: str,
     ) -> str:
-        equal_fields = list(
-            {
-                *cls.get_equal_fields(own_table_field),
-                *cls.get_equal_fields(foreign_table_field),
-            }
-        )
+        equal_fields = cls.get_equal_fields(own_table_field,foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1159,12 +1150,7 @@ class GenerateCodeBlocks:
         state: FieldSqlErrorType,
     ) -> str:
         cls.equal_fields_state_check(state, own_table_field)
-        equal_fields = list(
-            {
-                *cls.get_equal_fields(own_table_field),
-                *cls.get_equal_fields(foreign_table_field),
-            }
-        )
+        equal_fields = cls.get_equal_fields(own_table_field,foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1221,12 +1207,7 @@ class GenerateCodeBlocks:
         own_intermediate_field: str,
         foreign_intermediate_field: str,
     ) -> str:
-        equal_fields = list(
-            {
-                *cls.get_equal_fields(own_table_field),
-                *cls.get_equal_fields(foreign_table_field),
-            }
-        )
+        equal_fields = cls.get_equal_fields(own_table_field,foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1498,7 +1479,7 @@ class Helper:
 
             CALL log_field_change(operation_var, fqid_var, updated_fields_var);
 
-            RETURN NULL;  -- AFTER TRIGGER needs no return
+            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
 
@@ -1556,7 +1537,7 @@ class Helper:
                 PERFORM pg_notify('os_notify', payload);
             END IF;
 
-            RETURN NULL;  -- AFTER TRIGGER needs no return
+            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $notify_trigger$ LANGUAGE plpgsql;
 
@@ -1599,7 +1580,7 @@ class Helper:
                 i := i + 3;
             END LOOP;
 
-            RETURN NULL;  -- AFTER TRIGGER needs no return
+            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $log_modified_related_trigger$ LANGUAGE plpgsql;
 
@@ -1625,21 +1606,21 @@ class Helper:
         END;
         $read_only_trigger$ LANGUAGE plpgsql;
 
-        CREATE OR REPLACE FUNCTION raise_equality_exception(check_column TEXT, ref_column TEXT, own_table TEXT, own_id INTEGER, own_val TEXT, foreign_table TEXT, foreign_id INTEGER, foreign_val TEXT)
+        CREATE OR REPLACE FUNCTION raise_equality_exception_conditionally(check_column TEXT, ref_column TEXT, own_collection TEXT, own_id INTEGER, own_equal_val TEXT, foreign_collection TEXT, foreign_id INTEGER, foreign_equal_val TEXT)
         RETURNS void AS $equality_exception$
         DECLARE
             own_fqid TEXT;
             foreign_fqid TEXT;
         BEGIN
             IF foreign_id IS NOT NULL AND own_id IS NOT NULL THEN
-                IF foreign_val IS DISTINCT FROM own_val THEN
-                    foreign_fqid := foreign_table || '/' || foreign_id;
+                IF foreign_equal_val IS DISTINCT FROM own_equal_val THEN
+                    foreign_fqid := foreign_collection || '/' || foreign_id;
                     IF check_column = 'meeting_id' THEN
-                        RAISE EXCEPTION 'The following models do not belong to meeting %: [''%'']', own_val, foreign_fqid;
+                        RAISE EXCEPTION 'The following models do not belong to meeting %: [''%'']', own_equal_val, foreign_fqid;
                     END IF;
                     foreign_fqid := foreign_fqid  || '/' || check_column;
-                    own_fqid := own_table || '/' || own_id || '/' || check_column;
-                    RAISE EXCEPTION 'The relation % requires the following fields to be equal:% %: % % %: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
+                    own_fqid := own_collection || '/' || own_id || '/' || check_column;
+                    RAISE EXCEPTION 'The relation % requires the following fields to be equal:% %: % % %: %', ref_column, chr(10), own_fqid, own_equal_val, chr(10), foreign_fqid, foreign_equal_val;
                 END IF;
             END IF;
         END;
@@ -1658,9 +1639,9 @@ class Helper:
             check_column TEXT;
             foreign_table TEXT;
             foreign_id INTEGER;
-            foreign_val TEXT;
+            foreign_equal_val TEXT;
             own_id INTEGER;
-            own_val TEXT;
+            own_equal_val TEXT;
             own_table TEXT;
             from_back_relation BOOLEAN;
             i INTEGER := 0;
@@ -1677,7 +1658,7 @@ class Helper:
                     EXECUTE format(
                         'SELECT ($1).id, ($1).%I',
                         check_column
-                    ) INTO foreign_id, foreign_val USING NEW;
+                    ) INTO foreign_id, foreign_equal_val USING NEW;
                     EXECUTE format(
                         'SELECT "id", %I
                         FROM %I
@@ -1686,13 +1667,13 @@ class Helper:
                         own_table,
                         ref_column,
                         foreign_id
-                    ) INTO own_id, own_val;
+                    ) INTO own_id, own_equal_val;
                 ELSE
                     EXECUTE format(
                         'SELECT ($1).id, ($1).%I, ($1).%I',
                         check_column,
                         ref_column
-                    ) INTO own_id, own_val, foreign_id USING NEW;
+                    ) INTO own_id, own_equal_val, foreign_id USING NEW;
                     EXECUTE format(
                         'SELECT %I
                         FROM %I
@@ -1700,24 +1681,24 @@ class Helper:
                         check_column,
                         foreign_table,
                         foreign_id
-                    ) INTO foreign_val;
+                    ) INTO foreign_equal_val;
                 END IF;
 
-                PERFORM raise_equality_exception(
+                PERFORM raise_equality_exception_conditionally(
                     check_column,
                     ref_column,
                     own_table,
                     own_id,
-                    own_val,
+                    own_equal_val,
                     foreign_table,
                     foreign_id,
-                    foreign_val
+                    foreign_equal_val
                 );
 
                 i := i + 5;
             END LOOP;
 
-            RETURN NULL;  -- AFTER TRIGGER needs no return
+            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $check_equals_trigger$ LANGUAGE plpgsql;
 
@@ -1737,14 +1718,14 @@ class Helper:
             foreign_table_reference TEXT;
             foreign_table TEXT;
             foreign_id INTEGER;
-            foreign_val TEXT;
+            foreign_equal_val TEXT;
             intermediate_table TEXT;
             own_id INTEGER;
-            own_val TEXT;
+            own_equal_val TEXT;
             own_table_reference TEXT;
             own_table TEXT;
             i INTEGER := 0;
-            r record;
+            row record;
         BEGIN
 
             WHILE i < TG_NARGS LOOP
@@ -1757,40 +1738,41 @@ class Helper:
                 ref_column := TG_ARGV[i+6];
 
                 own_id = NEW.id;
-                FOR r in EXECUTE format('
+                FOR row in EXECUTE format('
                     SELECT a.%I AS a_val, c.id AS c_id, c.%I AS c_val
                     FROM %I a
                         JOIN %I b ON b.%I = a.id
                         JOIN %I c ON b.%I = c.id
-                    WHERE a.id = $1',
+                    WHERE a.id = %L',
                     check_column,
                     check_column,
                     own_table,
                     intermediate_table,
                     own_table_reference,
                     foreign_table,
-                    foreign_table_reference
-                ) USING own_id LOOP
-                    own_val := r.a_val;
-                    foreign_id := r.c_id;
-                    foreign_val := r.c_val;
+                    foreign_table_reference,
+                    own_id
+                ) LOOP
+                    own_equal_val := row.a_val;
+                    foreign_id := row.c_id;
+                    foreign_equal_val := row.c_val;
 
-                    PERFORM raise_equality_exception(
+                    PERFORM raise_equality_exception_conditionally(
                         check_column,
                         ref_column,
                         own_table,
                         own_id,
-                        own_val,
+                        own_equal_val,
                         foreign_table,
                         foreign_id,
-                        foreign_val
+                        foreign_equal_val
                     );
                 END LOOP;
 
                 i := i + 7;
             END LOOP;
 
-            RETURN NULL;  -- AFTER TRIGGER needs no return
+            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $check_equals_multi_trigger$ LANGUAGE plpgsql;
 
@@ -1801,7 +1783,7 @@ class Helper:
         -- * column referencing table2 in intermediate table
         -- * table2 name
         -- * field that is supposed to be equal
-        -- * pseudofield for which the check was triggered
+        -- * models.yml-defined name for the relation on the side for which the check was triggered
         CREATE OR REPLACE FUNCTION check_equals_intermediate()
         RETURNS trigger AS $check_equals_intermediate_trigger$
         DECLARE
@@ -1810,10 +1792,10 @@ class Helper:
             foreign_table_reference TEXT;
             foreign_table TEXT;
             foreign_id INTEGER;
-            foreign_val TEXT;
+            foreign_equal_val TEXT;
             intermediate_table TEXT;
             own_id INTEGER;
-            own_val TEXT;
+            own_equal_val TEXT;
             own_table_reference TEXT;
             own_table TEXT;
             i INTEGER := 0;
@@ -1835,7 +1817,7 @@ class Helper:
                     check_column,
                     own_table,
                     own_table_reference
-                ) INTO own_id, own_val USING NEW;
+                ) INTO own_id, own_equal_val USING NEW;
                 EXECUTE format(
                     'SELECT id, %I
                     FROM %I
@@ -1843,23 +1825,23 @@ class Helper:
                     check_column,
                     foreign_table,
                     foreign_table_reference
-                ) INTO foreign_id, foreign_val USING NEW;
+                ) INTO foreign_id, foreign_equal_val USING NEW;
 
-                PERFORM raise_equality_exception(
+                PERFORM raise_equality_exception_conditionally(
                     check_column,
                     ref_column,
                     own_table,
                     own_id,
-                    own_val,
+                    own_equal_val,
                     foreign_table,
                     foreign_id,
-                    foreign_val
+                    foreign_equal_val
                 );
 
                 i := i + 7;
             END LOOP;
 
-            RETURN NULL;  -- AFTER TRIGGER needs no return
+            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $check_equals_intermediate_trigger$ LANGUAGE plpgsql;
 
@@ -1874,9 +1856,9 @@ class Helper:
         DECLARE
             ref_column TEXT;
             user_id INTEGER;
-            user_val TEXT;
+            user_equal_val TEXT;
             own_id INTEGER;
-            own_val TEXT;
+            own_equal_val TEXT;
             own_table TEXT;
             muser_table_identifier TEXT;
             i INTEGER := 0;
@@ -1889,33 +1871,31 @@ class Helper:
                 EXECUTE format(
                     'SELECT ($1).id, ($1).meeting_id, ($1).%I',
                     ref_column
-                ) INTO own_id, own_val, user_id USING NEW;
-                IF user_id IS NOT NULL THEN
-                    EXECUTE format(
-                        'SELECT meeting_id
-                        FROM %I
-                        WHERE user_id = %L AND meeting_id = %L',
-                        muser_table_identifier,
-                        user_id,
-                        own_val
-                    ) INTO user_val;
+                ) INTO own_id, own_equal_val, user_id USING NEW;
+                EXECUTE format(
+                    'SELECT meeting_id
+                    FROM %I
+                    WHERE user_id = %L AND meeting_id = %L',
+                    muser_table_identifier,
+                    user_id,
+                    own_equal_val
+                ) INTO user_equal_val;
 
-                    PERFORM raise_equality_exception(
-                        'meeting_id',
-                        ref_column,
-                        own_table,
-                        own_id,
-                        own_val,
-                        'user',
-                        user_id,
-                        user_val
-                    );
-                END IF;
+                PERFORM raise_equality_exception_conditionally(
+                    'meeting_id',
+                    ref_column,
+                    own_table,
+                    own_id,
+                    own_equal_val,
+                    'user',
+                    user_id,
+                    user_equal_val
+                );
 
                 i := i + 3;
             END LOOP;
 
-            RETURN NULL;  -- AFTER TRIGGER needs no return
+            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $check_equals_meeting_id_for_user_trigger$ LANGUAGE plpgsql;
 
@@ -1929,9 +1909,9 @@ class Helper:
         DECLARE
             ref_column TEXT;
             foreign_id INTEGER;
-            foreign_val TEXT;
+            foreign_equal_val TEXT;
             own_id INTEGER;
-            own_val TEXT;
+            own_equal_val TEXT;
             own_table TEXT;
             i INTEGER := 0;
         BEGIN
@@ -1940,23 +1920,23 @@ class Helper:
                 ref_column := TG_ARGV[i+1];
                 EXECUTE format(
                     'SELECT ($1).user_id, ($1).meeting_id'
-                ) INTO foreign_id, foreign_val USING OLD;
-                FOR own_id, own_val in EXECUTE format(
+                ) INTO foreign_id, foreign_equal_val USING OLD;
+                FOR own_id, own_equal_val in EXECUTE format(
                     'SELECT id, meeting_id
                     FROM %I
                     WHERE %I = %L AND meeting_id = %L',
                     own_table,
                     ref_column,
                     foreign_id,
-                    foreign_val
+                    foreign_equal_val
                 ) LOOP
                     IF own_id IS NOT NULL THEN
-                        PERFORM raise_equality_exception(
+                        PERFORM raise_equality_exception_conditionally(
                             'meeting_id',
                             ref_column,
                             own_table,
                             own_id,
-                            own_val,
+                            own_equal_val,
                             'user',
                             foreign_id,
                             NULL
@@ -1967,7 +1947,7 @@ class Helper:
                 i := i + 2;
             END LOOP;
 
-            RETURN NULL;  -- AFTER TRIGGER needs no return
+            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $check_equals_meeting_id_user_on_meeting_user_delete_trigger$ LANGUAGE plpgsql;
 
@@ -1990,7 +1970,7 @@ class Helper:
                 ) INTO id, meeting_id, reference_id USING NEW;
 
                 IF reference_id IS NOT NULL THEN
-                    PERFORM raise_equality_exception(
+                    PERFORM raise_equality_exception_conditionally(
                         'meeting_id',
                         ref_column,
                         table_name,
@@ -2005,7 +1985,7 @@ class Helper:
                 i := i + 2;
             END LOOP;
 
-            RETURN NULL;  -- AFTER TRIGGER needs no return
+            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $check_equals_meeting_id_for_meeting$ LANGUAGE plpgsql;
 
@@ -2037,7 +2017,7 @@ class Helper:
                     END IF;
                     RAISE EXCEPTION '%', error_message;
                 END IF;
-                RETURN NULL;  -- AFTER TRIGGER needs no return
+                RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
             END;
             $$not_null_trigger$$ language plpgsql;
         """))
@@ -2470,9 +2450,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             )
 
         own_table_name = HelperGetNames.get_table_name(own_table_field.table)
-        own_table_name_with_ref_column = (
-            f"{own_table_field.table}_{own_table_field.ref_column}"
-        )
+        own_table_name_with_ref_column = HelperGetNames.get_own_table_name_with_ref_column(own_table_field)
         fk_idx = HelperGetNames.get_fk_and_index_name(
             gm_table_name,
             own_table_name_with_ref_column,

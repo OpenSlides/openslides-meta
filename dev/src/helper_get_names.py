@@ -423,6 +423,11 @@ class HelperGetNames:
     ) -> str:
         return f"{HelperGetNames.get_equal_field_trigger_name_helper(equal_field, table_name, column, foreign_table)}_back"
 
+    @staticmethod
+    @max_length
+    def get_own_table_name_with_ref_column(own_table_field: TableFieldType)->str:
+        return f"{own_table_field.table}_{own_table_field.ref_column}"
+
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}

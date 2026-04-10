@@ -164,7 +164,7 @@ BEGIN
 
     CALL log_field_change(operation_var, fqid_var, updated_fields_var);
 
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $log_modified_trigger$ LANGUAGE plpgsql;
 
@@ -222,7 +222,7 @@ BEGIN
         PERFORM pg_notify('os_notify', payload);
     END IF;
 
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $notify_trigger$ LANGUAGE plpgsql;
 
@@ -265,7 +265,7 @@ BEGIN
         i := i + 3;
     END LOOP;
 
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $log_modified_related_trigger$ LANGUAGE plpgsql;
 
@@ -291,21 +291,21 @@ BEGIN
 END;
 $read_only_trigger$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION raise_equality_exception(check_column TEXT, ref_column TEXT, own_table TEXT, own_id INTEGER, own_val TEXT, foreign_table TEXT, foreign_id INTEGER, foreign_val TEXT)
+CREATE OR REPLACE FUNCTION raise_equality_exception_conditionally(check_column TEXT, ref_column TEXT, own_collection TEXT, own_id INTEGER, own_equal_val TEXT, foreign_collection TEXT, foreign_id INTEGER, foreign_equal_val TEXT)
 RETURNS void AS $equality_exception$
 DECLARE
     own_fqid TEXT;
     foreign_fqid TEXT;
 BEGIN
     IF foreign_id IS NOT NULL AND own_id IS NOT NULL THEN
-        IF foreign_val IS DISTINCT FROM own_val THEN
-            foreign_fqid := foreign_table || '/' || foreign_id;
+        IF foreign_equal_val IS DISTINCT FROM own_equal_val THEN
+            foreign_fqid := foreign_collection || '/' || foreign_id;
             IF check_column = 'meeting_id' THEN
-                RAISE EXCEPTION 'The following models do not belong to meeting %: [''%'']', own_val, foreign_fqid;
+                RAISE EXCEPTION 'The following models do not belong to meeting %: [''%'']', own_equal_val, foreign_fqid;
             END IF;
             foreign_fqid := foreign_fqid  || '/' || check_column;
-            own_fqid := own_table || '/' || own_id || '/' || check_column;
-            RAISE EXCEPTION 'The relation % requires the following fields to be equal:% %: % % %: %', ref_column, chr(10), own_fqid, own_val, chr(10), foreign_fqid, foreign_val;
+            own_fqid := own_collection || '/' || own_id || '/' || check_column;
+            RAISE EXCEPTION 'The relation % requires the following fields to be equal:% %: % % %: %', ref_column, chr(10), own_fqid, own_equal_val, chr(10), foreign_fqid, foreign_equal_val;
         END IF;
     END IF;
 END;
@@ -324,9 +324,9 @@ DECLARE
     check_column TEXT;
     foreign_table TEXT;
     foreign_id INTEGER;
-    foreign_val TEXT;
+    foreign_equal_val TEXT;
     own_id INTEGER;
-    own_val TEXT;
+    own_equal_val TEXT;
     own_table TEXT;
     from_back_relation BOOLEAN;
     i INTEGER := 0;
@@ -343,7 +343,7 @@ BEGIN
             EXECUTE format(
                 'SELECT ($1).id, ($1).%I',
                 check_column
-            ) INTO foreign_id, foreign_val USING NEW;
+            ) INTO foreign_id, foreign_equal_val USING NEW;
             EXECUTE format(
                 'SELECT "id", %I
                 FROM %I
@@ -352,13 +352,13 @@ BEGIN
                 own_table,
                 ref_column,
                 foreign_id
-            ) INTO own_id, own_val;
+            ) INTO own_id, own_equal_val;
         ELSE
             EXECUTE format(
                 'SELECT ($1).id, ($1).%I, ($1).%I',
                 check_column,
                 ref_column
-            ) INTO own_id, own_val, foreign_id USING NEW;
+            ) INTO own_id, own_equal_val, foreign_id USING NEW;
             EXECUTE format(
                 'SELECT %I
                 FROM %I
@@ -366,24 +366,24 @@ BEGIN
                 check_column,
                 foreign_table,
                 foreign_id
-            ) INTO foreign_val;
+            ) INTO foreign_equal_val;
         END IF;
 
-        PERFORM raise_equality_exception(
+        PERFORM raise_equality_exception_conditionally(
             check_column,
             ref_column,
             own_table,
             own_id,
-            own_val,
+            own_equal_val,
             foreign_table,
             foreign_id,
-            foreign_val
+            foreign_equal_val
         );
 
         i := i + 5;
     END LOOP;
 
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $check_equals_trigger$ LANGUAGE plpgsql;
 
@@ -403,14 +403,14 @@ DECLARE
     foreign_table_reference TEXT;
     foreign_table TEXT;
     foreign_id INTEGER;
-    foreign_val TEXT;
+    foreign_equal_val TEXT;
     intermediate_table TEXT;
     own_id INTEGER;
-    own_val TEXT;
+    own_equal_val TEXT;
     own_table_reference TEXT;
     own_table TEXT;
     i INTEGER := 0;
-    r record;
+    row record;
 BEGIN
 
     WHILE i < TG_NARGS LOOP
@@ -423,40 +423,41 @@ BEGIN
         ref_column := TG_ARGV[i+6];
 
         own_id = NEW.id;
-        FOR r in EXECUTE format('
+        FOR row in EXECUTE format('
             SELECT a.%I AS a_val, c.id AS c_id, c.%I AS c_val
             FROM %I a
                 JOIN %I b ON b.%I = a.id
                 JOIN %I c ON b.%I = c.id
-            WHERE a.id = $1',
+            WHERE a.id = %L',
             check_column,
             check_column,
             own_table,
             intermediate_table,
             own_table_reference,
             foreign_table,
-            foreign_table_reference
-        ) USING own_id LOOP
-            own_val := r.a_val;
-            foreign_id := r.c_id;
-            foreign_val := r.c_val;
+            foreign_table_reference,
+            own_id
+        ) LOOP
+            own_equal_val := row.a_val;
+            foreign_id := row.c_id;
+            foreign_equal_val := row.c_val;
 
-            PERFORM raise_equality_exception(
+            PERFORM raise_equality_exception_conditionally(
                 check_column,
                 ref_column,
                 own_table,
                 own_id,
-                own_val,
+                own_equal_val,
                 foreign_table,
                 foreign_id,
-                foreign_val
+                foreign_equal_val
             );
         END LOOP;
 
         i := i + 7;
     END LOOP;
 
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $check_equals_multi_trigger$ LANGUAGE plpgsql;
 
@@ -467,7 +468,7 @@ $check_equals_multi_trigger$ LANGUAGE plpgsql;
 -- * column referencing table2 in intermediate table
 -- * table2 name
 -- * field that is supposed to be equal
--- * pseudofield for which the check was triggered
+-- * models.yml-defined name for the relation on the side for which the check was triggered
 CREATE OR REPLACE FUNCTION check_equals_intermediate()
 RETURNS trigger AS $check_equals_intermediate_trigger$
 DECLARE
@@ -476,10 +477,10 @@ DECLARE
     foreign_table_reference TEXT;
     foreign_table TEXT;
     foreign_id INTEGER;
-    foreign_val TEXT;
+    foreign_equal_val TEXT;
     intermediate_table TEXT;
     own_id INTEGER;
-    own_val TEXT;
+    own_equal_val TEXT;
     own_table_reference TEXT;
     own_table TEXT;
     i INTEGER := 0;
@@ -501,7 +502,7 @@ BEGIN
             check_column,
             own_table,
             own_table_reference
-        ) INTO own_id, own_val USING NEW;
+        ) INTO own_id, own_equal_val USING NEW;
         EXECUTE format(
             'SELECT id, %I
             FROM %I
@@ -509,23 +510,23 @@ BEGIN
             check_column,
             foreign_table,
             foreign_table_reference
-        ) INTO foreign_id, foreign_val USING NEW;
+        ) INTO foreign_id, foreign_equal_val USING NEW;
 
-        PERFORM raise_equality_exception(
+        PERFORM raise_equality_exception_conditionally(
             check_column,
             ref_column,
             own_table,
             own_id,
-            own_val,
+            own_equal_val,
             foreign_table,
             foreign_id,
-            foreign_val
+            foreign_equal_val
         );
 
         i := i + 7;
     END LOOP;
 
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $check_equals_intermediate_trigger$ LANGUAGE plpgsql;
 
@@ -540,9 +541,9 @@ RETURNS trigger AS $check_equals_meeting_id_for_user_trigger$
 DECLARE
     ref_column TEXT;
     user_id INTEGER;
-    user_val TEXT;
+    user_equal_val TEXT;
     own_id INTEGER;
-    own_val TEXT;
+    own_equal_val TEXT;
     own_table TEXT;
     muser_table_identifier TEXT;
     i INTEGER := 0;
@@ -555,33 +556,31 @@ BEGIN
         EXECUTE format(
             'SELECT ($1).id, ($1).meeting_id, ($1).%I',
             ref_column
-        ) INTO own_id, own_val, user_id USING NEW;
-        IF user_id IS NOT NULL THEN
-            EXECUTE format(
-                'SELECT meeting_id
-                FROM %I
-                WHERE user_id = %L AND meeting_id = %L',
-                muser_table_identifier,
-                user_id,
-                own_val
-            ) INTO user_val;
+        ) INTO own_id, own_equal_val, user_id USING NEW;
+        EXECUTE format(
+            'SELECT meeting_id
+            FROM %I
+            WHERE user_id = %L AND meeting_id = %L',
+            muser_table_identifier,
+            user_id,
+            own_equal_val
+        ) INTO user_equal_val;
 
-            PERFORM raise_equality_exception(
-                'meeting_id',
-                ref_column,
-                own_table,
-                own_id,
-                own_val,
-                'user',
-                user_id,
-                user_val
-            );
-        END IF;
+        PERFORM raise_equality_exception_conditionally(
+            'meeting_id',
+            ref_column,
+            own_table,
+            own_id,
+            own_equal_val,
+            'user',
+            user_id,
+            user_equal_val
+        );
 
         i := i + 3;
     END LOOP;
 
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $check_equals_meeting_id_for_user_trigger$ LANGUAGE plpgsql;
 
@@ -595,9 +594,9 @@ RETURNS trigger AS $check_equals_meeting_id_user_on_meeting_user_delete_trigger$
 DECLARE
     ref_column TEXT;
     foreign_id INTEGER;
-    foreign_val TEXT;
+    foreign_equal_val TEXT;
     own_id INTEGER;
-    own_val TEXT;
+    own_equal_val TEXT;
     own_table TEXT;
     i INTEGER := 0;
 BEGIN
@@ -606,23 +605,23 @@ BEGIN
         ref_column := TG_ARGV[i+1];
         EXECUTE format(
             'SELECT ($1).user_id, ($1).meeting_id'
-        ) INTO foreign_id, foreign_val USING OLD;
-        FOR own_id, own_val in EXECUTE format(
+        ) INTO foreign_id, foreign_equal_val USING OLD;
+        FOR own_id, own_equal_val in EXECUTE format(
             'SELECT id, meeting_id
             FROM %I
             WHERE %I = %L AND meeting_id = %L',
             own_table,
             ref_column,
             foreign_id,
-            foreign_val
+            foreign_equal_val
         ) LOOP
             IF own_id IS NOT NULL THEN
-                PERFORM raise_equality_exception(
+                PERFORM raise_equality_exception_conditionally(
                     'meeting_id',
                     ref_column,
                     own_table,
                     own_id,
-                    own_val,
+                    own_equal_val,
                     'user',
                     foreign_id,
                     NULL
@@ -633,7 +632,7 @@ BEGIN
         i := i + 2;
     END LOOP;
 
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $check_equals_meeting_id_user_on_meeting_user_delete_trigger$ LANGUAGE plpgsql;
 
@@ -656,7 +655,7 @@ BEGIN
         ) INTO id, meeting_id, reference_id USING NEW;
 
         IF reference_id IS NOT NULL THEN
-            PERFORM raise_equality_exception(
+            PERFORM raise_equality_exception_conditionally(
                 'meeting_id',
                 ref_column,
                 table_name,
@@ -671,7 +670,7 @@ BEGIN
         i := i + 2;
     END LOOP;
 
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $check_equals_meeting_id_for_meeting$ LANGUAGE plpgsql;
 
@@ -725,7 +724,7 @@ BEGIN
         END IF;
         RAISE EXCEPTION '%', error_message;
     END IF;
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $not_null_trigger$ language plpgsql;
 
@@ -776,7 +775,7 @@ BEGIN
         END IF;
         RAISE EXCEPTION '%', error_message;
     END IF;
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $not_null_trigger$ language plpgsql;
 
@@ -838,7 +837,7 @@ BEGIN
         END IF;
         RAISE EXCEPTION '%', error_message;
     END IF;
-    RETURN NULL;  -- AFTER TRIGGER needs no return
+    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $not_null_trigger$ language plpgsql;
 
