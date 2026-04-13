@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'a94d80e97fe36430035f2afb24b42d48'
+-- MODELS_YML_CHECKSUM = '45a5cadbfd74629694eca4eed43ffafa'
 
 
 -- ENUM definitions
@@ -1507,7 +1507,8 @@ CREATE TABLE meeting_mediafile_t (
     meeting_id integer
         CONSTRAINT required_meeting_mediafile_meeting_id NOT NULL,
     is_public boolean
-        CONSTRAINT required_meeting_mediafile_is_public NOT NULL
+        CONSTRAINT required_meeting_mediafile_is_public NOT NULL,
+    CONSTRAINT unique_meeting_mediafile_mediafile_id_meeting_id UNIQUE (mediafile_id, meeting_id)
 );
 
 
