@@ -646,9 +646,7 @@ class GenerateCodeBlocks:
                     ) = Helper.get_nm_table_for_n_m_relation_lists(
                         own_table_field, foreign_table_field
                     )
-                    if own_table_field.field_def.get(
-                        "equal_fields"
-                    ) or foreign_table_field.field_def.get("equal_fields"):
+                    if cls.get_equal_fields(own_table_field,foreign_table_field):
                         text["create_trigger_equal_fields_code"] = (
                             cls.get_trigger_check_equal_fields_for_n_m(
                                 own_table_field,
@@ -1219,9 +1217,7 @@ class GenerateCodeBlocks:
                     own_table_field.column,
                     foreign_table_field,
                 )
-                if own_table_field.field_def.get(
-                    "equal_fields"
-                ) or foreign_table_field.field_def.get("equal_fields"):
+                if cls.get_equal_fields(own_table_field,foreign_table_field):
                     equal_fields_text += cls.get_trigger_check_equal_fields_for_g1_x(
                         own_table_field,
                         foreign_table_field,
@@ -1295,9 +1291,7 @@ class GenerateCodeBlocks:
                     foreign_intermediate_field,
                     foreign_table_field,
                 ) in foreign_intermediate_field_foreign_table_field.items():
-                    if own_table_field.field_def.get(
-                        "equal_fields"
-                    ) or foreign_table_field.field_def.get("equal_fields"):
+                    if cls.get_equal_fields(own_table_field,foreign_table_field):
                         equal_fields_text += (
                             cls.get_trigger_check_equal_fields_for_gn_m(
                                 own_table_field,
