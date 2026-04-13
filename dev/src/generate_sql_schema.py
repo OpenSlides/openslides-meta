@@ -1570,19 +1570,19 @@ class Helper:
         DECLARE
             ref_column TEXT;
             check_column TEXT;
-            foreign_table TEXT;
+            foreign_collection TEXT;
             foreign_id INTEGER;
             foreign_equal_val TEXT;
             own_id INTEGER;
             own_equal_val TEXT;
-            own_table TEXT;
+            own_collection TEXT;
             from_back_relation BOOLEAN;
             i INTEGER := 0;
         BEGIN
 
             WHILE i < TG_NARGS LOOP
-                own_table := TG_ARGV[i];
-                foreign_table := TG_ARGV[i+1];
+                own_collection := TG_ARGV[i];
+                foreign_collection := TG_ARGV[i+1];
                 ref_column := TG_ARGV[i+2];
                 check_column := TG_ARGV[i+3];
                 from_back_relation := TG_ARGV[i+4];
@@ -1597,7 +1597,7 @@ class Helper:
                         FROM %I
                         WHERE %I = %L',
                         check_column,
-                        own_table,
+                        own_collection,
                         ref_column,
                         foreign_id
                     ) INTO own_id, own_equal_val;
@@ -1612,7 +1612,7 @@ class Helper:
                         FROM %I
                         WHERE "id" = %L',
                         check_column,
-                        foreign_table,
+                        foreign_collection,
                         foreign_id
                     ) INTO foreign_equal_val;
                 END IF;
@@ -1620,10 +1620,10 @@ class Helper:
                 PERFORM raise_equality_exception_conditionally(
                     check_column,
                     ref_column,
-                    own_table,
+                    own_collection,
                     own_id,
                     own_equal_val,
-                    foreign_table,
+                    foreign_collection,
                     foreign_id,
                     foreign_equal_val
                 );
@@ -1648,25 +1648,25 @@ class Helper:
         DECLARE
             ref_column TEXT;
             check_column TEXT;
-            foreign_table_reference TEXT;
-            foreign_table TEXT;
+            foreign_collection_reference TEXT;
+            foreign_collection TEXT;
             foreign_id INTEGER;
             foreign_equal_val TEXT;
             intermediate_table TEXT;
             own_id INTEGER;
             own_equal_val TEXT;
-            own_table_reference TEXT;
-            own_table TEXT;
+            own_collection_reference TEXT;
+            own_collection TEXT;
             i INTEGER := 0;
             row record;
         BEGIN
 
             WHILE i < TG_NARGS LOOP
                 intermediate_table := TG_ARGV[i];
-                own_table_reference := TG_ARGV[i+1];
-                own_table := TG_ARGV[i+2];
-                foreign_table_reference := TG_ARGV[i+3];
-                foreign_table := TG_ARGV[i+4];
+                own_collection_reference := TG_ARGV[i+1];
+                own_collection := TG_ARGV[i+2];
+                foreign_collection_reference := TG_ARGV[i+3];
+                foreign_collection := TG_ARGV[i+4];
                 check_column := TG_ARGV[i+5];
                 ref_column := TG_ARGV[i+6];
 
@@ -1679,11 +1679,11 @@ class Helper:
                     WHERE a.id = %L',
                     check_column,
                     check_column,
-                    own_table,
+                    own_collection,
                     intermediate_table,
-                    own_table_reference,
-                    foreign_table,
-                    foreign_table_reference,
+                    own_collection_reference,
+                    foreign_collection,
+                    foreign_collection_reference,
                     own_id
                 ) LOOP
                     own_equal_val := row.a_val;
@@ -1693,10 +1693,10 @@ class Helper:
                     PERFORM raise_equality_exception_conditionally(
                         check_column,
                         ref_column,
-                        own_table,
+                        own_collection,
                         own_id,
                         own_equal_val,
-                        foreign_table,
+                        foreign_collection,
                         foreign_id,
                         foreign_equal_val
                     );
@@ -1722,22 +1722,22 @@ class Helper:
         DECLARE
             ref_column TEXT;
             check_column TEXT;
-            foreign_table_reference TEXT;
-            foreign_table TEXT;
+            foreign_collection_reference TEXT;
+            foreign_collection TEXT;
             foreign_id INTEGER;
             foreign_equal_val TEXT;
             own_id INTEGER;
             own_equal_val TEXT;
-            own_table_reference TEXT;
-            own_table TEXT;
+            own_collection_reference TEXT;
+            own_collection TEXT;
             i INTEGER := 0;
         BEGIN
 
             WHILE i < TG_NARGS LOOP
-                own_table_reference := TG_ARGV[i];
-                own_table := TG_ARGV[i+1];
-                foreign_table_reference := TG_ARGV[i+2];
-                foreign_table := TG_ARGV[i+3];
+                own_collection_reference := TG_ARGV[i];
+                own_collection := TG_ARGV[i+1];
+                foreign_collection_reference := TG_ARGV[i+2];
+                foreign_collection := TG_ARGV[i+3];
                 check_column := TG_ARGV[i+4];
                 ref_column := TG_ARGV[i+5];
 
@@ -1746,25 +1746,25 @@ class Helper:
                     FROM %I
                     WHERE id = ($1).%I',
                     check_column,
-                    own_table,
-                    own_table_reference
+                    own_collection,
+                    own_collection_reference
                 ) INTO own_id, own_equal_val USING NEW;
                 EXECUTE format(
                     'SELECT id, %I
                     FROM %I
                     WHERE id = ($1).%I',
                     check_column,
-                    foreign_table,
-                    foreign_table_reference
+                    foreign_collection,
+                    foreign_collection_reference
                 ) INTO foreign_id, foreign_equal_val USING NEW;
 
                 PERFORM raise_equality_exception_conditionally(
                     check_column,
                     ref_column,
-                    own_table,
+                    own_collection,
                     own_id,
                     own_equal_val,
-                    foreign_table,
+                    foreign_collection,
                     foreign_id,
                     foreign_equal_val
                 );
@@ -1790,13 +1790,13 @@ class Helper:
             user_equal_val TEXT;
             own_id INTEGER;
             own_equal_val TEXT;
-            own_table TEXT;
+            own_collection TEXT;
             muser_table_identifier TEXT;
             i INTEGER := 0;
         BEGIN
 
             WHILE i < TG_NARGS LOOP
-                own_table := TG_ARGV[i];
+                own_collection := TG_ARGV[i];
                 ref_column := TG_ARGV[i+1];
                 muser_table_identifier := TG_ARGV[i+2];
                 EXECUTE format(
@@ -1815,7 +1815,7 @@ class Helper:
                 PERFORM raise_equality_exception_conditionally(
                     'meeting_id',
                     ref_column,
-                    own_table,
+                    own_collection,
                     own_id,
                     own_equal_val,
                     'user',
@@ -1843,11 +1843,11 @@ class Helper:
             foreign_equal_val TEXT;
             own_id INTEGER;
             own_equal_val TEXT;
-            own_table TEXT;
+            own_collection TEXT;
             i INTEGER := 0;
         BEGIN
             WHILE i < TG_NARGS LOOP
-                own_table := TG_ARGV[i];
+                own_collection := TG_ARGV[i];
                 ref_column := TG_ARGV[i+1];
                 EXECUTE format(
                     'SELECT ($1).user_id, ($1).meeting_id'
@@ -1856,7 +1856,7 @@ class Helper:
                     'SELECT id, meeting_id
                     FROM %I
                     WHERE %I = %L AND meeting_id = %L',
-                    own_table,
+                    own_collection,
                     ref_column,
                     foreign_id,
                     foreign_equal_val
@@ -1865,7 +1865,7 @@ class Helper:
                         PERFORM raise_equality_exception_conditionally(
                             'meeting_id',
                             ref_column,
-                            own_table,
+                            own_collection,
                             own_id,
                             own_equal_val,
                             'user',

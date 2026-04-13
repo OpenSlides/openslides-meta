@@ -475,7 +475,7 @@ class Checker:
                     return
         to_eq_fields = self.listify(to_field.get("equal_fields"))
         from_eq_fields = self.listify(from_field.get("equal_fields"))
-        joined_eq_fields = set([*to_eq_fields, *from_eq_fields])
+        joined_eq_fields = {*to_eq_fields, *from_eq_fields}
         if joined_eq_fields:
             for collectionfield, (collection, field, other_field) in {
                 to_collectionfield: (to_collection, to_field, from_field),
