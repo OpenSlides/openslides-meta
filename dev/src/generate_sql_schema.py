@@ -640,7 +640,7 @@ class GenerateCodeBlocks:
                 if foreign_table_field.field_def.get("type") == "relation-list":
                     (
                         nm_table_name,
-                        value,
+                        definition_text,
                         own_intermediate_field,
                         foreign_intermediate_field,
                     ) = Helper.get_nm_table_for_n_m_relation_lists(
@@ -657,7 +657,7 @@ class GenerateCodeBlocks:
                             )
                         )
                     if nm_table_name not in cls.intermediate_tables:
-                        cls.intermediate_tables[nm_table_name] = value
+                        cls.intermediate_tables[nm_table_name] = definition_text
                         text["create_trigger_notify"] = (
                             Helper.get_trigger_for_intermediate_table(
                                 own_table_field,
@@ -1073,7 +1073,7 @@ class GenerateCodeBlocks:
                 CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
                 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{own_intermediate_field}', '{own_table_field.table}', '{equal_field}', '{foreign_table_field.column}');
                 CREATE CONSTRAINT TRIGGER {intermediate_trigger_name} AFTER {intermediate_event_str} ON {nm_table_name} INITIALLY DEFERRED
-                FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
+                FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
 
             """)
         return sql
@@ -1175,7 +1175,7 @@ class GenerateCodeBlocks:
                 CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
                 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{own_intermediate_field}', '{own_table_field.table}', '{equal_field}', '{foreign_table_field.column}');
                 CREATE CONSTRAINT TRIGGER {intermediate_trigger_name} AFTER {intermediate_event_str} ON {nm_table_name} INITIALLY DEFERRED
-                FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
+                FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
 
             """)
         return sql
@@ -1726,7 +1726,6 @@ class Helper:
             foreign_table TEXT;
             foreign_id INTEGER;
             foreign_equal_val TEXT;
-            intermediate_table TEXT;
             own_id INTEGER;
             own_equal_val TEXT;
             own_table_reference TEXT;
@@ -1735,13 +1734,12 @@ class Helper:
         BEGIN
 
             WHILE i < TG_NARGS LOOP
-                intermediate_table := TG_ARGV[i];
-                own_table_reference := TG_ARGV[i+1];
-                own_table := TG_ARGV[i+2];
-                foreign_table_reference := TG_ARGV[i+3];
-                foreign_table := TG_ARGV[i+4];
-                check_column := TG_ARGV[i+5];
-                ref_column := TG_ARGV[i+6];
+                own_table_reference := TG_ARGV[i];
+                own_table := TG_ARGV[i+1];
+                foreign_table_reference := TG_ARGV[i+2];
+                foreign_table := TG_ARGV[i+3];
+                check_column := TG_ARGV[i+4];
+                ref_column := TG_ARGV[i+5];
 
                 EXECUTE format(
                     'SELECT id, %I
@@ -1771,7 +1769,7 @@ class Helper:
                     foreign_equal_val
                 );
 
-                i := i + 7;
+                i := i + 6;
             END LOOP;
 
             RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
