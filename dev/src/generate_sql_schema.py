@@ -947,9 +947,7 @@ class GenerateCodeBlocks:
     def get_equal_field_trigger_config(
         cls,
         table_field: TableFieldType,
-        fields: list[TableFieldType | str],
-        fail_on_user_meeting_id: bool = True,
-        fail_on_meeting_meeting_id: bool = True,
+        fields: list[TableFieldType | str]
     ) -> tuple[str, bool]:
         """
         Checks the configuration of the relation and returns:
@@ -957,78 +955,19 @@ class GenerateCodeBlocks:
         - If the field can be updated
         """
         with_update = False
-        view_field_error = False
         collection = table_field.table
         for field in fields:
             if isinstance(field, TableFieldType):
                 # Assume that these are always primary
                 field_def = field.field_def
             elif collection == "user" and field == "meeting_id":
-                # TODO: See whether the validate changes really prevent the below code from being called for anything else
-                # if fail_on_user_meeting_id:
-                #     raise Exception(
-                #         f"Cannot generate equal_fields trigger: user/meeting_id handling not implemented for {table_field.collectionfield}"
-                #     )
                 field_def = InternalHelper.get_models("meeting_user", "meeting_id")
-                own_table_field = TableFieldType(
-                    "meeting_user", "meeting_id", field_def
-                )
-                foreign_table_fields: TableFieldType | list[TableFieldType] = (
-                    TableFieldType(collection, field, field_def)
-                )
-                fse_type, *_ = InternalHelper.check_relation_definitions(
-                    own_table_field,
-                    [
-                        own_table_field.get_definitions_from_foreign(
-                            field_def.get("to"), field_def.get("reference")
-                        )
-                    ],
-                )
-                if fse_type != FieldSqlErrorType.FIELD or field_def.get("sql"):
-                    raise Exception(
-                        "Cannot generate sql_schema: meeting_user/meeting_id sql schema was changed in an incompatible manner. Please fix the generator code accordingly."
-                    )
             elif collection == "meeting" and field == "meeting_id":
-                # TODO: See whether the validate changes really prevent the below code from being called for anything else
-                # if fail_on_meeting_meeting_id:
-                #     raise Exception(
-                #         f"Cannot generate equal_fields trigger: meeting/meeting_id handling not implemented for {table_field.collectionfield}"
-                #     )
                 field_def = None
             else:
                 field_def = InternalHelper.get_models(collection, field)
-                if field_def["type"] in [
-                    "relation",
-                    "relation_list",
-                    "generic-relation",
-                    "generic-relation_list",
-                ]:
-                    own_table_field = TableFieldType(collection, field, field_def)
-                    if field_def["type"] in ["relation", "relation_list"]:
-                        foreign_table_fields = [
-                            own_table_field.get_definitions_from_foreign(
-                                field_def.get("to"), field_def.get("reference")
-                            )
-                        ]
-                    else:
-                        foreign_table_fields = (
-                            InternalHelper.get_definitions_from_foreign_list(
-                                field_def.get("to"), field_def.get("reference")
-                            )
-                        )
-                    fse_type, *_ = InternalHelper.check_relation_definitions(
-                        own_table_field, foreign_table_fields
-                    )
-                    if fse_type != FieldSqlErrorType.FIELD or field_def.get("sql"):
-                        view_field_error = True
-                elif field_def.get("sql"):
-                    view_field_error = True
             if field_def and not field_def.get("constant"):
                 with_update = True
-        if view_field_error:
-            raise Exception(
-                f"Cannot generate equal_fields triggers for {table_field.collectionfield}: One of the fields is a view field"
-            )
         return HelperGetNames.get_table_name(table_field.table), with_update
 
     @classmethod
@@ -1056,7 +995,7 @@ class GenerateCodeBlocks:
                 own_with_update, [own_table_field.column, equal_field]
             )
             foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field], False
+                foreign_table_field, [equal_field]
             )
             if (
                 "reference" in own_table_field.field_def
@@ -1160,7 +1099,7 @@ class GenerateCodeBlocks:
                 own_with_update, [equal_field, specified_relation_field]
             )
             foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field], False, False
+                foreign_table_field, [equal_field]
             )
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, specified_relation_field
