@@ -1,11 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
-<<<<<<< HEAD
--- MODELS_YML_CHECKSUM = '52adb105869b7026ce24f701d794a0b2'
-=======
--- MODELS_YML_CHECKSUM = '81ed3925150554c687fd69735bcb715e'
->>>>>>> 19b3098 (Add unique_together constraint for MeetingMediafile (#453))
+-- MODELS_YML_CHECKSUM = 'a8eef952cf4c60cc0f30c0ab0d5b1e4e'
 
 
 -- ENUM definitions
