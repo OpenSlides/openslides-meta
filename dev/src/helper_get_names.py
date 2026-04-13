@@ -425,7 +425,7 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_own_table_name_with_ref_column(own_table_field: TableFieldType)->str:
+    def get_own_table_name_with_ref_column(own_table_field: TableFieldType) -> str:
         return f"{own_table_field.table}_{own_table_field.ref_column}"
 
 

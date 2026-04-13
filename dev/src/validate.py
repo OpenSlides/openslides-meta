@@ -422,12 +422,12 @@ class Checker:
         if isinstance(to, str):
             if not COLLECTIONFIELD_REGEX.match(to):
                 return f"'to' of {collectionfield} is not a collectionfield."
-            return self.check_reverse(collectionfield,field, to)
+            return self.check_reverse(collectionfield, field, to)
         elif isinstance(to, list):
             for cf in to:
                 if not COLLECTIONFIELD_REGEX.match(cf):
                     return f"The collectionfield in 'to' of {collectionfield} is not valid."
-                error = self.check_reverse(collectionfield,field, cf)
+                error = self.check_reverse(collectionfield, field, cf)
                 if error:
                     return error
         else:
@@ -442,13 +442,13 @@ class Checker:
                         f"The collection '{c}' in 'to' of {collectionfield} is not a valid collection."
                     )
                 error = self.check_reverse(
-                    collectionfield,field, f"{c}{KEYSEPARATOR}{to['field']}"
+                    collectionfield, field, f"{c}{KEYSEPARATOR}{to['field']}"
                 )
                 if error:
                     return error
         return None
 
-    def listify(self, to_list: list[str]|str|None) -> list[str]:
+    def listify(self, to_list: list[str] | str | None) -> list[str]:
         if isinstance(to_list, list):
             return to_list
         elif to_list is None:
@@ -467,11 +467,19 @@ class Checker:
     ) -> None:
         for collection_field, field in {
             to_collectionfield: to_field,
-            from_collectionfield: from_field
+            from_collectionfield: from_field,
         }.items():
-            if (equal_fields:= field.get("equal_fields")):
-                if not (isinstance(equal_fields, str) or (isinstance(equal_fields, list) and all(isinstance(val, str) for val in equal_fields))):
-                    self.errors.append(f"'equal_fields' of {collection_field} is not valid (must be string or list of strings).")
+            if equal_fields := field.get("equal_fields"):
+                if not (
+                    isinstance(equal_fields, str)
+                    or (
+                        isinstance(equal_fields, list)
+                        and all(isinstance(val, str) for val in equal_fields)
+                    )
+                ):
+                    self.errors.append(
+                        f"'equal_fields' of {collection_field} is not valid (must be string or list of strings)."
+                    )
                     return
         to_eq_fields = self.listify(to_field.get("equal_fields"))
         from_eq_fields = self.listify(from_field.get("equal_fields"))
@@ -479,17 +487,37 @@ class Checker:
         if joined_eq_fields:
             for collectionfield, (collection, field, other_field) in {
                 to_collectionfield: (to_collection, to_field, from_field),
-                from_collectionfield: (from_collection, from_field, to_field)
+                from_collectionfield: (from_collection, from_field, to_field),
             }.items():
-                if not (other_field["type"]=="relation" or other_field["type"]=="generic-relation") and collection == "user" and "meeting_id" in joined_eq_fields:
-                    self.errors.append(f"user/meeting_id handling not implemented for {collectionfield}")
-                if other_field["type"]!="generic-relation" and collection == "meeting" and "meeting_id" in joined_eq_fields:
-                    self.errors.append(f"meeting/meeting_id handling not implemented for {collectionfield}")
+                if (
+                    not (
+                        other_field["type"] == "relation"
+                        or other_field["type"] == "generic-relation"
+                    )
+                    and collection == "user"
+                    and "meeting_id" in joined_eq_fields
+                ):
+                    self.errors.append(
+                        f"user/meeting_id handling not implemented for {collectionfield}"
+                    )
+                if (
+                    other_field["type"] != "generic-relation"
+                    and collection == "meeting"
+                    and "meeting_id" in joined_eq_fields
+                ):
+                    self.errors.append(
+                        f"meeting/meeting_id handling not implemented for {collectionfield}"
+                    )
                 if "sql" in field:
-                    self.errors.append(f"{collectionfield}: Cannot generate equal_fields triggers for sql fields")
+                    self.errors.append(
+                        f"{collectionfield}: Cannot generate equal_fields triggers for sql fields"
+                    )
 
     def check_reverse(
-        self, from_collectionfield: str, from_field:dict[str,Any], to_collectionfield: str
+        self,
+        from_collectionfield: str,
+        from_field: dict[str, Any],
+        to_collectionfield: str,
     ) -> str | None:
         to_unified = []  # a list of target collectionfields (unififed with all
         # the different possibilities for the 'to' field) from the (expected)
@@ -506,10 +534,24 @@ class Checker:
         to_field = self.models[to_collection][to_field_name]
         if to_field["type"] not in RELATION_TYPES:
             return f"{from_collectionfield} points to {to_collectionfield}, but {to_collectionfield} to is not a relation."
-        self.check_equal_fields(from_collection, from_collectionfield, from_field,to_collection, to_collectionfield, to_field)
-        if all(["reference" in field and field["type"]=="relation" for field in [to_field, from_field]]):
-            self.errors.append(f"The relation fields {from_collectionfield} and {to_collectionfield} both have reference set.")
-        
+        self.check_equal_fields(
+            from_collection,
+            from_collectionfield,
+            from_field,
+            to_collection,
+            to_collectionfield,
+            to_field,
+        )
+        if all(
+            [
+                "reference" in field and field["type"] == "relation"
+                for field in [to_field, from_field]
+            ]
+        ):
+            self.errors.append(
+                f"The relation fields {from_collectionfield} and {to_collectionfield} both have reference set."
+            )
+
         to = to_field["to"]
         if isinstance(to, str):
             to_unified.append(to)

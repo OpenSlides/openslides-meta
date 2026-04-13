@@ -550,7 +550,7 @@ class GenerateCodeBlocks:
                 text, error = cls.get_schema_simple_types(
                     table_name, fname, fdata, "number"
                 )
-            if cls.get_equal_fields(own_table_field,foreign_table_field):
+            if cls.get_equal_fields(own_table_field, foreign_table_field):
                 text["create_trigger_equal_fields_code"] = (
                     cls.get_trigger_check_equal_fields_for_1_x(
                         own_table_field, foreign_table_field, state
@@ -646,7 +646,7 @@ class GenerateCodeBlocks:
                     ) = Helper.get_nm_table_for_n_m_relation_lists(
                         own_table_field, foreign_table_field
                     )
-                    if cls.get_equal_fields(own_table_field,foreign_table_field):
+                    if cls.get_equal_fields(own_table_field, foreign_table_field):
                         text["create_trigger_equal_fields_code"] = (
                             cls.get_trigger_check_equal_fields_for_n_m(
                                 own_table_field,
@@ -943,9 +943,7 @@ class GenerateCodeBlocks:
 
     @classmethod
     def get_equal_field_trigger_config(
-        cls,
-        table_field: TableFieldType,
-        fields: list[TableFieldType | str]
+        cls, table_field: TableFieldType, fields: list[TableFieldType | str]
     ) -> tuple[str, bool]:
         """
         Checks the configuration of the relation and returns:
@@ -983,7 +981,7 @@ class GenerateCodeBlocks:
         state: FieldSqlErrorType,
     ) -> str:
         cls.equal_fields_state_check(state, own_table_field)
-        equal_fields = cls.get_equal_fields(own_table_field,foreign_table_field)
+        equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1042,7 +1040,7 @@ class GenerateCodeBlocks:
         own_intermediate_field: str,
         foreign_intermediate_field: str,
     ) -> str:
-        equal_fields = cls.get_equal_fields(own_table_field,foreign_table_field)
+        equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1087,7 +1085,7 @@ class GenerateCodeBlocks:
         state: FieldSqlErrorType,
     ) -> str:
         cls.equal_fields_state_check(state, own_table_field)
-        equal_fields = cls.get_equal_fields(own_table_field,foreign_table_field)
+        equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1144,7 +1142,7 @@ class GenerateCodeBlocks:
         own_intermediate_field: str,
         foreign_intermediate_field: str,
     ) -> str:
-        equal_fields = cls.get_equal_fields(own_table_field,foreign_table_field)
+        equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_with_update = cls.get_equal_field_trigger_config(
@@ -1217,7 +1215,7 @@ class GenerateCodeBlocks:
                     own_table_field.column,
                     foreign_table_field,
                 )
-                if cls.get_equal_fields(own_table_field,foreign_table_field):
+                if cls.get_equal_fields(own_table_field, foreign_table_field):
                     equal_fields_text += cls.get_trigger_check_equal_fields_for_g1_x(
                         own_table_field,
                         foreign_table_field,
@@ -1291,7 +1289,7 @@ class GenerateCodeBlocks:
                     foreign_intermediate_field,
                     foreign_table_field,
                 ) in foreign_intermediate_field_foreign_table_field.items():
-                    if cls.get_equal_fields(own_table_field,foreign_table_field):
+                    if cls.get_equal_fields(own_table_field, foreign_table_field):
                         equal_fields_text += (
                             cls.get_trigger_check_equal_fields_for_gn_m(
                                 own_table_field,
@@ -2381,7 +2379,9 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             )
 
         own_table_name = HelperGetNames.get_table_name(own_table_field.table)
-        own_table_name_with_ref_column = HelperGetNames.get_own_table_name_with_ref_column(own_table_field)
+        own_table_name_with_ref_column = (
+            HelperGetNames.get_own_table_name_with_ref_column(own_table_field)
+        )
         fk_idx = HelperGetNames.get_fk_and_index_name(
             gm_table_name,
             own_table_name_with_ref_column,
