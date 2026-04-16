@@ -394,7 +394,7 @@ $check_equals_trigger$ LANGUAGE plpgsql;
 -- * column referencing other table in intermediate table
 -- * other table name
 -- * field that is supposed to be equal
--- * pseudofield for which the check was triggered
+-- * models.yml-defined name for the relation on the side for which the check was triggered
 CREATE OR REPLACE FUNCTION check_equals_multi()
 RETURNS trigger AS $check_equals_multi_trigger$
 DECLARE

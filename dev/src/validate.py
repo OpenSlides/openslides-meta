@@ -450,13 +450,13 @@ class Checker:
                     return error
         return None
 
-    def listify(self, to_list: list[str] | str | None) -> list[str]:
-        if isinstance(to_list, list):
-            return to_list
+    def setify_equal_fields(self, field_def: dict[str, Any]) -> set[str]:
+        if isinstance(to_list := field_def.get("equal_fields"), list):
+            return set(to_list)
         elif to_list is None:
-            return []
+            return set()
         else:
-            return [to_list]
+            return {to_list}
 
     def check_equal_fields(
         self,
@@ -483,9 +483,9 @@ class Checker:
                         f"'equal_fields' of {collection_field} is not valid (must be string or list of strings)."
                     )
                     return
-        to_eq_fields = self.listify(to_field.get("equal_fields"))
-        from_eq_fields = self.listify(from_field.get("equal_fields"))
-        joined_eq_fields = {*to_eq_fields, *from_eq_fields}
+        joined_eq_fields = self.setify_equal_fields(to_field).union(
+            self.setify_equal_fields(from_field)
+        )
         if joined_eq_fields:
             for collectionfield, (collection, field, other_field) in {
                 to_collectionfield: (to_collection, to_field, from_field),
