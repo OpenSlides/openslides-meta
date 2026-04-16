@@ -394,7 +394,7 @@ $check_equals_trigger$ LANGUAGE plpgsql;
 -- * column referencing other table in intermediate table
 -- * other table name
 -- * field that is supposed to be equal
--- * models.yml-defined name for the relation on the side for which the check was triggered
+-- * collection definitions-defined name for the relation on the side for which the check was triggered
 CREATE OR REPLACE FUNCTION check_equals_multi()
 RETURNS trigger AS $check_equals_multi_trigger$
 DECLARE
@@ -468,7 +468,7 @@ $check_equals_multi_trigger$ LANGUAGE plpgsql;
 -- * column referencing table2 in intermediate table
 -- * table2 name
 -- * field that is supposed to be equal
--- * models.yml-defined name for the relation on the side for which the check was triggered
+-- * collection definitions-defined name for the relation on the side for which the check was triggered
 CREATE OR REPLACE FUNCTION check_equals_intermediate()
 RETURNS trigger AS $check_equals_intermediate_trigger$
 DECLARE
@@ -5070,24 +5070,16 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('motion_editor', 'motion', 'motion_id
 
 
 
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_submitter_withdraw_state_id AFTER INSERT OR UPDATE OF submitter_withdraw_state_id, workflow_id ON motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'workflow_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_submitter_withdraw_back_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'workflow_id', TRUE);
-
-
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_submitter_withdraw_state_id AFTER INSERT OR UPDATE OF submitter_withdraw_state_id, meeting_id ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_submitter_withdraw_back_ids AFTER INSERT ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_previous_state_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'workflow_id', 'previous_state_ids');
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT OR UPDATE OF next_state_id, previous_state_id ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_submitter_withdraw_state_id AFTER INSERT OR UPDATE OF submitter_withdraw_state_id, workflow_id ON motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'workflow_id', FALSE);
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_submitter_withdraw_back_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'workflow_id', TRUE);
 
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_next_state_ids AFTER INSERT ON motion_state_t INITIALLY DEFERRED
@@ -5096,6 +5088,14 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_previous_state_ids 
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'meeting_id', 'previous_state_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT OR UPDATE OF next_state_id, previous_state_id ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'meeting_id', 'next_state_ids');
+
+
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_previous_state_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'workflow_id', 'previous_state_ids');
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT OR UPDATE OF next_state_id, previous_state_id ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
 
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_workflow_id AFTER INSERT OR UPDATE OF workflow_id, meeting_id ON motion_state_t INITIALLY DEFERRED

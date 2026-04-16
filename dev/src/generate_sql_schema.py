@@ -1650,7 +1650,7 @@ class Helper:
         -- * column referencing other table in intermediate table
         -- * other table name
         -- * field that is supposed to be equal
-        -- * models.yml-defined name for the relation on the side for which the check was triggered
+        -- * collection definitions-defined name for the relation on the side for which the check was triggered
         CREATE OR REPLACE FUNCTION check_equals_multi()
         RETURNS trigger AS $check_equals_multi_trigger$
         DECLARE
@@ -1724,7 +1724,7 @@ class Helper:
         -- * column referencing table2 in intermediate table
         -- * table2 name
         -- * field that is supposed to be equal
-        -- * models.yml-defined name for the relation on the side for which the check was triggered
+        -- * collection definitions-defined name for the relation on the side for which the check was triggered
         CREATE OR REPLACE FUNCTION check_equals_intermediate()
         RETURNS trigger AS $check_equals_intermediate_trigger$
         DECLARE
