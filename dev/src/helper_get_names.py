@@ -391,6 +391,43 @@ class HelperGetNames:
         """gets the name of the constraint for timezone fields"""
         return f"timezone_{table_name}_{field_name}"
 
+    @staticmethod
+    def get_equal_field_trigger_name_helper(
+        equal_field: str, table_name: str, column: str, foreign_table: str | None
+    ) -> str:
+        base = f"equal_{equal_field}_on_{table_name}_{column}"
+        if foreign_table:
+            base += f"_{foreign_table}"
+        return base
+
+    @staticmethod
+    @max_length
+    def get_equal_field_trigger_name(
+        equal_field: str, table_name: str, column: str, foreign_table: str | None = None
+    ) -> str:
+        return HelperGetNames.get_equal_field_trigger_name_helper(
+            equal_field, table_name, column, foreign_table
+        )
+
+    @staticmethod
+    @max_length
+    def get_equal_field_intermediate_trigger_name(
+        equal_field: str, table_name: str, column: str, foreign_table: str | None = None
+    ) -> str:
+        return f"{HelperGetNames.get_equal_field_trigger_name_helper(equal_field, table_name, column, foreign_table)}_intermediate"
+
+    @staticmethod
+    @max_length
+    def get_equal_field_back_trigger_name(
+        equal_field: str, table_name: str, column: str, foreign_table: str | None = None
+    ) -> str:
+        return f"{HelperGetNames.get_equal_field_trigger_name_helper(equal_field, table_name, column, foreign_table)}_back"
+
+    @staticmethod
+    @max_length
+    def get_own_table_name_with_ref_column(own_table_field: TableFieldType) -> str:
+        return f"{own_table_field.table}_{own_table_field.ref_column}"
+
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}
