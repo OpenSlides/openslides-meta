@@ -93,8 +93,8 @@ VALUES ('topic/1', 2);
 COMMIT;
 
 --rl:gr organization.mediafile_ids:mediafile.owner_id
-INSERT INTO mediafile_t (id, owner_id)
-VALUES (1, 'organization/1');
+INSERT INTO mediafile_t (id, owner_id, title)
+VALUES (1, 'organization/1', 'first');
 
 --rl:rl committee_ids:user_ids
 INSERT INTO nm_committee_manager_ids_user_t (committee_id, user_id)
