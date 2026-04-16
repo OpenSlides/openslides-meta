@@ -206,7 +206,15 @@ class GenerateCodeBlocks:
                         case "unique_together":
                             schema_zone_texts[
                                 "table"
-                            ] += cls.get_constraint_unique_together(table_name, value)
+                            ] += cls.get_constraint_unique_together(
+                                table_name, value, False
+                            )
+                        case "unique_together_strict":
+                            schema_zone_texts[
+                                "table"
+                            ] += cls.get_constraint_unique_together(
+                                table_name, value, True
+                            )
                         case _:
                             if attr not in collection_meta_handled_attributes:
                                 missing_handled_collections_meta_attributes.add(attr)
@@ -452,7 +460,7 @@ class GenerateCodeBlocks:
                 table_name, fname, depend_field
             )
             text["table"] += Helper.get_unique_together_constraint_definition(
-                table_name, [fname, depend_field]
+                table_name, [fname, depend_field], False
             )
         return text, ""
 
@@ -781,7 +789,9 @@ class GenerateCodeBlocks:
         return f"({query}) as {fname},\n"
 
     @staticmethod
-    def get_constraint_unique_together(table_name: str, value: Any) -> str:
+    def get_constraint_unique_together(
+        table_name: str, value: Any, strict: bool
+    ) -> str:
         assert isinstance(
             value, list
         ), f"'{table_name}.yml/unique_together' must be a list of field names"
@@ -789,7 +799,7 @@ class GenerateCodeBlocks:
         for fields in value:
             fields = [field_name.strip() for field_name in fields.split(",")]
             result += Helper.get_unique_together_constraint_definition(
-                table_name, fields
+                table_name, fields, strict
             )
         return result
 
@@ -1481,9 +1491,10 @@ class Helper:
 
     @classmethod
     def get_unique_together_constraint_definition(
-        cls, table: str, fields: list[str]
+        cls, table: str, fields: list[str], strict: bool
     ) -> str:
-        return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE ({', '.join(fields)}),\n"
+        strict_definition = " NULLS NOT DISTINCT" if strict else ""
+        return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE{strict_definition} ({', '.join(fields)}),\n"
 
     @staticmethod
     def get_enum_types_definitions() -> str:
