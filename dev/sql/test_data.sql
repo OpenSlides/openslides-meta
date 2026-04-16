@@ -41,6 +41,7 @@ SELECT nextval('committee_t_id_seq');
 INSERT INTO projector_t (
     id,
     meeting_id,
+    name,
     used_as_default_projector_for_agenda_item_list_in_meeting_id,
     used_as_default_projector_for_topic_in_meeting_id,
     used_as_default_projector_for_list_of_speakers_in_meeting_id,
@@ -56,11 +57,11 @@ INSERT INTO projector_t (
     used_as_default_projector_for_motion_poll_in_meeting_id,
     used_as_default_projector_for_poll_in_meeting_id
 )
-VALUES (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+VALUES (2, 2, 'main', 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
 SELECT nextval('projector_t_id_seq');
 
-INSERT INTO projector_t (id, meeting_id)
-VALUES (3, 2);
+INSERT INTO projector_t (id, meeting_id, name)
+VALUES (3, 2, 'secondary');
 SELECT nextval('projector_t_id_seq');
 
 INSERT INTO group_t (id, name, meeting_id)
