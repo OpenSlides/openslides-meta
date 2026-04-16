@@ -940,7 +940,7 @@ class GenerateCodeBlocks:
                 raise Exception(
                     f"Invalid equal_fields for {table_field.column}: Unknown setting."
                 )
-        return list(result)
+        return sorted(result)
 
     @classmethod
     def equal_fields_state_check(
