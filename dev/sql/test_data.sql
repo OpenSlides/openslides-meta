@@ -12,7 +12,7 @@ SELECT nextval('motion_state_t_id_seq');
 INSERT INTO motion_workflow_t (
     id, name, first_state_id, meeting_id
 )
-VALUES (2, 'workflow2', 4, 2);
+VALUES (2, 'workflow2', 5, 2);
 SELECT nextval('motion_workflow_t_id_seq');
 
 INSERT INTO meeting_t (
