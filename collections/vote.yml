@@ -7,10 +7,12 @@ fields:
 
   weight:
     type: decimal(6)
+    required: true
     restriction_mode: A
     constant: true
   value:
     type: string
+    required: true
     restriction_mode: A
     constant: true
   user_token:
