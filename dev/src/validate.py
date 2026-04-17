@@ -170,8 +170,8 @@ class Checker:
                     self.errors.append(error)
         for collection, data in self.meta_data.items():
             for attr, values in data.items():
-                if attr == "unique_together":
-                    self.check_unique_together(collection, values)
+                if attr in ["unique_together", "unique_together_strict"]:
+                    self.check_unique_together(collection, values, attr)
 
     def check_field(
         self,
@@ -338,10 +338,12 @@ class Checker:
         if not isinstance(field.get("description", ""), str):
             self.errors.append(f"Description of {collectionfield} must be a string.")
 
-    def check_unique_together(self, collection: str, constraints: Any) -> None:
+    def check_unique_together(
+        self, collection: str, constraints: Any, attr_name: str
+    ) -> None:
         if not isinstance(constraints, list):
             self.errors.append(
-                f"Collection '{collection}': attribute unique_together must be a list."
+                f"Collection '{collection}': attribute {attr_name} must be a list."
             )
             return
 
@@ -350,7 +352,7 @@ class Checker:
             field_names = [name.strip() for name in constraint.split(",")]
             if len(field_names) < 2:
                 self.errors.append(
-                    f"Invalid value '{constraint}' for unique_together constraint of '{collection}': at least 2 fields must be defined."
+                    f"Invalid value '{constraint}' for {attr_name} constraint of '{collection}': at least 2 fields must be defined."
                 )
             invalid_field_names = []
             for field_name in field_names:
@@ -359,11 +361,11 @@ class Checker:
                 else:
                     if collection_data[field_name].get("unique"):
                         self.errors.append(
-                            f"Field '{field_name}' can not be used in a unique_together constraint for collection '{collection}' because it has 'unique: true'."
+                            f"Field '{field_name}' can not be used in a {attr_name} constraint for collection '{collection}' because it has 'unique: true'."
                         )
             if invalid_field_names:
                 self.errors.append(
-                    f"Some fields from the unique_together constraint '{constraint}' don't exist in the collection '{collection}': {', '.join(invalid_field_names)}."
+                    f"Some fields from the constraint '{attr_name}' don't exist in the collection '{collection}': {', '.join(invalid_field_names)}."
                 )
 
     def validate_value_for_type(
