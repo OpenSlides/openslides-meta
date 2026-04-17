@@ -1,11 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
-<<<<<<< HEAD
--- MODELS_YML_CHECKSUM = 'ee425dc03a61d3e23bb5d16f8e7b0b84'
-=======
--- MODELS_YML_CHECKSUM = 'cb650b34fd00541dd72f24048dc17112'
->>>>>>> 27283ae (Add new required constraints (#468))
+-- MODELS_YML_CHECKSUM = '31d05ea25c6ef9b5c4114bb52ef78907'
 
 
 -- ENUM definitions
