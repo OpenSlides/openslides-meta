@@ -28,10 +28,12 @@ fields:
   line_from:
     type: number
     minimum: 0
+    required: true
     restriction_mode: A
   line_to:
     type: number
     minimum: 0
+    required: true
     restriction_mode: A
   text:
     type: HTMLStrict

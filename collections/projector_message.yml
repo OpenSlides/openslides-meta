@@ -7,6 +7,7 @@ fields:
 
   message:
     type: HTMLStrict
+    required: true
     restriction_mode: A
 
   projection_ids:
