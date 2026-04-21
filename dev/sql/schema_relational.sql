@@ -269,6 +269,125 @@ BEGIN
 END;
 $log_modified_related_trigger$ LANGUAGE plpgsql;
 
+-- If insert:
+    -- If field is null -> skip
+    -- Else:
+        -- In before trigger (New value is not null) -> log if not present in OLD.calculated field
+-- If update:
+    -- If old and new are same -> skip (checked by the definition `update of column_name`)
+    -- Else:
+        -- In before trigger: If New value is not null -> log if not present in OLD.calculated field
+        -- In after trigger: If New value is null (Old value is not null) -> log if not present in NEW.calculated field
+-- If delete:
+    -- If Old value is null -> skip
+    -- Else:
+        -- In after trigger (Old value is not null) -> log if not present in NEW.calculated field
+
+
+-- Not just arrays, but ids_arrays.. Make the name more short and precise
+CREATE OR REPLACE FUNCTION iu_log_modified_calculated_array_field()
+RETURNS trigger AS $log_modified_calculated_array_field_trigger$
+DECLARE
+    foreign_table TEXT := TG_ARGV[0];  -- Collection for which the log entry should be written
+    foreign_id_sql TEXT := TG_ARGV[1];  -- Custom SQL to get id for `foreign_table`
+    fk_field TEXT := TG_ARGV[2];  -- Field for which the log entry should be written
+    own_column TEXT := TG_ARGV[3];  -- Change of value in this must fire log trigger
+    column_with_log_data TEXT := TG_ARGV[4];  -- Value that will be added (or not) to the calculated field
+    log_data_sql TEXT := TG_ARGV[5];  -- Custom SQL to get value for the calculated field
+    foreign_id INTEGER;  -- Id of `foreign_table` for which the log entry should be written
+    fqid_var TEXT;  -- Parameter 1 to log function
+    old_fk_field_value INTEGER[]; -- Old value of the calculated field
+    log_value INTEGER;  -- Must become the part of calculated field after the transaction
+    new_own_value INTEGER;
+BEGIN
+    -- No need to process new instance without field
+    -- Value deletion on update is processed in after-trigger
+    new_own_value := hstore(NEW) -> own_column;
+    IF new_own_value IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    IF (foreign_id_sql != '') THEN
+        EXECUTE format(foreign_id_sql) INTO foreign_id USING NEW;
+        IF foreign_id IS NULL THEN
+            RETURN NEW;
+        END IF;
+    ELSE
+        foreign_id := hstore(NEW) -> own_column;
+    END IF;
+
+    IF (column_with_log_data != '') THEN
+        log_value := hstore(NEW) -> column_with_log_data;
+    ELSE
+        EXECUTE format(foreign_id_sql) INTO log_value USING NEW;
+    END IF;
+
+    IF log_value IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    EXECUTE format('SELECT %I from "%I" where id = %L', fk_field, foreign_table, foreign_id) INTO old_fk_field_value;
+    IF old_fk_field_value IS NULL OR NOT (log_value = ANY(old_fk_field_value)) THEN
+        fqid_var := foreign_table || '/' || foreign_id;
+        CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
+    END IF;
+
+    RETURN NEW;
+END;
+$log_modified_calculated_array_field_trigger$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION ud_log_modified_calculated_array_field()
+RETURNS trigger AS $log_modified_calculated_array_field_trigger$
+DECLARE
+    foreign_table TEXT := TG_ARGV[0];
+    foreign_id_sql TEXT := TG_ARGV[1];
+    fk_field TEXT := TG_ARGV[2];
+    own_column TEXT := TG_ARGV[3];
+    column_with_log_data TEXT := TG_ARGV[4];
+    log_data_sql TEXT := TG_ARGV[5];
+    foreign_id INTEGER;
+    fqid_var TEXT;
+    new_fk_field_value INTEGER[];
+    log_value INTEGER;
+    old_own_value INTEGER;
+BEGIN
+    -- No need to process deleted instance without field
+    -- Value adding on update is processed in before-trigger
+    old_own_value := hstore(OLD) -> own_column;
+    IF old_own_value IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    IF (foreign_id_sql != '') THEN
+        EXECUTE format(foreign_id_sql) INTO foreign_id USING OLD;
+        IF foreign_id IS NULL THEN
+            RETURN NULL;
+        END IF;
+    ELSE
+        foreign_id := hstore(OLD) -> own_column;
+    END IF;
+
+    IF (column_with_log_data != '') THEN
+        log_value := hstore(OLD) -> column_with_log_data;
+    ELSE
+        EXECUTE format(foreign_id_sql) INTO log_value USING OLD;
+    END IF;
+
+    IF log_value IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    EXECUTE format('SELECT %I from "%I" where id = %L', fk_field, foreign_table, foreign_id) INTO new_fk_field_value;
+    IF new_fk_field_value IS NOT NULL AND NOT (log_value = ANY(new_fk_field_value)) THEN
+        fqid_var := foreign_table || '/' || foreign_id;
+        CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
+    END IF;
+
+    RETURN NULL;
+END;
+$log_modified_calculated_array_field_trigger$ LANGUAGE plpgsql;
+
+
 CREATE TABLE os_notify_log_t (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     operation varchar(32),
@@ -5384,6 +5503,81 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_vote_ids AFTER INSERT ON 
 FOR EACH ROW EXECUTE FUNCTION check_equals('vote', 'option', 'option_id', 'meeting_id', TRUE);
 
 
+-- TODO: ensure all these names are unique
+--
+-- CREATE TRIGGER tr_iu_log_committee_user_ids_from_meeting_user_t
+-- BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
+-- FOR EACH ROW
+-- EXECUTE FUNCTION iu_log_modified_calculated_array_field(
+--     'committee',
+--     'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',
+--     'user_ids',
+--     'meeting_id',
+--     'user_id',
+--     ''
+-- );
+
+CREATE TRIGGER tr_ud_log_committee_user_ids_from_meeting_user_t
+AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
+FOR EACH ROW
+EXECUTE FUNCTION ud_log_modified_calculated_array_field(
+    'committee',
+    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',
+    'user_ids',
+    'meeting_id',
+    'user_id',
+    ''
+);
+
+--
+-- CREATE TRIGGER tr_iu_log_committee_user_ids_from_nm_committee_manager_ids_user_t
+-- BEFORE INSERT OR UPDATE ON nm_committee_manager_ids_user_t
+-- FOR EACH ROW
+-- EXECUTE FUNCTION iu_log_modified_calculated_array_field(
+--     'committee',
+--     '',
+--     'user_ids',
+--     'committee_id',
+--     'user_id',
+--     ''
+-- );
+
+CREATE TRIGGER tr_ud_log_committee_user_ids_from_nm_committee_manager_ids_user_t
+AFTER UPDATE OR DELETE ON nm_committee_manager_ids_user_t
+FOR EACH ROW
+EXECUTE FUNCTION ud_log_modified_calculated_array_field(
+    'committee',
+    '',
+    'user_ids',
+    'committee_id',
+    'user_id',
+    ''
+);
+
+--
+-- CREATE TRIGGER tr_iu_log_committee_user_ids_from_user_t
+-- BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
+-- FOR EACH ROW
+-- EXECUTE FUNCTION iu_log_modified_calculated_array_field(
+--     'committee',
+--     '',
+--     'user_ids',
+--     'home_committee_id',
+--     'id',
+--     ''
+-- );
+
+CREATE TRIGGER tr_ud_log_committee_user_ids_from_user_t
+AFTER UPDATE OF home_committee_id OR DELETE ON user_t
+FOR EACH ROW
+EXECUTE FUNCTION ud_log_modified_calculated_array_field(
+    'committee',
+    '',
+    'user_ids',
+    'home_committee_id',
+    'id',
+    ''
+);
 
 /*   Relation-list infos
 Generated: What will be generated for left field
