@@ -894,10 +894,10 @@ class GenerateCodeBlocks:
             own_table_field, foreign_table_field
         )
         intermediate_table_own_key = HelperGetNames.get_field_in_n_m_relation_list(
-            own_table_field, foreign_table_field.table
+            own_table_field, foreign_table_field
         )
         intermediate_table_foreign_key = HelperGetNames.get_field_in_n_m_relation_list(
-            foreign_table_field, own_table_field.table
+            foreign_table_field, own_table_field
         )
         return dedent(f"""
             -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column} through {intermediate_table_name}
@@ -2288,10 +2288,10 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             own_table_field, foreign_table_field
         )
         field1 = HelperGetNames.get_field_in_n_m_relation_list(
-            own_table_field, foreign_table_field.table
+            own_table_field, foreign_table_field
         )
         field2 = HelperGetNames.get_field_in_n_m_relation_list(
-            foreign_table_field, own_table_field.table
+            foreign_table_field, own_table_field
         )
         if field1 == field2:
             field1 += "_1"
@@ -2441,10 +2441,10 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
     ) -> str:
 
         field1 = HelperGetNames.get_field_in_n_m_relation_list(
-            own_table_field, foreign_table_field.table
+            own_table_field, foreign_table_field
         )
         field2 = HelperGetNames.get_field_in_n_m_relation_list(
-            foreign_table_field, own_table_field.table
+            foreign_table_field, own_table_field
         )
         if field1 == field2:
             field1 += "_1"
@@ -2452,7 +2452,6 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         nm_table_name = HelperGetNames.get_nm_table_name(
             own_table_field, foreign_table_field
         )
-
         table_name = HelperGetNames.get_table_name(nm_table_name)
         trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
 

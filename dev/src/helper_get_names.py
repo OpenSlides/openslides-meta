@@ -170,14 +170,14 @@ class HelperGetNames:
     @staticmethod
     @max_length
     def get_field_in_n_m_relation_list(
-        own_table_field: TableFieldType, foreign_table_name: str
+        own_table_field: TableFieldType, foreign_table_field: TableFieldType
     ) -> str:
         """gets the field name in a n:m-intermediate table.
-        If both sides of the relation are in same table, the field name without 's' is used,
+        If both sides of the relation are in same table, the foreign field name without 's' is used,
         otherwise the related tables names are used
         """
-        if own_table_field.table == foreign_table_name:
-            return own_table_field.intermediate_column
+        if own_table_field.table == foreign_table_field.table:
+            return foreign_table_field.intermediate_column
         else:
             return f"{own_table_field.table}_id"
 
