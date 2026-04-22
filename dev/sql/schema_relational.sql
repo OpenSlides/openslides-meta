@@ -378,7 +378,7 @@ BEGIN
     END IF;
 
     EXECUTE format('SELECT %I from "%I" where id = %L', fk_field, foreign_table, foreign_id) INTO new_fk_field_value;
-    IF new_fk_field_value IS NOT NULL AND NOT (log_value = ANY(new_fk_field_value)) THEN
+    IF new_fk_field_value IS NULL OR NOT (log_value = ANY(new_fk_field_value)) THEN
         fqid_var := foreign_table || '/' || foreign_id;
         CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
     END IF;
@@ -5505,22 +5505,10 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('vote', 'option', 'option_id', 'meeti
 
 -- TODO: ensure all these names are unique
 --
--- CREATE TRIGGER tr_iu_log_committee_user_ids_from_meeting_user_t
--- BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
--- FOR EACH ROW
--- EXECUTE FUNCTION iu_log_modified_calculated_array_field(
---     'committee',
---     'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',
---     'user_ids',
---     'meeting_id',
---     'user_id',
---     ''
--- );
-
-CREATE TRIGGER tr_ud_log_committee_user_ids_from_meeting_user_t
-AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
+CREATE TRIGGER tr_iu_log_committee_user_ids_from_meeting_user_t
+BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
 FOR EACH ROW
-EXECUTE FUNCTION ud_log_modified_calculated_array_field(
+EXECUTE FUNCTION iu_log_modified_calculated_array_field(
     'committee',
     'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',
     'user_ids',
@@ -5529,18 +5517,30 @@ EXECUTE FUNCTION ud_log_modified_calculated_array_field(
     ''
 );
 
+CREATE TRIGGER tr_ud_log_committee_user_ids_from_meeting_user_t
+AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
+FOR EACH ROW
+EXECUTE FUNCTION ud_log_modified_calculated_array_field(
+    'committee',                                                      -- foreign_table
+    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',  -- foreign_id_sql
+    'user_ids',                                                       -- fk_field
+    'meeting_id',                                                     -- own_column
+    'user_id',                                                        -- column_with_log_data
+    ''                                                                -- log_data_sql
+);
+
 --
--- CREATE TRIGGER tr_iu_log_committee_user_ids_from_nm_committee_manager_ids_user_t
--- BEFORE INSERT OR UPDATE ON nm_committee_manager_ids_user_t
--- FOR EACH ROW
--- EXECUTE FUNCTION iu_log_modified_calculated_array_field(
---     'committee',
---     '',
---     'user_ids',
---     'committee_id',
---     'user_id',
---     ''
--- );
+CREATE TRIGGER tr_iu_log_committee_user_ids_from_nm_committee_manager_ids_user_t
+BEFORE INSERT OR UPDATE ON nm_committee_manager_ids_user_t
+FOR EACH ROW
+EXECUTE FUNCTION iu_log_modified_calculated_array_field(
+    'committee',
+    '',
+    'user_ids',
+    'committee_id',
+    'user_id',
+    ''
+);
 
 CREATE TRIGGER tr_ud_log_committee_user_ids_from_nm_committee_manager_ids_user_t
 AFTER UPDATE OR DELETE ON nm_committee_manager_ids_user_t
@@ -5555,17 +5555,17 @@ EXECUTE FUNCTION ud_log_modified_calculated_array_field(
 );
 
 --
--- CREATE TRIGGER tr_iu_log_committee_user_ids_from_user_t
--- BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
--- FOR EACH ROW
--- EXECUTE FUNCTION iu_log_modified_calculated_array_field(
---     'committee',
---     '',
---     'user_ids',
---     'home_committee_id',
---     'id',
---     ''
--- );
+CREATE TRIGGER tr_iu_log_committee_user_ids_from_user_t
+BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
+FOR EACH ROW
+EXECUTE FUNCTION iu_log_modified_calculated_array_field(
+    'committee',
+    '',
+    'user_ids',
+    'home_committee_id',
+    'id',
+    ''
+);
 
 CREATE TRIGGER tr_ud_log_committee_user_ids_from_user_t
 AFTER UPDATE OF home_committee_id OR DELETE ON user_t
