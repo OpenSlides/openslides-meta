@@ -288,48 +288,50 @@ $log_modified_related_trigger$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION iu_log_modified_calculated_array_field()
 RETURNS trigger AS $log_modified_calculated_array_field_trigger$
 DECLARE
-    foreign_table TEXT := TG_ARGV[0];  -- Collection for which the log entry should be written
-    foreign_id_sql TEXT := TG_ARGV[1];  -- Custom SQL to get id for `foreign_table`
-    fk_field TEXT := TG_ARGV[2];  -- Field for which the log entry should be written
-    own_column TEXT := TG_ARGV[3];  -- Change of value in this must fire log trigger
-    column_with_log_data TEXT := TG_ARGV[4];  -- Value that will be added (or not) to the calculated field
-    log_data_sql TEXT := TG_ARGV[5];  -- Custom SQL to get value for the calculated field
-    foreign_id INTEGER;  -- Id of `foreign_table` for which the log entry should be written
+    log_collection TEXT := TG_ARGV[0];  -- Collection for which the log entry should be written
+    log_collection_id_sql TEXT := TG_ARGV[1];  -- Custom SQL to get id for `log_collection`
+    log_collection_id_field TEXT := TG_ARGV[2];  -- Custom SQL to get id for `log_collection`
+    log_field TEXT := TG_ARGV[3];  -- Field for which the log entry should be written
+    trigger_field TEXT := TG_ARGV[4];  -- Change of value in this must fire log trigger
+    deleted_item_column_name TEXT := TG_ARGV[5];  -- Value that will be added (or not) to the calculated field
+    deleted_item_sql TEXT := TG_ARGV[6];  -- Custom SQL to get value for the calculated field
+
+    log_collection_id INTEGER;  -- Id of `log_collection` for which the log entry should be written
     fqid_var TEXT;  -- Parameter 1 to log function
-    old_fk_field_value INTEGER[]; -- Old value of the calculated field
-    log_value INTEGER;  -- Must become the part of calculated field after the transaction
-    new_own_value INTEGER;
+    old_log_field_value INTEGER[]; -- Old value of the calculated field
+    added_item INTEGER;  -- Must become the part of calculated field after the transaction
+    new_trigger_value INTEGER;
 BEGIN
     -- No need to process new instance without field
     -- Value deletion on update is processed in after-trigger
-    new_own_value := hstore(NEW) -> own_column;
-    IF new_own_value IS NULL THEN
+    new_trigger_value := hstore(NEW) -> trigger_field;
+    IF new_trigger_value IS NULL THEN
         RETURN NEW;
     END IF;
 
-    IF (foreign_id_sql != '') THEN
-        EXECUTE format(foreign_id_sql) INTO foreign_id USING NEW;
-        IF foreign_id IS NULL THEN
+    IF (log_collection_id_sql != '') THEN
+        EXECUTE format(log_collection_id_sql) INTO log_collection_id USING NEW;
+        IF log_collection_id IS NULL THEN
             RETURN NEW;
         END IF;
     ELSE
-        foreign_id := hstore(NEW) -> own_column;
+        log_collection_id := hstore(NEW) -> log_collection_id_field;
     END IF;
 
-    IF (column_with_log_data != '') THEN
-        log_value := hstore(NEW) -> column_with_log_data;
+    IF (deleted_item_column_name != '') THEN
+        added_item := hstore(NEW) -> deleted_item_column_name;
     ELSE
-        EXECUTE format(foreign_id_sql) INTO log_value USING NEW;
+        EXECUTE format(log_collection_id_sql) INTO added_item USING NEW;
     END IF;
 
-    IF log_value IS NULL THEN
+    IF added_item IS NULL THEN
         RETURN NEW;
     END IF;
 
-    EXECUTE format('SELECT %I from "%I" where id = %L', fk_field, foreign_table, foreign_id) INTO old_fk_field_value;
-    IF old_fk_field_value IS NULL OR NOT (log_value = ANY(old_fk_field_value)) THEN
-        fqid_var := foreign_table || '/' || foreign_id;
-        CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
+    EXECUTE format('SELECT %I from "%I" where id = %L', log_field, log_collection, log_collection_id) INTO old_log_field_value;
+    IF old_log_field_value IS NULL OR NOT (added_item = ANY(old_log_field_value)) THEN
+        fqid_var := log_collection || '/' || log_collection_id;
+        CALL log_field_change('update', fqid_var, ARRAY[log_field]);
     END IF;
 
     RETURN NEW;
@@ -339,48 +341,50 @@ $log_modified_calculated_array_field_trigger$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION ud_log_modified_calculated_array_field()
 RETURNS trigger AS $log_modified_calculated_array_field_trigger$
 DECLARE
-    foreign_table TEXT := TG_ARGV[0];
-    foreign_id_sql TEXT := TG_ARGV[1];
-    fk_field TEXT := TG_ARGV[2];
-    own_column TEXT := TG_ARGV[3];
-    column_with_log_data TEXT := TG_ARGV[4];
-    log_data_sql TEXT := TG_ARGV[5];
-    foreign_id INTEGER;
+    log_collection TEXT := TG_ARGV[0];
+    log_collection_id_sql TEXT := TG_ARGV[1];
+    log_collection_id_field TEXT := TG_ARGV[2];
+    log_field TEXT := TG_ARGV[3];
+    trigger_field TEXT := TG_ARGV[4];
+    deleted_item_column_name TEXT := TG_ARGV[5];
+    deleted_item_sql TEXT := TG_ARGV[6];
+
+    log_collection_id INTEGER;
     fqid_var TEXT;
-    new_fk_field_value INTEGER[];
-    log_value INTEGER;
-    old_own_value INTEGER;
+    new_deleted_item_value INTEGER[];
+    deleted_item INTEGER;
+    old_trigger_value INTEGER;
 BEGIN
     -- No need to process deleted instance without field
     -- Value adding on update is processed in before-trigger
-    old_own_value := hstore(OLD) -> own_column;
-    IF old_own_value IS NULL THEN
+    old_trigger_value := hstore(OLD) -> trigger_field;
+    IF old_trigger_value IS NULL THEN
         RETURN NULL;
     END IF;
 
-    IF (foreign_id_sql != '') THEN
-        EXECUTE format(foreign_id_sql) INTO foreign_id USING OLD;
-        IF foreign_id IS NULL THEN
+    IF (log_collection_id_sql != '') THEN
+        EXECUTE format(log_collection_id_sql) INTO log_collection_id USING OLD;
+        IF log_collection_id IS NULL THEN
             RETURN NULL;
         END IF;
     ELSE
-        foreign_id := hstore(OLD) -> own_column;
+        foreign_id := hstore(OLD) -> log_collection_id_field;
     END IF;
 
-    IF (column_with_log_data != '') THEN
-        log_value := hstore(OLD) -> column_with_log_data;
+    IF (deleted_item_column_name != '') THEN
+        deleted_item := hstore(OLD) -> deleted_item_column_name;
     ELSE
-        EXECUTE format(foreign_id_sql) INTO log_value USING OLD;
+        EXECUTE format(log_collection_id_sql) INTO deleted_item USING OLD;
     END IF;
 
-    IF log_value IS NULL THEN
+    IF deleted_item IS NULL THEN
         RETURN NULL;
     END IF;
 
-    EXECUTE format('SELECT %I from "%I" where id = %L', fk_field, foreign_table, foreign_id) INTO new_fk_field_value;
-    IF new_fk_field_value IS NULL OR NOT (log_value = ANY(new_fk_field_value)) THEN
-        fqid_var := foreign_table || '/' || foreign_id;
-        CALL log_field_change('update', fqid_var, ARRAY[fk_field]);
+    EXECUTE format('SELECT %I from "%I" where id = %L', log_field, log_collection, log_collection_id) INTO new_deleted_item_value;
+    IF new_deleted_item_value IS NULL OR NOT (deleted_item = ANY(new_deleted_item_value)) THEN
+        fqid_var := log_collection || '/' || log_collection_id;
+        CALL log_field_change('update', fqid_var, ARRAY[log_field]);
     END IF;
 
     RETURN NULL;
@@ -5512,6 +5516,7 @@ FOR EACH ROW
 EXECUTE FUNCTION iu_log_modified_calculated_array_field(
     'committee',
     'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',
+    '',
     'user_ids',
     'meeting_id',
     'user_id',
@@ -5522,12 +5527,13 @@ CREATE TRIGGER tr_ud_log_committee_user_ids_from_meeting_user_t
 AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
 FOR EACH ROW
 EXECUTE FUNCTION ud_log_modified_calculated_array_field(
-    'committee',                                                      -- foreign_table
-    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',  -- foreign_id_sql
-    'user_ids',                                                       -- fk_field
-    'meeting_id',                                                     -- own_column
-    'user_id',                                                        -- column_with_log_data
-    ''                                                                -- log_data_sql
+    'committee',                                                      -- log_collection
+    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',  -- log_collection_id_sql
+    '',                                                               -- log_collection_id_field
+    'user_ids',                                                       -- log_field
+    'meeting_id',                                                     -- trigger_field
+    'user_id',                                                        -- deleted_item_column_name
+    ''                                                                -- deleted_item_sql
 );
 
 --
@@ -5537,6 +5543,7 @@ FOR EACH ROW
 EXECUTE FUNCTION iu_log_modified_calculated_array_field(
     'committee',
     '',
+    'committee_id',
     'user_ids',
     'committee_id',
     'user_id',
@@ -5549,6 +5556,7 @@ FOR EACH ROW
 EXECUTE FUNCTION ud_log_modified_calculated_array_field(
     'committee',
     '',
+    'committee_id',
     'user_ids',
     'committee_id',
     'user_id',
@@ -5562,6 +5570,7 @@ FOR EACH ROW
 EXECUTE FUNCTION iu_log_modified_calculated_array_field(
     'committee',
     '',
+    'home_committee_id',
     'user_ids',
     'home_committee_id',
     'id',
@@ -5574,6 +5583,7 @@ FOR EACH ROW
 EXECUTE FUNCTION ud_log_modified_calculated_array_field(
     'committee',
     '',
+    'home_committee_id',
     'user_ids',
     'home_committee_id',
     'id',
@@ -5591,6 +5601,7 @@ FOR EACH ROW
 EXECUTE FUNCTION iu_log_modified_calculated_array_field(
     'meeting',
     '',
+    'meeting_id',
     'user_ids',
     'meeting_id',
     'user_id',
@@ -5603,6 +5614,7 @@ FOR EACH ROW
 EXECUTE FUNCTION ud_log_modified_calculated_array_field(
     'meeting',
     '',
+    'meeting_id',
     'user_ids',
     'meeting_id',
     'user_id',
@@ -5616,6 +5628,7 @@ FOR EACH ROW
 EXECUTE FUNCTION iu_log_modified_calculated_array_field(
     'user',
     '',
+    'user_id',
     'meeting_ids',
     'user_id',
     'meeting_id',
@@ -5628,6 +5641,7 @@ FOR EACH ROW
 EXECUTE FUNCTION ud_log_modified_calculated_array_field(
     'user',
     '',
+    'user_id',
     'meeting_ids',
     'user_id',
     'meeting_id',
