@@ -5504,7 +5504,8 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('vote', 'option', 'option_id', 'meeti
 
 
 -- TODO: ensure all these names are unique
---
+-- Maybe we can omit update if fields are required and constant? Also relevant for nm
+-- committee.user_ids
 CREATE TRIGGER tr_iu_log_committee_user_ids_from_meeting_user_t
 BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
 FOR EACH ROW
@@ -5576,6 +5577,60 @@ EXECUTE FUNCTION ud_log_modified_calculated_array_field(
     'user_ids',
     'home_committee_id',
     'id',
+    ''
+);
+
+-- -- -- -- -- -- -- -- --
+--  user.committee_ids  --
+-- -- -- -- -- -- -- -- --
+
+-- meeting.user_ids
+CREATE TRIGGER tr_iu_log_meeting_user_ids_from_meeting_user_t
+BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
+FOR EACH ROW
+EXECUTE FUNCTION iu_log_modified_calculated_array_field(
+    'meeting',
+    '',
+    'user_ids',
+    'meeting_id',
+    'user_id',
+    ''
+);
+
+CREATE TRIGGER tr_ud_log_meeting_user_ids_from_meeting_user_t
+AFTER UPDATE OF meeting_id, user_id ON meeting_user_t
+FOR EACH ROW
+EXECUTE FUNCTION ud_log_modified_calculated_array_field(
+    'meeting',
+    '',
+    'user_ids',
+    'meeting_id',
+    'user_id',
+    ''
+);
+
+-- user.meeting_ids
+CREATE TRIGGER tr_iu_log_user_meeting_ids_from_meeting_user_t
+BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
+FOR EACH ROW
+EXECUTE FUNCTION iu_log_modified_calculated_array_field(
+    'user',
+    '',
+    'meeting_ids',
+    'user_id',
+    'meeting_id',
+    ''
+);
+
+CREATE TRIGGER tr_ud_log_user_meeting_ids_from_meeting_user_t
+AFTER UPDATE OF meeting_id, user_id ON meeting_user_t
+FOR EACH ROW
+EXECUTE FUNCTION ud_log_modified_calculated_array_field(
+    'user',
+    '',
+    'meeting_ids',
+    'user_id',
+    'meeting_id',
     ''
 );
 
