@@ -972,7 +972,6 @@ class GenerateCodeBlocks:
                 and "meeting_id" not in InternalHelper.MODELS["user"]["fields"]
             ):
                 return "", False
-                field_def = InternalHelper.get_models("meeting_user", "meeting_id")
             elif collection == "meeting" and field == "meeting_id":
                 field_def = None
             else:
