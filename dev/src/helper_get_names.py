@@ -173,7 +173,7 @@ class HelperGetNames:
         own_table_field: TableFieldType, foreign_table_field: TableFieldType
     ) -> str:
         """gets the field name in a n:m-intermediate table.
-        If both sides of the relation are in same table, the field name without 's' is used,
+        If both sides of the relation are in same table, the foreign field name without 's' is used,
         otherwise the related tables names are used
         """
         if own_table_field.table == foreign_table_field.table:
