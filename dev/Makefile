@@ -1,7 +1,7 @@
 # Commands inside the container
 paths = src/ tests/
 
-all: pyupgrade black autoflake isort flake8 mypy sqlfluff
+lint: pyupgrade black autoflake isort flake8 mypy sqlfluff
 
 pyupgrade:
 	pyupgrade --py310-plus --exit-zero-even-if-changed $$(find . -name '*.py')
@@ -9,8 +9,13 @@ pyupgrade:
 check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
 
+
 cleanup-yaml:
-	prettier --write *.yml collections/
+	docker build -t meta-prettier-image -f Dockerfile-prettier .
+	docker run -d --name meta-prettier-container -v .:/app/ meta-prettier-image
+	docker exec meta-prettier-container prettier . --write *.yml collections/
+	docker stop meta-prettier-container
+	docker rm meta-prettier-container
 
 black:
 	black $(paths)

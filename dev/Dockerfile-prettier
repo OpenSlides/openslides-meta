@@ -1,0 +1,10 @@
+FROM node:24.14-alpine AS base
+
+# Setup
+WORKDIR /app/
+
+# Install prettier
+RUN npm install -g prettier
+
+# Command
+CMD ["sleep", "infinity"]
