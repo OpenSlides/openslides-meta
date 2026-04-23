@@ -12,7 +12,7 @@ check-pyupgrade:
 cleanup-yaml:
 	docker build -t meta-prettier-image -f Dockerfile-prettier .
 	docker run -d --name meta-prettier-container -v ..:/app/ meta-prettier-image
-	docker exec meta-prettier-container prettier . --write *.yml || true
+	docker exec meta-prettier-container prettier --write *.yml collections/ || true
 	docker stop meta-prettier-container
 	docker rm meta-prettier-container
 
