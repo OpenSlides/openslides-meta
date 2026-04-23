@@ -129,8 +129,8 @@ applause_enable:
 applause_type:
   type: string
   enum:
-    - applause-type-bar
-    - applause-type-particles
+  - applause-type-bar
+  - applause-type-particles
   default: applause-type-bar
   restriction_mode: C
 applause_show_level:
@@ -173,8 +173,8 @@ projector_countdown_warning_time:
 export_csv_encoding:
   type: string
   enum:
-    - utf-8
-    - iso-8859-15
+  - utf-8
+  - iso-8859-15
   default: utf-8
   restriction_mode: B
 export_csv_separator:
@@ -184,17 +184,17 @@ export_csv_separator:
 export_pdf_pagenumber_alignment:
   type: string
   enum:
-    - left
-    - right
-    - center
+  - left
+  - right
+  - center
   default: center
   restriction_mode: B
 export_pdf_fontsize:
   type: number
   enum:
-    - 10
-    - 11
-    - 12
+  - 10
+  - 11
+  - 12
   default: 10
   restriction_mode: B
 export_pdf_line_height:
@@ -225,8 +225,8 @@ export_pdf_page_margin_bottom:
 export_pdf_pagesize:
   type: string
   enum:
-    - A4
-    - A5
+  - A4
+  - A5
   default: A4
   restriction_mode: B
 
@@ -246,25 +246,25 @@ agenda_number_prefix:
 agenda_numeral_system:
   type: string
   enum:
-    - arabic
-    - roman
+  - arabic
+  - roman
   default: arabic
   restriction_mode: B
 agenda_item_creation:
   type: string
   enum:
-    - always
-    - never
-    - default_yes
-    - default_no
+  - always
+  - never
+  - default_yes
+  - default_no
   default: default_no
   restriction_mode: B
 agenda_new_items_default_visibility:
   type: string
   enum:
-    - common
-    - internal
-    - hidden
+  - common
+  - internal
+  - hidden
   default: internal
   restriction_mode: B
 agenda_show_internal_items_on_projector:
@@ -376,9 +376,9 @@ motions_preamble:
 motions_default_line_numbering:
   type: string
   enum:
-    - outside
-    - inline
-    - none
+  - outside
+  - inline
+  - none
   default: outside
   restriction_mode: A
 motions_line_length:
@@ -439,25 +439,25 @@ motions_block_slide_columns:
 motions_recommendation_text_mode:
   type: string
   enum:
-    - original
-    - changed
-    - diff
-    - agreed
+  - original
+  - changed
+  - diff
+  - agreed
   default: diff
   restriction_mode: B
 motions_default_sorting:
   type: string
   enum:
-    - number
-    - weight
+  - number
+  - weight
   default: number
   restriction_mode: B
 motions_number_type:
   type: string
   enum:
-    - per_category
-    - serially_numbered
-    - manually
+  - per_category
+  - serially_numbered
+  - manually
   default: per_category
   restriction_mode: B
 motions_number_min_digits:
@@ -487,9 +487,9 @@ motions_amendments_prefix:
 motions_amendments_text_mode:
   type: string
   enum:
-    - freestyle
-    - fulltext
-    - paragraph
+  - freestyle
+  - fulltext
+  - paragraph
   default: paragraph
   restriction_mode: B
 motions_amendments_multiple_paragraphs:
@@ -559,8 +559,8 @@ motion_poll_default_group_ids:
 motion_poll_projection_name_order_first:
   type: string
   enum:
-    - first_name
-    - last_name
+  - first_name
+  - last_name
   default: last_name
   required: true
   restriction_mode: B
@@ -606,10 +606,10 @@ users_pdf_wlan_encryption:
   type: string
   default: WPA
   enum:
-    - ""
-    - WEP
-    - WPA
-    - nopass
+  - ""
+  - WEP
+  - WPA
+  - nopass
   restriction_mode: B
 users_email_sender:
   type: string
@@ -1156,3 +1156,4 @@ relevant_history_entry_ids:
   type: relation-list
   to: history_entry/meeting_id
   restriction_mode: A
+
