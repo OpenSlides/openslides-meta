@@ -1,3 +1,6 @@
+unique_together_strict:
+- title, parent_id, owner_id
+
 fields:
   id:
     type: number
@@ -9,6 +12,7 @@ fields:
     type: string
     description: Title and parent_id must be unique.
     restriction_mode: A
+    required: true
   is_directory:
     type: boolean
     restriction_mode: A
@@ -32,6 +36,7 @@ fields:
     restriction_mode: A
   token:
     type: string
+    unique: true
     restriction_mode: A
   published_to_meetings_in_organization_id:
     type: relation

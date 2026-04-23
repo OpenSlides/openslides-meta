@@ -1,3 +1,6 @@
+unique_together:
+- meeting_user_id, motion_id
+
 fields:
   id:
     type: number

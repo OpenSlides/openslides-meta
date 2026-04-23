@@ -1,3 +1,6 @@
+unique_together:
+- mediafile_id, meeting_id 
+
 fields:
   id:
     type: number

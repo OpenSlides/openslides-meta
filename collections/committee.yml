@@ -14,8 +14,8 @@ fields:
     restriction_mode: A
   external_id:
     type: string
+    unique: true
     restriction_mode: A
-    description: unique
   meeting_ids:
     type: relation-list
     to: meeting/committee_id
@@ -100,4 +100,4 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
+    default: 1

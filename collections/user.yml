@@ -7,14 +7,17 @@ fields:
 
   username:
     type: string
+    unique: true
     required: true
     restriction_mode: B
   member_number:
     type: string
+    unique: true
     restriction_mode: B
   saml_id:
     type: string
     minLength: 1
+    unique: true
     restriction_mode: B
     description: unique-key from IdP for SAML login
   pronoun:
@@ -169,4 +172,5 @@ fields:
     required: true
     restriction_mode: F
     constant: true
+    default: 1
 

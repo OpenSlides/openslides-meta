@@ -1,3 +1,6 @@
+unique_together:
+- meeting_id, number
+
 fields:
   id:
     type: number
@@ -24,6 +27,9 @@ fields:
   title:
     type: string
     required: true
+    restriction_mode: C
+  diff_version:
+    type: string
     restriction_mode: C
   text:
     type: HTMLStrict

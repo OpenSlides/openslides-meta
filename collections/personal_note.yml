@@ -1,3 +1,6 @@
+unique_together:
+- meeting_user_id, content_object_id
+
 fields:
   id:
     type: number
@@ -29,6 +32,7 @@ fields:
       - motion
       field: personal_note_ids
     equal_fields: meeting_id
+    required: true
     restriction_mode: A
     constant: true
   meeting_id:

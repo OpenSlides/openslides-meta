@@ -59,8 +59,11 @@ fields:
   default_language:
     type: string
     restriction_mode: A
-    enum: *languages
+    enum: languages
     default: en
+  time_zone:
+    type: timezone
+    restriction_mode: A
   require_duplicate_from:
     type: boolean
     restriction_mode: A

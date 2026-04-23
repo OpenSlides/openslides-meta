@@ -24,5 +24,5 @@ fields:
   onehundred_percent_base:
     type: string
     required: true
-    enum: *rating_approval_onehundred_percent_bases
+    enum: rating_approval_onehundred_percent_bases
     restriction_mode: A

@@ -7,8 +7,8 @@ fields:
 
   external_id:
     type: string
+    unique: true
     restriction_mode: F
-    description: unique in committee
   welcome_title:
     type: string
     default: Welcome to OpenSlides
@@ -44,6 +44,9 @@ fields:
   location:
     type: string
     restriction_mode: F
+  time_zone:
+    type: timezone
+    restriction_mode: F
   start_time:
     type: timestamp
     restriction_mode: F
@@ -59,7 +62,7 @@ fields:
   language:
     type: string
     restriction_mode: F
-    enum: *languages
+    enum: languages
     default: "en"
     constant: true
 
@@ -192,10 +195,8 @@ fields:
     restriction_mode: B
   export_pdf_fontsize:
     type: number
-    enum:
-    - 10
-    - 11
-    - 12
+    minimum: 10
+    maximum: 12
     default: 10
     restriction_mode: B
   export_pdf_line_height:
@@ -533,7 +534,7 @@ fields:
   # Motion poll
   motion_poll_ballot_paper_selection:
     type: string
-    enum: *ballot_paper_selection
+    enum: ballot_paper_selection
     default: CUSTOM_NUMBER
     restriction_mode: B
   motion_poll_ballot_paper_number:
@@ -550,7 +551,7 @@ fields:
     restriction_mode: B
   motion_poll_default_onehundred_percent_base:
     type: string
-    enum: *approval_onehundred_percent_bases
+    enum: approval_onehundred_percent_bases
     default: valid
     restriction_mode: B
   motion_poll_default_group_ids:
@@ -670,7 +671,7 @@ fields:
   # Assignment polls
   assignment_poll_ballot_paper_selection:
     type: string
-    enum: *ballot_paper_selection
+    enum: ballot_paper_selection
     default: CUSTOM_NUMBER
     restriction_mode: B
   assignment_poll_ballot_paper_number:
@@ -699,7 +700,7 @@ fields:
     restriction_mode: B
   assignment_poll_default_onehundred_percent_base:
     type: string
-    enum: *onehundred_percent_bases
+    enum: onehundred_percent_bases
     default: valid
     restriction_mode: B
   assignment_poll_default_group_ids:
@@ -710,7 +711,7 @@ fields:
   # Polls
   poll_ballot_paper_selection:
     type: string
-    enum: *ballot_paper_selection
+    enum: ballot_paper_selection
     restriction_mode: B
   poll_ballot_paper_number:
     type: number
@@ -727,7 +728,7 @@ fields:
     restriction_mode: B
   poll_default_onehundred_percent_base:
     type: string
-    enum: *selection_onehundred_percent_bases
+    enum: selection_onehundred_percent_bases
     default: valid
     restriction_mode: B
   poll_default_group_ids:
@@ -900,6 +901,12 @@ fields:
     type: relation-list
     to: poll/meeting_id
     reference: poll
+    on_delete: CASCADE
+    restriction_mode: B
+  ballot_ids:
+    type: relation-list
+    to: ballot/meeting_id
+    reference: ballot
     on_delete: CASCADE
     restriction_mode: B
   assignment_ids:
