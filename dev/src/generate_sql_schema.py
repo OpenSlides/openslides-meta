@@ -146,10 +146,11 @@ class GenerateCodeBlocks:
                 cls.get_not_null_trigger_params(type_)
             )
 
-        for table_name, fields in InternalHelper.MODELS.items():
+        for table_name, data in InternalHelper.MODELS.items():
             if table_name in ["_migration_index", "_meta"]:
                 continue
 
+            fields = data["fields"]
             schema_zone_texts = cast(SchemaZoneTexts, defaultdict(str))
             cls.intermediate_tables = {}
 

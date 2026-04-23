@@ -1,119 +1,120 @@
-id:
-  type: number
-  restriction_mode: A
-  constant: true
-  required: true
-title:
-  type: string
-  required: true
-  restriction_mode: A
-config_id:
-  type: generic-relation
-  to:
-    - poll_config_approval/poll_id
-    - poll_config_selection/poll_id
-    - poll_config_rating_score/poll_id
-    - poll_config_rating_approval/poll_id
-    - poll_config_stv_scottish/poll_id
-  reference:
-    - poll_config_approval
-    - poll_config_selection
-    - poll_config_rating_score
-    - poll_config_rating_approval
-    - poll_config_stv_scottish
-  required: true
-  restriction_mode: A
-option_ids:
-  type: relation-list
-  to: poll_option/poll_id
-  on_delete: CASCADE
-  restriction_mode: A
-visibility:
-  type: string
-  required: true
-  enum:
-    - manually
-    - named
-    - open
-    - secret
-  restriction_mode: A
-state:
-  type: string
-  enum:
-    - created
-    - started
-    - finished
-  default: created
-  restriction_mode: A
-result:
-  type: text
-  description: Calculated result. The format depends on the value in poll/method. Can be manually set when visibility is set to manually.
-  restriction_mode: B
-published:
-  type: boolean
-  default: false
-  description: If true, users can see the result.
-  restriction_mode: A
-allow_invalid:
-  type: boolean
-  default: false
-  description: If true, the vote service does not validate. This is always the case for secret polls.
-  restriction_mode: A
-allow_vote_split:
-  type: boolean
-  default: false
-  description: If true, users can split there vote.
-  restriction_mode: A
-sequential_number:
-  type: number
-  sequence_scope: meeting_id
-  description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
-  read_only: true
-  required: true
-  restriction_mode: A
-  constant: true
-content_object_id:
-  type: generic-relation
-  reference:
-    - motion
-    - assignment
-    - topic
-  to:
-    collections:
+fields:
+  id:
+    type: number
+    restriction_mode: A
+    constant: true
+    required: true
+  title:
+    type: string
+    required: true
+    restriction_mode: A
+  config_id:
+    type: generic-relation
+    to:
+      - poll_config_approval/poll_id
+      - poll_config_selection/poll_id
+      - poll_config_rating_score/poll_id
+      - poll_config_rating_approval/poll_id
+      - poll_config_stv_scottish/poll_id
+    reference:
+      - poll_config_approval
+      - poll_config_selection
+      - poll_config_rating_score
+      - poll_config_rating_approval
+      - poll_config_stv_scottish
+    required: true
+    restriction_mode: A
+  option_ids:
+    type: relation-list
+    to: poll_option/poll_id
+    on_delete: CASCADE
+    restriction_mode: A
+  visibility:
+    type: string
+    required: true
+    enum:
+      - manually
+      - named
+      - open
+      - secret
+    restriction_mode: A
+  state:
+    type: string
+    enum:
+      - created
+      - started
+      - finished
+    default: created
+    restriction_mode: A
+  result:
+    type: text
+    description: Calculated result. The format depends on the value in poll/method. Can be manually set when visibility is set to manually.
+    restriction_mode: B
+  published:
+    type: boolean
+    default: false
+    description: If true, users can see the result.
+    restriction_mode: A
+  allow_invalid:
+    type: boolean
+    default: false
+    description: If true, the vote service does not validate. This is always the case for secret polls.
+    restriction_mode: A
+  allow_vote_split:
+    type: boolean
+    default: false
+    description: If true, users can split there vote.
+    restriction_mode: A
+  sequential_number:
+    type: number
+    sequence_scope: meeting_id
+    description: The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.
+    read_only: true
+    required: true
+    restriction_mode: A
+    constant: true
+  content_object_id:
+    type: generic-relation
+    reference:
       - motion
       - assignment
       - topic
-    field: poll_ids
-  equal_fields: meeting_id
-  restriction_mode: A
-  required: true
-  constant: true
-ballot_ids:
-  type: relation-list
-  to: ballot/poll_id
-  reference: ballot
-  on_delete: CASCADE
-  equal_fields: meeting_id
-  restriction_mode: A
-voted_ids:
-  type: relation-list
-  to: meeting_user/poll_voted_ids
-  restriction_mode: B
-entitled_group_ids:
-  type: relation-list
-  to: group/poll_ids
-  equal_fields: meeting_id
-  restriction_mode: A
-projection_ids:
-  type: relation-list
-  to: projection/content_object_id
-  equal_fields: meeting_id
-  on_delete: CASCADE
-  restriction_mode: A
-meeting_id:
-  type: relation
-  reference: meeting
-  to: meeting/poll_ids
-  restriction_mode: A
-  required: true
-  constant: true
+    to:
+      collections:
+        - motion
+        - assignment
+        - topic
+      field: poll_ids
+    equal_fields: meeting_id
+    restriction_mode: A
+    required: true
+    constant: true
+  ballot_ids:
+    type: relation-list
+    to: ballot/poll_id
+    reference: ballot
+    on_delete: CASCADE
+    equal_fields: meeting_id
+    restriction_mode: A
+  voted_ids:
+    type: relation-list
+    to: meeting_user/poll_voted_ids
+    restriction_mode: B
+  entitled_group_ids:
+    type: relation-list
+    to: group/poll_ids
+    equal_fields: meeting_id
+    restriction_mode: A
+  projection_ids:
+    type: relation-list
+    to: projection/content_object_id
+    equal_fields: meeting_id
+    on_delete: CASCADE
+    restriction_mode: A
+  meeting_id:
+    type: relation
+    reference: meeting
+    to: meeting/poll_ids
+    restriction_mode: A
+    required: true
+    constant: true

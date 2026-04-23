@@ -114,7 +114,7 @@ class Checker:
                     )
                     continue
 
-                self.models[yaml_file.stem] = data[yaml_file.stem]
+                self.models[yaml_file.stem] = data[yaml_file.stem]["fields"]
 
             except yaml.YAMLError as e:
                 self.errors.append(f"Error parsing '{yaml_file.name}': {e}")
