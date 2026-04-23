@@ -135,7 +135,7 @@ motion:
                 gender_id:
                   type: relation
                   collection: gender
-                  fields: 
+                  fields:
                     id: null
                     name: null
 motion_change_recommendation:
@@ -285,6 +285,6 @@ user:
     gender_id:
       type: relation
       collection: gender
-      fields: 
+      fields:
         id: null
         name: null

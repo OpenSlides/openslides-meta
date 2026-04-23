@@ -28,11 +28,11 @@ fields:
   speech_state:
     type: string
     enum:
-    - contribution
-    - pro
-    - contra
-    - intervention
-    - interposed_question
+      - contribution
+      - pro
+      - contra
+      - intervention
+      - interposed_question
     restriction_mode: A
   answer:
     type: boolean
@@ -79,4 +79,3 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-

@@ -175,4 +175,3 @@ fields:
     type: string
     default: https://example.com
     restriction_mode: A
-

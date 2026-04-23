@@ -16,10 +16,10 @@ fields:
   type:
     type: string
     enum:
-    - replacement
-    - insertion
-    - deletion
-    - other
+      - replacement
+      - insertion
+      - deletion
+      - other
     default: replacement
     restriction_mode: A
   other_description:
@@ -58,4 +58,3 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-

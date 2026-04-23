@@ -1,5 +1,5 @@
 unique_together:
-- meeting_id, title
+  - meeting_id, title
 
 fields:
   id:
@@ -49,4 +49,3 @@ fields:
     restriction_mode: A
     required: true
     constant: true
-

@@ -23,4 +23,3 @@ fields:
     to: history_entry/position_id
     restriction_mode: A
     on_delete: CASCADE
-

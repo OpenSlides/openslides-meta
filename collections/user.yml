@@ -83,9 +83,9 @@ fields:
     type: string
     description: Hierarchical permission level for the whole organization.
     enum:
-    - superadmin
-    - can_manage_organization
-    - can_manage_users
+      - superadmin
+      - can_manage_organization
+      - can_manage_users
     restriction_mode: B
   is_present_in_meeting_ids:
     type: relation-list
@@ -197,4 +197,3 @@ fields:
     restriction_mode: F
     constant: true
     default: 1
-

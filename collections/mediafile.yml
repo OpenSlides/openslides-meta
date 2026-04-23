@@ -1,5 +1,5 @@
 unique_together_strict:
-- title, parent_id, owner_id
+  - title, parent_id, owner_id
 
 fields:
   id:
@@ -57,11 +57,11 @@ fields:
   owner_id:
     type: generic-relation
     to:
-    - meeting/mediafile_ids
-    - organization/mediafile_ids
+      - meeting/mediafile_ids
+      - organization/mediafile_ids
     reference:
-    - meeting
-    - organization
+      - meeting
+      - organization
     restriction_mode: A
     required: true
     constant: true

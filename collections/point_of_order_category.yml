@@ -25,4 +25,3 @@ fields:
     to: speaker/point_of_order_category_id
     equal_fields: meeting_id
     restriction_mode: A
-

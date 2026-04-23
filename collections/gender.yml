@@ -22,4 +22,3 @@ fields:
     to: user/gender_id
     restriction_mode: A
     reference: user
-

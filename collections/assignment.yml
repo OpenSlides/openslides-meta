@@ -20,9 +20,9 @@ fields:
   phase:
     type: string
     enum:
-    - search
-    - voting
-    - finished
+      - search
+      - voting
+      - finished
     default: search
     restriction_mode: A
   default_poll_description:
@@ -94,4 +94,3 @@ fields:
     type: relation-list
     to: history_entry/model_id
     restriction_mode: A
-
