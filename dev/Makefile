@@ -9,6 +9,9 @@ pyupgrade:
 check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
 
+cleanup-yaml:
+	prettier --write *.yml collections/
+
 black:
 	black $(paths)
 
