@@ -9,11 +9,10 @@ pyupgrade:
 check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
 
-
 cleanup-yaml:
 	docker build -t meta-prettier-image -f Dockerfile-prettier .
 	docker run -d --name meta-prettier-container -v ..:/app/ meta-prettier-image
-	docker exec meta-prettier-container prettier . --write || true
+	docker exec meta-prettier-container prettier . --write *.yml || true
 	docker stop meta-prettier-container
 	docker rm meta-prettier-container
 
