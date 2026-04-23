@@ -11,6 +11,14 @@ env:
   PYTHON_VERSION: 3.10.x
 
 jobs:
+  check-formatting:
+    name: YAML formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: |
+          npx prettier --check *.yml collections/
   validate-models:
     name: CI
     runs-on: ubuntu-latest
