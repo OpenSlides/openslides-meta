@@ -316,7 +316,7 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- No value if column used for log_field -> return
+    -- No value in column used for log_field -> return
     IF (added_item_sql <> '') THEN
         EXECUTE added_item_sql INTO added_item USING NEW;
     ELSE
@@ -384,9 +384,9 @@ BEGIN
         RETURN NULL;
     END IF;
 
-    -- No value if column used for log_field -> return
+    -- No value in column used for log_field -> return
     IF (deleted_item_sql <> '') THEN
-        EXECUTE log_collection_id_sql INTO deleted_item USING OLD;
+        EXECUTE deleted_item_sql INTO deleted_item USING OLD;
     ELSE
         deleted_item := old_hstore -> deleted_item_column;
     END IF;
@@ -5611,12 +5611,12 @@ BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
 FOR EACH ROW
 EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
     'user',
+    'user_id',
     '',
-    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',
     'committee_ids',
     'meeting_id',
-    'user_id',
-    ''
+    '',
+    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id'
 );
 
 CREATE TRIGGER tr_ud_log_user_committee_ids_from_meeting_user_t
@@ -5624,12 +5624,12 @@ AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
 FOR EACH ROW
 EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
     'user',
+    'user_id',
     '',
-    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',
     'committee_ids',
     'meeting_id',
-    'user_id',
-    ''
+    '',
+    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id'
 );
 
 --
@@ -5701,7 +5701,7 @@ EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
 );
 
 CREATE TRIGGER tr_ud_log_meeting_user_ids_from_meeting_user_t
-AFTER UPDATE OF meeting_id, user_id ON meeting_user_t
+AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
 FOR EACH ROW
 EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
     'meeting',
@@ -5728,7 +5728,7 @@ EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
 );
 
 CREATE TRIGGER tr_ud_log_user_meeting_ids_from_meeting_user_t
-AFTER UPDATE OF meeting_id, user_id ON meeting_user_t
+AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
 FOR EACH ROW
 EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
     'user',
