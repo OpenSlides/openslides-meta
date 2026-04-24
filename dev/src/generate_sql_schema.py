@@ -170,6 +170,13 @@ class GenerateCodeBlocks:
         im_table_code = ""
         errors: list[str] = []
 
+        for type_ in ["iu", "ud"]:
+            pre_code += (
+                Helper.LOG_CALCULATED_ID_ARRAY_TRIGGER_FUNCTION_TEMPLATE.substitute(
+                    cls.get_log_calculated_id_array_trigger_params(type_)
+                )
+            )
+        pre_code += Helper.FILE_TEMPLATE_CONSTANT_TRIGGERS
         for type_ in ["1_1", "1_n", "n_m"]:
             pre_code += Helper.NOT_NULL_TRIGGER_FUNCTION_TEMPLATE.substitute(
                 cls.get_not_null_trigger_params(type_)
@@ -425,6 +432,32 @@ class GenerateCodeBlocks:
                 if type_ == "n_m"
                 else "OLD.id"
             ),
+        }
+
+    @staticmethod
+    def get_log_calculated_id_array_trigger_params(type_: str) -> dict[str, str]:
+        if type_ == "iu":
+            primary_hstore = "new"
+            comments = """\
+            -- No need to process new instance without field
+                -- Value deletion on update is processed in after-trigger"""
+        else:
+            primary_hstore = "old"
+            comments = """\
+            -- No need to process deleted instance without field
+                -- Value adding on update is processed in before-trigger"""
+        return {
+            "trigger_type": type_,
+            "changed_item_state": "added" if type_ == "iu" else "deleted",
+            "changed_item_state_phrase": (
+                "added to" if type_ == "iu" else "deleted from"
+            ),
+            "primary_hstore": primary_hstore,
+            "primary_hstore_uppercase": primary_hstore.upper(),
+            "secondary_hstore": "old" if type_ == "iu" else "new",
+            "trigger_return_value": "NEW" if type_ == "iu" else "NULL",
+            "instance_state": "new" if type_ == "iu" else "deleted",
+            "comments": dedent(comments),
         }
 
     @classmethod
@@ -1540,7 +1573,8 @@ class Helper:
             migration_state TEXT,
             replace_tables JSONB
         );
-
+    """)
+    FILE_TEMPLATE_CONSTANT_TRIGGERS = dedent("""\n
         CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
         BEGIN
             RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
@@ -1929,6 +1963,74 @@ class Helper:
         $check_equals_meeting_id_for_meeting$ LANGUAGE plpgsql;
 
         """)
+    LOG_CALCULATED_ID_ARRAY_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
+            CREATE OR REPLACE FUNCTION ${trigger_type}_log_modified_calculated_id_array_field()
+            RETURNS trigger AS $$log_modified_calculated_id_array_field_trigger$$
+            -- Expects in this order:
+            -- 0. log_collection – Target collection for the log entry
+            -- 1. log_collection_id_column – Column used to fetch the 'log_collection' id
+            --    (ignored if 'log_collection_id_sql' is provided => may be NULL)
+            -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
+            -- 3. log_field – Field to be logged
+            -- 4. trigger_column – Column whose change triggers logging
+            -- 5. ${changed_item_state}_item_column – Column used to fetch the value ${changed_item_state_phrase} 'log_field'
+            --    (ignored if '${changed_item_state}_item_sql' is provided => may be NULL)
+            -- 6. ${changed_item_state}_item_sql – Custom SQL to fetch the value ${changed_item_state_phrase} 'log_field'
+            DECLARE
+                log_collection TEXT := TG_ARGV[0];
+                log_collection_id_column TEXT := TG_ARGV[1];
+                log_collection_id_sql TEXT := TG_ARGV[2];
+                log_field TEXT := TG_ARGV[3];
+                trigger_column TEXT := TG_ARGV[4];
+                ${changed_item_state}_item_column TEXT := TG_ARGV[5];
+                ${changed_item_state}_item_sql TEXT := TG_ARGV[6];
+
+                ${primary_hstore}_hstore hstore := hstore(${primary_hstore_uppercase});
+                ${primary_hstore}_trigger_value INTEGER;
+                log_collection_id INTEGER;
+                ${changed_item_state}_item INTEGER;
+                ${secondary_hstore}_log_field_value INTEGER[];
+                fqid_var TEXT;
+            BEGIN
+                ${comments}
+                ${primary_hstore}_trigger_value := ${primary_hstore}_hstore -> trigger_column;
+                IF ${primary_hstore}_trigger_value IS NULL THEN
+                    RETURN ${trigger_return_value};
+                END IF;
+
+                -- Related log_collection item is not updated -> return
+                IF (log_collection_id_sql <> '') THEN
+                    EXECUTE log_collection_id_sql INTO log_collection_id USING ${primary_hstore_uppercase};
+                ELSE
+                    log_collection_id := ${primary_hstore}_hstore -> log_collection_id_column;
+                END IF;
+
+                IF log_collection_id IS NULL THEN
+                    RETURN ${trigger_return_value};
+                END IF;
+
+                -- No value in column used for log_field -> return
+                IF (${changed_item_state}_item_sql <> '') THEN
+                    EXECUTE ${changed_item_state}_item_sql INTO ${changed_item_state}_item USING ${primary_hstore_uppercase};
+                ELSE
+                    ${changed_item_state}_item := ${primary_hstore}_hstore -> ${changed_item_state}_item_column;
+                END IF;
+
+                IF ${changed_item_state}_item IS NULL THEN
+                    RETURN ${trigger_return_value};
+                END IF;
+
+                -- Add log entry only if log_field value actually changes
+                EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO ${secondary_hstore}_log_field_value;
+                IF ${secondary_hstore}_log_field_value IS NULL OR NOT (${changed_item_state}_item = ANY(${secondary_hstore}_log_field_value)) THEN
+                    fqid_var := log_collection || '/' || log_collection_id;
+                    CALL log_field_change('update', fqid_var, ARRAY[log_field]);
+                END IF;
+
+                RETURN ${trigger_return_value};
+            END;
+            $$log_modified_calculated_id_array_field_trigger$$ LANGUAGE plpgsql;
+        """))
     NOT_NULL_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
             CREATE FUNCTION check_not_null_for_${trigger_type}() RETURNS trigger AS $$not_null_trigger$$
             ${docstring}

@@ -269,6 +269,21 @@ BEGIN
 END;
 $log_modified_related_trigger$ LANGUAGE plpgsql;
 
+CREATE TABLE os_notify_log_t (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    operation varchar(32),
+    fqid varchar(256) NOT NULL,
+    updated_fields varchar(63)[],
+    xact_id xid8,
+    timestamp timestamptz,
+    CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
+);
+
+CREATE TABLE version (
+    migration_index INTEGER PRIMARY KEY,
+    migration_state TEXT,
+    replace_tables JSONB
+);
 
 CREATE OR REPLACE FUNCTION iu_log_modified_calculated_id_array_field()
 RETURNS trigger AS $log_modified_calculated_id_array_field_trigger$
@@ -406,22 +421,6 @@ BEGIN
 END;
 $log_modified_calculated_id_array_field_trigger$ LANGUAGE plpgsql;
 
-
-CREATE TABLE os_notify_log_t (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    operation varchar(32),
-    fqid varchar(256) NOT NULL,
-    updated_fields varchar(63)[],
-    xact_id xid8,
-    timestamp timestamptz,
-    CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
-);
-
-CREATE TABLE version (
-    migration_index INTEGER PRIMARY KEY,
-    migration_state TEXT,
-    replace_tables JSONB
-);
 
 CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
 BEGIN
