@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'cb650b34fd00541dd72f24048dc17112'
+-- MODELS_YML_CHECKSUM = '967255cf67d7c6453418c1631eb84113'
 
 
 -- ENUM definitions
@@ -3059,7 +3059,8 @@ CREATE VIEW "committee" AS SELECT *,
     UNION
 
     -- Select user_id from home committees
-    SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
+    SELECT u.id FROM user_t u
+    WHERE u.home_committee_id = c.id
   ) _
 ) AS user_ids
 ,
@@ -4208,86 +4209,19 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 CREATE TRIGGER tr_log_committee_t_default_meeting_id AFTER INSERT OR UPDATE OF default_meeting_id OR DELETE ON committee_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'default_meeting_id', 'default_meeting_for_committee_id');
 
--- committee.user_ids
-CREATE TRIGGER tr_iu_log_committee_user_ids_from_meeting_user_t
-BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
-FOR EACH ROW
-EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
-    'committee',
-    '',
-    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',
-    'user_ids',
-    'meeting_id',
-    'user_id',
-    ''
-);
+CREATE TRIGGER tr_i_log_committee_user_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION iu_log_modified_calculated_id_array_field('committee', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id', 'user_ids', 'meeting_id', 'user_id', '');
+CREATE TRIGGER tr_d_log_committee_user_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION ud_log_modified_calculated_id_array_field('committee', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id', 'user_ids', 'meeting_id', 'user_id', '');
+CREATE TRIGGER tr_i_log_committee_user_ids_from_nm_committee_manager_id05ef8b4 BEFORE INSERT ON nm_committee_manager_ids_user_t
+FOR EACH ROW EXECUTE FUNCTION iu_log_modified_calculated_id_array_field('committee', 'committee_id', '', 'user_ids', 'committee_id', 'user_id', '');
+CREATE TRIGGER tr_d_log_committee_user_ids_from_nm_committee_manager_id9f17295 AFTER DELETE ON nm_committee_manager_ids_user_t
+FOR EACH ROW EXECUTE FUNCTION ud_log_modified_calculated_id_array_field('committee', 'committee_id', '', 'user_ids', 'committee_id', 'user_id', '');
+CREATE TRIGGER tr_iu_log_committee_user_ids_from_user_t BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
+FOR EACH ROW EXECUTE FUNCTION iu_log_modified_calculated_id_array_field('committee', 'home_committee_id', '', 'user_ids', 'home_committee_id', 'id', '');
+CREATE TRIGGER tr_ud_log_committee_user_ids_from_user_t AFTER UPDATE OF home_committee_id OR DELETE ON user_t
+FOR EACH ROW EXECUTE FUNCTION ud_log_modified_calculated_id_array_field('committee', 'home_committee_id', '', 'user_ids', 'home_committee_id', 'id', '');
 
-CREATE TRIGGER tr_ud_log_committee_user_ids_from_meeting_user_t
-AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
-FOR EACH ROW
-EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
-    'committee',
-    '',
-    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id',
-    'user_ids',
-    'meeting_id',
-    'user_id',
-    ''
-);
-
---
-CREATE TRIGGER tr_iu_log_committee_user_ids_from_nm_committee_manager_ids_user_t
-BEFORE INSERT OR UPDATE ON nm_committee_manager_ids_user_t
-FOR EACH ROW
-EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
-    'committee',
-    'committee_id',
-    '',
-    'user_ids',
-    'committee_id',
-    'user_id',
-    ''
-);
-
-CREATE TRIGGER tr_ud_log_committee_user_ids_from_nm_committee_manager_ids_user_t
-AFTER UPDATE OR DELETE ON nm_committee_manager_ids_user_t
-FOR EACH ROW
-EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
-    'committee',
-    'committee_id',
-    '',
-    'user_ids',
-    'committee_id',
-    'user_id',
-    ''
-);
-
---
-CREATE TRIGGER tr_iu_log_committee_user_ids_from_user_t
-BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
-FOR EACH ROW
-EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
-    'committee',
-    'home_committee_id',
-    '',
-    'user_ids',
-    'home_committee_id',
-    'id',
-    ''
-);
-
-CREATE TRIGGER tr_ud_log_committee_user_ids_from_user_t
-AFTER UPDATE OF home_committee_id OR DELETE ON user_t
-FOR EACH ROW
-EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
-    'committee',
-    'home_committee_id',
-    '',
-    'user_ids',
-    'home_committee_id',
-    'id',
-    ''
-);
 
 CREATE TRIGGER tr_log_nm_committee_manager_ids_user_t AFTER INSERT OR UPDATE OR DELETE ON nm_committee_manager_ids_user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('committee','committee_id','manager_ids','user','user_id','committee_management_ids');
@@ -4488,32 +4422,10 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting','meeting_id'
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_present_user_ids_user_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
--- meeting.user_ids
-CREATE TRIGGER tr_iu_log_meeting_user_ids_from_meeting_user_t
-BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
-FOR EACH ROW
-EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
-    'meeting',
-    'meeting_id',
-    '',
-    'user_ids',
-    'meeting_id',
-    'user_id',
-    ''
-);
-
-CREATE TRIGGER tr_ud_log_meeting_user_ids_from_meeting_user_t
-AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
-FOR EACH ROW
-EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
-    'meeting',
-    'meeting_id',
-    '',
-    'user_ids',
-    'meeting_id',
-    'user_id',
-    ''
-);
+CREATE TRIGGER tr_i_log_meeting_user_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION iu_log_modified_calculated_id_array_field('meeting', 'meeting_id', '', 'user_ids', 'meeting_id', 'user_id', '');
+CREATE TRIGGER tr_d_log_meeting_user_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION ud_log_modified_calculated_id_array_field('meeting', 'meeting_id', '', 'user_ids', 'meeting_id', 'user_id', '');
 
 CREATE TRIGGER tr_log_meeting_t_reference_projector_id AFTER INSERT OR UPDATE OF reference_projector_id OR DELETE ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('projector', 'reference_projector_id', 'used_as_reference_projector_meeting_id');
@@ -5019,117 +4931,26 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 CREATE TRIGGER tr_log_user_t_gender_id AFTER INSERT OR UPDATE OF gender_id OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('gender', 'gender_id', 'user_ids');
 
---  user.committee_ids
-CREATE TRIGGER tr_iu_log_user_committee_ids_from_meeting_user_t
-BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
-FOR EACH ROW
-EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
-    'user',
-    'user_id',
-    '',
-    'committee_ids',
-    'meeting_id',
-    '',
-    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id'
-);
-
-CREATE TRIGGER tr_ud_log_user_committee_ids_from_meeting_user_t
-AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
-FOR EACH ROW
-EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
-    'user',
-    'user_id',
-    '',
-    'committee_ids',
-    'meeting_id',
-    '',
-    'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id'
-);
-
---
-CREATE TRIGGER tr_iu_log_user_committee_ids_from_nm_committee_manager_ids_user_t
-BEFORE INSERT OR UPDATE ON nm_committee_manager_ids_user_t
-FOR EACH ROW
-EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
-    'user',
-    'user_id',
-    '',
-    'committee_ids',
-    'committee_id',
-    'committee_id',
-    ''
-);
-
-CREATE TRIGGER tr_ud_log_user_committee_ids_from_nm_committee_manager_ids_user_t
-AFTER UPDATE OR DELETE ON nm_committee_manager_ids_user_t
-FOR EACH ROW
-EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
-    'user',
-    'user_id',
-    '',
-    'committee_ids',
-    'committee_id',
-    'committee_id',
-    ''
-);
-
---
-CREATE TRIGGER tr_iu_log_user_committee_ids_from_user_t
-BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
-FOR EACH ROW
-EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
-    'user',
-    'id',
-    '',
-    'committee_ids',
-    'home_committee_id',
-    'home_committee_id',
-    ''
-);
-
-CREATE TRIGGER tr_ud_log_user_committee_ids_from_user_t
-AFTER UPDATE OF home_committee_id OR DELETE ON user_t
-FOR EACH ROW
-EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
-    'user',
-    'id',
-    '',
-    'committee_ids',
-    'home_committee_id',
-    'home_committee_id',
-    ''
-);
+CREATE TRIGGER tr_i_log_user_committee_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION iu_log_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'meeting_id', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id');
+CREATE TRIGGER tr_d_log_user_committee_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION ud_log_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'meeting_id', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id');
+CREATE TRIGGER tr_i_log_user_committee_ids_from_nm_committee_manager_id3981725 BEFORE INSERT ON nm_committee_manager_ids_user_t
+FOR EACH ROW EXECUTE FUNCTION iu_log_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'committee_id', 'committee_id', '');
+CREATE TRIGGER tr_d_log_user_committee_ids_from_nm_committee_manager_id5460aae AFTER DELETE ON nm_committee_manager_ids_user_t
+FOR EACH ROW EXECUTE FUNCTION ud_log_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'committee_id', 'committee_id', '');
+CREATE TRIGGER tr_iu_log_user_committee_ids_from_user_t BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
+FOR EACH ROW EXECUTE FUNCTION iu_log_modified_calculated_id_array_field('user', 'id', '', 'committee_ids', 'home_committee_id', 'home_committee_id', '');
+CREATE TRIGGER tr_ud_log_user_committee_ids_from_user_t AFTER UPDATE OF home_committee_id OR DELETE ON user_t
+FOR EACH ROW EXECUTE FUNCTION ud_log_modified_calculated_id_array_field('user', 'id', '', 'committee_ids', 'home_committee_id', 'home_committee_id', '');
 
 CREATE TRIGGER tr_log_user_t_home_committee_id AFTER INSERT OR UPDATE OF home_committee_id OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('committee', 'home_committee_id', 'native_user_ids');
 
-
--- user.meeting_ids
-CREATE TRIGGER tr_iu_log_user_meeting_ids_from_meeting_user_t
-BEFORE INSERT OR UPDATE OF meeting_id, user_id ON meeting_user_t
-FOR EACH ROW
-EXECUTE FUNCTION iu_log_modified_calculated_id_array_field(
-    'user',
-    'user_id',
-    '',
-    'meeting_ids',
-    'user_id',
-    'meeting_id',
-    ''
-);
-
-CREATE TRIGGER tr_ud_log_user_meeting_ids_from_meeting_user_t
-AFTER UPDATE OF meeting_id, user_id OR DELETE ON meeting_user_t
-FOR EACH ROW
-EXECUTE FUNCTION ud_log_modified_calculated_id_array_field(
-    'user',
-    'user_id',
-    '',
-    'meeting_ids',
-    'user_id',
-    'meeting_id',
-    ''
-);
+CREATE TRIGGER tr_i_log_user_meeting_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION iu_log_modified_calculated_id_array_field('user', 'user_id', '', 'meeting_ids', 'user_id', 'meeting_id', '');
+CREATE TRIGGER tr_d_log_user_meeting_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION ud_log_modified_calculated_id_array_field('user', 'user_id', '', 'meeting_ids', 'user_id', 'meeting_id', '');
 
 CREATE TRIGGER tr_log_user_t_organization_id AFTER INSERT OR UPDATE OF organization_id OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('organization', 'organization_id', 'user_ids');

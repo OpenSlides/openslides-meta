@@ -146,6 +146,7 @@ class GenerateCodeBlocks:
             "sequence_scope",
             # "on_delete", # must have other name then the key-value-store one
             "sql",
+            "log_triggers_data",
             "equal_fields",
             "unique",
         }
@@ -711,6 +712,17 @@ class GenerateCodeBlocks:
                         )
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
+                text["create_trigger_notify"] = (
+                    "\n"
+                    + (
+                        Helper.get_log_calculated_id_array_trigger_definition(
+                            table_name,
+                            fname,
+                            fdata.get("log_triggers_data", {}),
+                        )
+                    )
+                    + "\n"
+                )
             else:
                 foreign_table_column = cast(str, foreign_table_field.column)
                 foreign_table_field_ref_id = cast(str, foreign_table_field.ref_column)
@@ -2381,6 +2393,75 @@ class Helper:
         own_table = HelperGetNames.get_table_name(table_name)
         return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}', '{updated_field}');\n"""
+
+    @staticmethod
+    def get_log_calculated_id_array_trigger_definition(
+        view_name: str,
+        log_field: str,
+        triggers_data: list[dict[str, str | dict[str, str]]],
+    ) -> str:
+        TRIGGER_TEMPLATE = string.Template(dedent("""\
+            CREATE TRIGGER ${trigger_name} ${trigger_operations} ON ${trigger_table}
+            FOR EACH ROW EXECUTE FUNCTION ${trigger_type}_log_modified_calculated_id_array_field('${view_name}', '${log_collection_id_column}', '${log_collection_id_sql}', '${log_field}', '${trigger_column}', '${changed_item_column}', '${changed_item_sql}');
+            """))
+        processed_tables: dict[str, int] = {}
+        parts: list[str] = []
+
+        subst_base = {
+            "view_name": view_name,
+            "log_field": log_field,
+        }
+
+        for data in triggers_data:
+            trigger_on = cast(dict[str, str], data.get("define_trigger_on", {}))
+            log_collection_id = cast(dict[str, str], data.get("log_collection_id", {}))
+            log_value = cast(dict[str, str], data.get("log_value", {}))
+
+            trigger_table = trigger_on["table"]
+            columns = trigger_on.get("update_columns")
+
+            if trigger_table not in processed_tables:
+                processed_tables[trigger_table] = 1
+                unique_index = None
+            else:
+                processed_tables[trigger_table] += 1
+                unique_index = processed_tables[trigger_table]
+
+            trigger_columns_iu = f" OR UPDATE OF {columns}" if columns else ""
+            trigger_columns_ud = f" UPDATE OF {columns} OR" if columns else ""
+            trigger_name_iu, trigger_name_ud = (
+                HelperGetNames.get_log_calculated_id_array_trigger_names(
+                    view_name, log_field, trigger_table, bool(columns), unique_index
+                )
+            )
+
+            subst_common = {
+                **subst_base,
+                "trigger_table": trigger_table,
+                "log_collection_id_column": log_collection_id.get("column") or "",
+                "log_collection_id_sql": log_collection_id.get("sql") or "",
+                "trigger_column": data["relational_column"],
+                "changed_item_column": log_value.get("column") or "",
+                "changed_item_sql": log_value.get("sql") or "",
+            }
+            subst_iu = {
+                **subst_common,
+                "trigger_type": "iu",
+                "trigger_name": trigger_name_iu,
+                "trigger_operations": f"BEFORE INSERT{trigger_columns_iu}",
+            }
+
+            subst_ud = {
+                **subst_common,
+                "trigger_type": "ud",
+                "trigger_name": trigger_name_ud,
+                "trigger_operations": f"AFTER{trigger_columns_ud} DELETE",
+            }
+
+            parts.append(TRIGGER_TEMPLATE.substitute(subst_iu))
+            parts.append(TRIGGER_TEMPLATE.substitute(subst_ud))
+
+        return "".join(parts)
 
     @staticmethod
     def get_nm_table_for_n_m_relation_lists(

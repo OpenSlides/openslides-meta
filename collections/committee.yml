@@ -52,9 +52,33 @@ fields:
           UNION
 
           -- Select user_id from home committees
-          SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
+          SELECT u.id FROM user_t u
+          WHERE u.home_committee_id = c.id
         ) _
       ) AS user_ids
+    log_triggers_data:
+      - define_trigger_on:
+          table: meeting_user_t
+        relational_column: meeting_id
+        log_collection_id:
+          sql: SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id
+        log_value:
+          column: user_id
+      - define_trigger_on:
+          table: nm_committee_manager_ids_user_t
+        relational_column: committee_id
+        log_collection_id:
+          column: committee_id
+        log_value:
+          column: user_id
+      - define_trigger_on:
+          table: user_t
+          update_columns: home_committee_id
+        relational_column: home_committee_id
+        log_value:
+          column: id
+        log_collection_id:
+          column: home_committee_id
   manager_ids:
     type: relation-list
     to: user/committee_management_ids

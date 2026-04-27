@@ -127,6 +127,30 @@ fields:
           WHERE u_hc.home_committee_id IS NOT NULL AND u_hc.id = u.id
         ) AS ci
       ) AS committee_ids
+    log_triggers_data:
+      - define_trigger_on:
+          table: meeting_user_t
+        relational_column: meeting_id
+        log_collection_id:
+          column: user_id
+        log_value:
+          column:
+          sql: SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id
+      - define_trigger_on:
+          table: nm_committee_manager_ids_user_t
+        relational_column: committee_id
+        log_collection_id:
+          column: user_id
+        log_value:
+          column: committee_id
+      - define_trigger_on:
+          table: user_t
+          update_columns: home_committee_id
+        relational_column: home_committee_id
+        log_value:
+          column: home_committee_id
+        log_collection_id:
+          column: id
   # committee specific permissions
   committee_management_ids:
     type: relation-list
@@ -189,6 +213,14 @@ fields:
       ) AS meeting_ids
     to: meeting/user_ids
     restriction_mode: E
+    log_triggers_data:
+      - define_trigger_on:
+          table: meeting_user_t
+        relational_column: user_id
+        log_collection_id:
+          column: user_id
+        log_value:
+          column: meeting_id
   organization_id:
     type: relation
     reference: organization

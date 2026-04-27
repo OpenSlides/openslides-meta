@@ -1077,6 +1077,14 @@ fields:
       ) AS user_ids
     to: user/meeting_ids
     restriction_mode: A
+    log_triggers_data:
+      - define_trigger_on:
+          table: meeting_user_t
+        relational_column: meeting_id
+        log_collection_id:
+          column: meeting_id
+        log_value:
+          column: user_id
   reference_projector_id:
     type: relation
     reference: projector
