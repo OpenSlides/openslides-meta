@@ -944,7 +944,7 @@ class GenerateCodeBlocks:
         table_name = HelperGetNames.get_table_name(collection_name)
         return dedent(f"""
             -- definition trigger prevent_updates for {collection_name}.{fname}
-            CREATE CONSTRAINT TRIGGER {trigger_name} AFTER UPDATE OF {fname} ON {table_name} INITIALLY DEFERRED
+            CREATE TRIGGER {trigger_name} BEFORE UPDATE OF {fname} ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION prevent_updates('{collection_name}', '{fname}');
             """)
 
@@ -1580,14 +1580,14 @@ class Helper:
         BEGIN
             old_value := hstore(OLD) -> constant_column;
             IF old_value IS NULL THEN
-                RETURN NULL;
+                RETURN NEW;
             END IF;
 
             new_value := hstore(NEW) -> constant_column;
             IF old_value <> new_value THEN
                 RAISE EXCEPTION 'Constant value constraint violated for %/%/%: %.% can not be updated once set.', collection, NEW.id, constant_column, collection, constant_column;
             END IF;
-            RETURN NULL;
+            RETURN NEW;
         END;
         $constant_field_trigger$ LANGUAGE plpgsql;
 
