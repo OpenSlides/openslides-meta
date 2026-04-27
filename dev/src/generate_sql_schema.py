@@ -41,6 +41,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     create_trigger_1_1_relation_not_null: str
     create_trigger_1_n_relation_not_null: str
     create_trigger_n_m_relation_not_null: str
+    create_trigger_prevent_updates_code: str
     create_trigger_unique_ids_pair_code: str
     create_trigger_equal_fields_code: str
     create_trigger_notify: str
@@ -103,6 +104,7 @@ class GenerateCodeBlocks:
         str,
         str,
         str,
+        str,
         list[str],
     ]:
         """
@@ -122,6 +124,7 @@ class GenerateCodeBlocks:
           create_trigger_1_1_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_1_relation
           create_trigger_1_n_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_n
           create_trigger_n_m_relation_not_null_code: Definitions of triggers calling check_not_null_for_n_m
+          create_trigger_prevent_updates_code: Definitions of triggers calling prevent_updates check
           create_trigger_unique_ids_pair_code: Definitions of triggers calling check_unique_ids_pair
           create_trigger_equal_fields_code: Definitions of triggers checking equal_fields
           create_trigger_notify_code: Definitions of triggers calling notify_modified_models
@@ -148,6 +151,7 @@ class GenerateCodeBlocks:
             "sql",
             "equal_fields",
             "unique",
+            "constant",
         }
         collection_meta_handled_attributes = {
             "unique_together",
@@ -161,6 +165,7 @@ class GenerateCodeBlocks:
         create_trigger_1_1_relation_not_null_code: str = ""
         create_trigger_1_n_relation_not_null_code: str = ""
         create_trigger_n_m_relation_not_null_code: str = ""
+        create_trigger_prevent_updates_code: str = ""
         create_trigger_unique_ids_pair_code: str = ""
         create_trigger_equal_fields_code: str = ""
         create_trigger_notify_code: str = ""
@@ -250,6 +255,8 @@ class GenerateCodeBlocks:
                 create_trigger_1_n_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_n_m_relation_not_null"]:
                 create_trigger_n_m_relation_not_null_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_prevent_updates_code"]:
+                create_trigger_prevent_updates_code += code + "\n"
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
                 create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["create_trigger_equal_fields_code"]:
@@ -285,6 +292,7 @@ class GenerateCodeBlocks:
             create_trigger_1_1_relation_not_null_code,
             create_trigger_1_n_relation_not_null_code,
             create_trigger_n_m_relation_not_null_code,
+            create_trigger_prevent_updates_code,
             create_trigger_unique_ids_pair_code,
             create_trigger_equal_fields_code,
             create_trigger_notify_code,
@@ -505,6 +513,10 @@ class GenerateCodeBlocks:
                     {"maxLength": 256, "field_name": fname, "table_name": table_name}
                 )
             subst["type"] = tmp
+        if fdata.get("constant"):
+            text["create_trigger_prevent_updates_code"] = (
+                cls.get_trigger_prevent_updates(table_name, fname)
+            )
         return text, subst
 
     @classmethod
@@ -922,6 +934,18 @@ class GenerateCodeBlocks:
             CREATE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('{base_column_name}');
 
+            """)
+
+    @staticmethod
+    def get_trigger_prevent_updates(collection_name: str, fname: str) -> str:
+        trigger_name = HelperGetNames.get_constant_field_trigger_name(
+            collection_name, fname
+        )
+        table_name = HelperGetNames.get_table_name(collection_name)
+        return dedent(f"""
+            -- definition trigger prevent_updates for {collection_name}.{fname}
+            CREATE CONSTRAINT TRIGGER {trigger_name} AFTER UPDATE OF {fname} ON {table_name} INITIALLY DEFERRED
+            FOR EACH ROW EXECUTE FUNCTION prevent_updates('{collection_name}', '{fname}');
             """)
 
     @classmethod
@@ -1546,6 +1570,26 @@ class Helper:
             RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
         END;
         $read_only_trigger$ LANGUAGE plpgsql;
+
+        CREATE OR REPLACE FUNCTION prevent_updates() RETURNS trigger AS $constant_field_trigger$
+        DECLARE
+            collection TEXT := TG_ARGV[0];
+            constant_column TEXT := TG_ARGV[1];
+            old_value TEXT;
+            new_value TEXT;
+        BEGIN
+            old_value := hstore(OLD) -> constant_column;
+            IF old_value IS NULL THEN
+                RETURN NULL;
+            END IF;
+
+            new_value := hstore(NEW) -> constant_column;
+            IF old_value <> new_value THEN
+                RAISE EXCEPTION 'Constant value constraint violated for %/%/%: %.% can not be updated once set.', collection, NEW.id, constant_column, collection, constant_column;
+            END IF;
+            RETURN NULL;
+        END;
+        $constant_field_trigger$ LANGUAGE plpgsql;
 
         CREATE OR REPLACE FUNCTION raise_equality_exception_conditionally(check_column TEXT, ref_column TEXT, own_collection TEXT, own_id INTEGER, own_equal_val TEXT, foreign_collection TEXT, foreign_id INTEGER, foreign_equal_val TEXT)
         RETURNS void AS $equality_exception$
@@ -2762,6 +2806,7 @@ def main() -> None:
         create_trigger_1_1_relation_not_null_code,
         create_trigger_1_n_relation_not_null_code,
         create_trigger_n_m_relation_not_null_code,
+        create_trigger_prevent_updates_code,
         create_trigger_unique_ids_pair_code,
         create_trigger_equal_fields_code,
         create_trigger_notify_code,
@@ -2797,6 +2842,8 @@ def main() -> None:
             "\n\n-- Create triggers checking foreign_ids not null for n:m relationships\n"
         )
         dest.write(create_trigger_n_m_relation_not_null_code)
+        dest.write("\n\n-- Create triggers for constant fields\n")
+        dest.write(create_trigger_prevent_updates_code)
         dest.write(
             "\n\n-- Create triggers preventing mirrored duplicates in fields referencing themselves\n"
         )
