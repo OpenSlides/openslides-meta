@@ -1,5 +1,5 @@
 unique_together:
-- meeting_user_id, content_object_id
+  - meeting_user_id, content_object_id
 
 fields:
   id:
@@ -26,10 +26,10 @@ fields:
   content_object_id:
     type: generic-relation
     reference:
-    - motion
+      - motion
     to:
       collections:
-      - motion
+        - motion
       field: personal_note_ids
     equal_fields: meeting_id
     required: true
@@ -42,4 +42,3 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-

@@ -18,8 +18,8 @@ fields:
     type: generic-relation-list
     to:
       collections:
-      - committee
-      - meeting
+        - committee
+        - meeting
       field: organization_tag_ids
     restriction_mode: A
   organization_id:
@@ -29,4 +29,3 @@ fields:
     to: organization/organization_tag_ids
     restriction_mode: A
     required: true
-

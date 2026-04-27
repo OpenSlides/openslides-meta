@@ -1,5 +1,5 @@
 unique_together:
-- motion_id, section_id
+  - motion_id, section_id
 
 fields:
   id:
@@ -36,4 +36,3 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-

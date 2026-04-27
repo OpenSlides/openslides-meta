@@ -1,5 +1,5 @@
 unique_together:
-- name, workflow_id
+  - name, workflow_id
 
 fields:
   id:
@@ -25,11 +25,11 @@ fields:
   css_class:
     type: string
     enum:
-    - grey
-    - red
-    - green
-    - lightblue
-    - yellow
+      - grey
+      - red
+      - green
+      - lightblue
+      - yellow
     default: lightblue
     required: true
     restriction_mode: A
@@ -37,10 +37,10 @@ fields:
     type: string[]
     items:
       enum:
-      - motion.can_see_internal
-      - motion.can_manage_metadata
-      - motion.can_manage
-      - is_submitter
+        - motion.can_see_internal
+        - motion.can_manage_metadata
+        - motion.can_manage
+        - is_submitter
     default: []
     restriction_mode: A
   allow_support:
@@ -70,9 +70,9 @@ fields:
   merge_amendment_into_final:
     type: string
     enum:
-    - do_not_merge
-    - undefined
-    - do_merge
+      - do_not_merge
+      - undefined
+      - do_merge
     default: undefined
     restriction_mode: A
   allow_motion_forwarding:
@@ -94,30 +94,30 @@ fields:
     reference: motion_state
     to: motion_state/submitter_withdraw_back_ids
     equal_fields:
-    - meeting_id
-    - workflow_id
+      - meeting_id
+      - workflow_id
     restriction_mode: A
   submitter_withdraw_back_ids:
     type: relation-list
     to: motion_state/submitter_withdraw_state_id
     equal_fields:
-    - meeting_id
-    - workflow_id
+      - meeting_id
+      - workflow_id
     restriction_mode: A
 
   next_state_ids:
     type: relation-list
     to: motion_state/previous_state_ids
     equal_fields:
-    - meeting_id
-    - workflow_id
+      - meeting_id
+      - workflow_id
     restriction_mode: A
   previous_state_ids:
     type: relation-list
     to: motion_state/next_state_ids
     equal_fields:
-    - meeting_id
-    - workflow_id
+      - meeting_id
+      - workflow_id
     restriction_mode: A
   motion_ids:
     type: relation-list
@@ -151,4 +151,3 @@ fields:
     restriction_mode: A
     constant: true
     deferred: true
-

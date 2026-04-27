@@ -69,11 +69,11 @@ fields:
     type: relation-list
     to: committee/parent_id
     restriction_mode: A
-  all_parent_ids:   # Calculated: All parents, grandparents, etc. of this motion.
+  all_parent_ids: # Calculated: All parents, grandparents, etc. of this motion.
     type: relation-list
     to: committee/all_child_ids
     restriction_mode: A
-  all_child_ids:   # Calculated: All children, grandchildren, etc. of this motion.
+  all_child_ids: # Calculated: All children, grandchildren, etc. of this motion.
     type: relation-list
     to: committee/all_parent_ids
     restriction_mode: A

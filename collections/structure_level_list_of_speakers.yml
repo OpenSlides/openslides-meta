@@ -1,5 +1,5 @@
 unique_together:
-- meeting_id, structure_level_id, list_of_speakers_id
+  - meeting_id, structure_level_id, list_of_speakers_id
 
 fields:
   id:
@@ -52,4 +52,3 @@ fields:
     to: meeting/structure_level_list_of_speakers_ids
     required: true
     restriction_mode: A
-

@@ -1,5 +1,5 @@
 unique_together:
-- meeting_id, name
+  - meeting_id, name
 
 fields:
   id:
@@ -35,4 +35,3 @@ fields:
     reference: meeting
     to: meeting/structure_level_ids
     restriction_mode: A
-

@@ -1,5 +1,5 @@
 unique_together:
-- mediafile_id, meeting_id 
+  - mediafile_id, meeting_id
 
 fields:
   id:
@@ -48,9 +48,9 @@ fields:
     type: generic-relation-list
     to:
       collections:
-      - motion
-      - topic
-      - assignment
+        - motion
+        - topic
+        - assignment
       field: attachment_meeting_mediafile_ids
     restriction_mode: A
 
@@ -119,4 +119,3 @@ fields:
     type: relation
     to: meeting/font_projector_h2_id
     restriction_mode: A
-

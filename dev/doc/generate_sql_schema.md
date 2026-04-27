@@ -15,8 +15,7 @@ As convinience property there is the collectionfield as combination of table_nam
 
 To get the table name use method **get_table_name** with the parameter of the collection name from the models.yml. The resulting name has a **T** for table to distinguish it from the view.
 
-To get the view name use the method **get_view_name** with the parameter of the collection name from the models.yml. The view name is identical with that from models.yml, except for **group and user**, which are reserved names in sql. They will get an appended **_** to their name.
-
+To get the view name use the method **get_view_name** with the parameter of the collection name from the models.yml. The view name is identical with that from models.yml, except for **group and user**, which are reserved names in sql. They will get an appended **\_** to their name.
 
 ## Naming conventions for intermediate tables and views
 
@@ -24,20 +23,20 @@ To get the view name use the method **get_view_name** with the parameter of the 
 
 Because the base tables of these intermediate files are symmetric, the parts of the tables name are taken in an alphabetical order of their **collectionfields**. The name is build from parts
 
-* nm_ Constant part to mark a n:m intermediate table
-* table_name of the smaller **collectionfield**
-* _ Constant divider
-* field name of the smaller **collectionfield**
-* _ Constant divider
-* table name of the greater **collectionfield** 
+- nm\_ Constant part to mark a n:m intermediate table
+- table_name of the smaller **collectionfield**
+- \_ Constant divider
+- field name of the smaller **collectionfield**
+- \_ Constant divider
+- table name of the greater **collectionfield**
 
 ### generic-relation-list versus relation-list
 
 The name of the intermediate table for **generic-relation-list** versus **relation-list** is always build from the generic-relation-lists side.
 
-* gm_ Constant part to mark a genericc-list:m intermediate table
-* table name of the generic-relation-list field
-* _ Constant divider
-* field name of the generic-relation-list field
+- gm\_ Constant part to mark a genericc-list:m intermediate table
+- table name of the generic-relation-list field
+- \_ Constant divider
+- field name of the generic-relation-list field
 
 ## Attributes and rules

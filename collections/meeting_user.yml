@@ -1,5 +1,5 @@
 unique_together:
-- meeting_id, user_id
+  - meeting_id, user_id
 
 fields:
   id:
@@ -103,4 +103,3 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     to: structure_level/meeting_user_ids
-
