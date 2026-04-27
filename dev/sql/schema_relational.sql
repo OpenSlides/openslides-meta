@@ -3979,7 +3979,7 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_
 -- Create triggers preventing mirrored duplicates in fields referencing themselves
 
 -- definition trigger unique ids pair for motion.identical_motion_ids
-CREATE TRIGGER restrict_motion_identical_motion_ids BEFORE INSERT OR UPDATE ON nm_motion_identical_motion_ids_motion_t
+CREATE TRIGGER tr_restrict_unique_ids_pair_motion_identical_motion_ids BEFORE INSERT OR UPDATE ON nm_motion_identical_motion_ids_motion_t
 FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('identical_motion_id');
 
 

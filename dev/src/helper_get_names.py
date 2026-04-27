@@ -314,6 +314,15 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_not_null_delete_trigger_name_base(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """gets the name of the insert trigger for not null"""
+        return f"tr_d_{table_name}_{column_name}"
+
+    @staticmethod
+    @max_length
     def get_not_null_upd_del_trigger_name_base(
         table_name: str,
         column_name: str,
@@ -329,6 +338,17 @@ class HelperGetNames:
     ) -> str:
         """gets the name of the insert trigger for not null on relation lists"""
         return HelperGetNames.get_not_null_insert_trigger_name_base(
+            table_name, column_name
+        )
+
+    @staticmethod
+    @max_length
+    def get_not_null_rel_list_delete_trigger_name(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """gets the name of the insert trigger for not null on relation lists"""
+        return HelperGetNames.get_not_null_delete_trigger_name_base(
             table_name, column_name
         )
 
@@ -390,6 +410,16 @@ class HelperGetNames:
     def get_timezone_constraint_name(table_name: str, field_name: str) -> str:
         """gets the name of the constraint for timezone fields"""
         return f"timezone_{table_name}_{field_name}"
+
+    @staticmethod
+    @max_length
+    def get_partitioned_sequence_trigger_name(view_name: str, actual_field: str) -> str:
+        return f"tr_generate_sequence_{view_name}_{actual_field}"
+
+    @staticmethod
+    @max_length
+    def get_unique_ids_trigger_name(view: str, column: str) -> str:
+        return f"tr_restrict_unique_ids_pair_{view}_{column}"
 
     @staticmethod
     def get_equal_field_trigger_name_helper(
