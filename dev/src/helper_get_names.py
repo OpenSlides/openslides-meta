@@ -310,7 +310,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null"""
-        return f"tr_i_{table_name}_{column_name}"
+        return f"tr_i_not_null_{table_name}_{column_name}"
 
     @staticmethod
     @max_length
@@ -319,7 +319,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """Gets the name of the delete trigger for not null."""
-        return f"tr_d_{table_name}_{column_name}"
+        return f"tr_d_not_null_{table_name}_{column_name}"
 
     @staticmethod
     @max_length
@@ -328,7 +328,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null"""
-        return f"tr_ud_{table_name}_{column_name}"
+        return f"tr_ud_not_null_{table_name}_{column_name}"
 
     @staticmethod
     @max_length
