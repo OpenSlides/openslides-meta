@@ -325,8 +325,8 @@ class Checker:
                 valid_attributes.append("enum")
             valid_attributes.extend(("reference", "deferred", "sql"))
             if field.get("sql"):
-                valid_attributes.append("log_triggers_data")
-                self.check_log_triggers_data(collectionfield, field)
+                valid_attributes.append("log_triggers")
+                self.check_log_triggers(collectionfield, field)
             if "default" in field and field_name == "organization_id":
                 # added as a workaround to allow defaulting to the ONE_ORGANIZATION
                 print(f"Default in {collection}/{field_name} temporarily allowed.")
@@ -570,55 +570,45 @@ class Checker:
             return f"{from_collectionfield} points to {to_collectionfield}, but {to_collectionfield} does not point back."
         return None
 
-    def check_log_triggers_data(
-        self, collectionfield: str, field: dict[str, Any]
-    ) -> None:
-        if not (data_list := field.get("log_triggers_data")):
+    def check_log_triggers(self, collectionfield: str, field: dict[str, Any]) -> None:
+        if not (data_list := field.get("log_triggers")):
             self.errors.append(
-                f"For {collectionfield} 'log_triggers_data' attribute must be defined because it has 'sql' attribute."
+                f"For {collectionfield} 'log_triggers' attribute must be defined because it has 'sql' attribute."
             )
             return
 
         for i in range(len(data_list)):
-            base_error_message = (
-                f"Error in item {i} of {collectionfield}.log_triggers_data"
-            )
+            base_error_message = f"Error in item {i} of {collectionfield}.log_triggers"
             data = data_list[i]
-            trigger_table = (data.get("define_trigger_on") or {}).get("table")
             missing_required_attributes = [
                 attr_name
-                for attr_name in [
-                    "relational_column",
-                    "log_collection_id",
-                    "log_value",
-                ]
-                if attr_name not in data
+                for attr_name in ["on_table", "relational_column"]
+                if not data.get(attr_name)
             ]
-            if not trigger_table:
-                missing_required_attributes.append("define_trigger_on.table")
             if missing_required_attributes:
                 self.errors.append(
                     f"{base_error_message}: some of the required attributes are missing: {', '.join(missing_required_attributes)}."
                 )
 
-            if trigger_table and not trigger_table.endswith("_t"):
+            if (
+                trigger_table := data.get("on_table")
+            ) and not trigger_table.endswith("_t"):
                 self.errors.append(
-                    f"{base_error_message}: '{trigger_table}' is not a valid value for 'define_trigger_on.table' (must end with '_t')."
+                    f"{base_error_message}: '{trigger_table}' is not a valid value for 'on_table' (must end with '_t')."
                 )
 
-            for attr_name in ["log_collection_id", "log_value"]:
-                if attr_name not in data:
-                    continue
-                attr_data = data.get(attr_name) or {}
-                sql = attr_data.get("sql")
-                column = attr_data.get("column")
-                if column is None and sql is None:
+            for base_attr_name in ["log_collection_id", "log_value"]:
+                values_present = [
+                    bool(data.get(f"{base_attr_name}_{option}"))
+                    for option in ["column", "sql"]
+                ]
+                if not any(values_present):
                     self.errors.append(
-                        f"{base_error_message}: either 'sql' or 'column' must be defined for log_triggers_data.{attr_name}."
+                        f"{base_error_message}: either '{base_attr_name}_sql' or '{base_attr_name}_column' must be defined."
                     )
-                elif column is not None and sql is not None:
+                elif all(values_present):
                     print(
-                        f"For for item {i} of {collectionfield}.log_triggers_data value in '{attr_name}.column' will be ignored because '{attr_name}.sql' is defined."
+                        f"For for item {i} of {collectionfield}.log_triggers value in '{base_attr_name}_column' will be ignored because '{base_attr_name}_sql' is defined."
                     )
 
     def validate_enum(self, collectionfield: str, enum: Any) -> list[str] | None:

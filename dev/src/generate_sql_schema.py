@@ -146,7 +146,7 @@ class GenerateCodeBlocks:
             "sequence_scope",
             # "on_delete", # must have other name then the key-value-store one
             "sql",
-            "log_triggers_data",
+            "log_triggers",
             "equal_fields",
             "unique",
         }
@@ -718,7 +718,7 @@ class GenerateCodeBlocks:
                         Helper.get_log_calculated_id_array_trigger_definition(
                             table_name,
                             fname,
-                            fdata.get("log_triggers_data", {}),
+                            fdata.get("log_triggers", {}),
                         )
                     )
                     + "\n"
@@ -2423,12 +2423,8 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         }
 
         for data in triggers_data:
-            trigger_on = cast(dict[str, str], data.get("define_trigger_on", {}))
-            log_collection_id = cast(dict[str, str], data.get("log_collection_id", {}))
-            log_value = cast(dict[str, str], data.get("log_value", {}))
-
-            trigger_table = trigger_on["table"]
-            columns = trigger_on.get("update_columns")
+            trigger_table = data["on_table"]
+            columns = data.get("on_columns")
 
             if trigger_table not in processed_tables:
                 processed_tables[trigger_table] = 1
@@ -2448,11 +2444,11 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             subst_common = {
                 **subst_base,
                 "trigger_table": trigger_table,
-                "log_collection_id_column": log_collection_id.get("column") or "",
-                "log_collection_id_sql": log_collection_id.get("sql") or "",
+                "log_collection_id_column": data.get("log_collection_id_column") or "",
+                "log_collection_id_sql": data.get("log_collection_id_sql") or "",
                 "trigger_column": data["relational_column"],
-                "changed_item_column": log_value.get("column") or "",
-                "changed_item_sql": log_value.get("sql") or "",
+                "changed_item_column": data.get("log_value_column") or "",
+                "changed_item_sql": data.get("log_value_sql") or "",
             }
             subst_iu = {
                 **subst_common,
