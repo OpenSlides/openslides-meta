@@ -577,6 +577,15 @@ class Checker:
             )
             return
 
+        valid_attributes = [
+            "on_table",
+            "on_columns",
+            "relational_column",
+            "log_collection_id_column",
+            "log_collection_id_sql",
+            "log_value_column",
+            "log_value_sql",
+        ]
         for i in range(len(data_list)):
             base_error_message = f"Error in item {i} of {collectionfield}.log_triggers"
             data = data_list[i]
@@ -609,6 +618,12 @@ class Checker:
                 elif all(values_present):
                     print(
                         f"For for item {i} of {collectionfield}.log_triggers value in '{base_attr_name}_column' will be ignored because '{base_attr_name}_sql' is defined."
+                    )
+
+            for attr in data.keys():
+                if attr not in valid_attributes:
+                    self.errors.append(
+                        f"{base_error_message}: attribute '{attr}' is invalid."
                     )
 
     def validate_enum(self, collectionfield: str, enum: Any) -> list[str] | None:
