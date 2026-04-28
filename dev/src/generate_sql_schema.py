@@ -881,9 +881,12 @@ class GenerateCodeBlocks:
         cls, view_name: str, actual_field: str, depend_field: str
     ) -> str:
         table_name = HelperGetNames.get_table_name(view_name)
+        trigger_name = HelperGetNames.get_partitioned_sequence_trigger_name(
+            view_name, actual_field
+        )
         return dedent(f"""
             -- definition trigger generate partitioned sequence number for {table_name}.{actual_field} partitioned by {depend_field}
-            CREATE TRIGGER tr_generate_sequence_{view_name}_{actual_field} BEFORE INSERT ON {table_name}
+            CREATE TRIGGER {trigger_name} BEFORE INSERT ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION generate_sequence('{table_name}', '{actual_field}', '{depend_field}');
             """)
 
@@ -939,17 +942,23 @@ class GenerateCodeBlocks:
             own_table_field, foreign_table_field
         )
         intermediate_table_own_key = HelperGetNames.get_field_in_n_m_relation_list(
-            own_table_field, foreign_table_field.table
+            own_table_field, foreign_table_field
         )
         intermediate_table_foreign_key = HelperGetNames.get_field_in_n_m_relation_list(
-            foreign_table_field, own_table_field.table
+            foreign_table_field, own_table_field
+        )
+        trigger_name_insert = HelperGetNames.get_not_null_rel_list_insert_trigger_name(
+            own_collection, own_column
+        )
+        trigger_name_delete = HelperGetNames.get_not_null_rel_list_delete_trigger_name(
+            own_collection, own_column
         )
         return dedent(f"""
             -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column} through {intermediate_table_name}
-            CREATE CONSTRAINT TRIGGER tr_i_{own_collection}_{own_column} AFTER INSERT ON {own_table} INITIALLY DEFERRED
+            CREATE CONSTRAINT TRIGGER {trigger_name_insert} AFTER INSERT ON {own_table} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}');
 
-            CREATE CONSTRAINT TRIGGER tr_d_{own_collection}_{own_column} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
+            CREATE CONSTRAINT TRIGGER {trigger_name_delete} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}', '{intermediate_table_foreign_key}', '{foreign_collection}', '{foreign_column}');
 
             """)
@@ -962,9 +971,10 @@ class GenerateCodeBlocks:
         table_name: str,
     ) -> str:
         base_column_name = column[:-1]
+        trigger_name = HelperGetNames.get_unique_ids_trigger_name(view, column)
         return dedent(f"""
             -- definition trigger unique ids pair for {view}.{column}
-            CREATE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
+            CREATE TRIGGER {trigger_name} BEFORE INSERT OR UPDATE ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('{base_column_name}');
 
             """)
@@ -2471,10 +2481,10 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             own_table_field, foreign_table_field
         )
         field1 = HelperGetNames.get_field_in_n_m_relation_list(
-            own_table_field, foreign_table_field.table
+            own_table_field, foreign_table_field
         )
         field2 = HelperGetNames.get_field_in_n_m_relation_list(
-            foreign_table_field, own_table_field.table
+            foreign_table_field, own_table_field
         )
         if field1 == field2:
             field1 += "_1"
@@ -2624,10 +2634,10 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
     ) -> str:
 
         field1 = HelperGetNames.get_field_in_n_m_relation_list(
-            own_table_field, foreign_table_field.table
+            own_table_field, foreign_table_field
         )
         field2 = HelperGetNames.get_field_in_n_m_relation_list(
-            foreign_table_field, own_table_field.table
+            foreign_table_field, own_table_field
         )
         if field1 == field2:
             field1 += "_1"
@@ -2635,7 +2645,6 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         nm_table_name = HelperGetNames.get_nm_table_name(
             own_table_field, foreign_table_field
         )
-
         table_name = HelperGetNames.get_table_name(nm_table_name)
         trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
 
