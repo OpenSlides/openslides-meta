@@ -3059,7 +3059,8 @@ CREATE VIEW "committee" AS SELECT *,
     UNION
 
     -- Select user_id from home committees
-    SELECT u.id FROM user_t u
+    SELECT u.id
+    FROM user_t u
     WHERE u.home_committee_id = c.id
   ) _
 ) AS user_ids
