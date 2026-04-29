@@ -439,12 +439,12 @@ class GenerateCodeBlocks:
     @staticmethod
     def get_log_calculated_id_array_trigger_params(type_: str) -> dict[str, str]:
         if type_ == "iu":
-            primary_hstore = "new"
+            hstore_type = "new"
             comments = """\
             -- No need to process new instance without field
                 -- Value deletion on update is processed in after-trigger"""
         else:
-            primary_hstore = "old"
+            hstore_type = "old"
             comments = """\
             -- No need to process deleted instance without field
                 -- Value adding on update is processed in before-trigger"""
@@ -454,9 +454,9 @@ class GenerateCodeBlocks:
             "changed_item_state_phrase": (
                 "added to" if type_ == "iu" else "deleted from"
             ),
-            "primary_hstore": primary_hstore,
-            "primary_hstore_uppercase": primary_hstore.upper(),
-            "secondary_hstore": "old" if type_ == "iu" else "new",
+            "hstore_type": hstore_type,
+            "hstore": hstore_type.upper(),
+            "fetched_log_value_state": "old" if type_ == "iu" else "new",
             "trigger_return_value": "NEW" if type_ == "iu" else "NULL",
             "instance_state": "new" if type_ == "iu" else "deleted",
             "comments": dedent(comments),
@@ -2012,24 +2012,24 @@ class Helper:
                 ${changed_item_state}_item_column TEXT := TG_ARGV[5];
                 ${changed_item_state}_item_sql TEXT := TG_ARGV[6];
 
-                ${primary_hstore}_hstore hstore := hstore(${primary_hstore_uppercase});
-                ${primary_hstore}_trigger_value INTEGER;
+                ${hstore_type}_hstore hstore := hstore(${hstore});
+                ${hstore_type}_trigger_value INTEGER;
                 log_collection_id INTEGER;
                 ${changed_item_state}_item INTEGER;
-                ${secondary_hstore}_log_field_value INTEGER[];
+                ${fetched_log_value_state}_log_field_value INTEGER[];
                 fqid_var TEXT;
             BEGIN
                 ${comments}
-                ${primary_hstore}_trigger_value := ${primary_hstore}_hstore -> trigger_column;
-                IF ${primary_hstore}_trigger_value IS NULL THEN
+                ${hstore_type}_trigger_value := ${hstore_type}_hstore -> trigger_column;
+                IF ${hstore_type}_trigger_value IS NULL THEN
                     RETURN ${trigger_return_value};
                 END IF;
 
                 -- Related log_collection item is not updated -> return
                 IF (log_collection_id_sql <> '') THEN
-                    EXECUTE log_collection_id_sql INTO log_collection_id USING ${primary_hstore_uppercase};
+                    EXECUTE log_collection_id_sql INTO log_collection_id USING ${hstore};
                 ELSE
-                    log_collection_id := ${primary_hstore}_hstore -> log_collection_id_column;
+                    log_collection_id := ${hstore_type}_hstore -> log_collection_id_column;
                 END IF;
 
                 IF log_collection_id IS NULL THEN
@@ -2038,9 +2038,9 @@ class Helper:
 
                 -- No value in column used for log_field -> return
                 IF (${changed_item_state}_item_sql <> '') THEN
-                    EXECUTE ${changed_item_state}_item_sql INTO ${changed_item_state}_item USING ${primary_hstore_uppercase};
+                    EXECUTE ${changed_item_state}_item_sql INTO ${changed_item_state}_item USING ${hstore};
                 ELSE
-                    ${changed_item_state}_item := ${primary_hstore}_hstore -> ${changed_item_state}_item_column;
+                    ${changed_item_state}_item := ${hstore_type}_hstore -> ${changed_item_state}_item_column;
                 END IF;
 
                 IF ${changed_item_state}_item IS NULL THEN
@@ -2048,8 +2048,8 @@ class Helper:
                 END IF;
 
                 -- Add log entry only if log_field value actually changes
-                EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO ${secondary_hstore}_log_field_value;
-                IF ${secondary_hstore}_log_field_value IS NULL OR NOT (${changed_item_state}_item = ANY(${secondary_hstore}_log_field_value)) THEN
+                EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO ${fetched_log_value_state}_log_field_value;
+                IF ${fetched_log_value_state}_log_field_value IS NULL OR NOT (${changed_item_state}_item = ANY(${fetched_log_value_state}_log_field_value)) THEN
                     fqid_var := log_collection || '/' || log_collection_id;
                     CALL log_field_change('update', fqid_var, ARRAY[log_field]);
                 END IF;
@@ -2413,11 +2413,11 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
     def get_log_calculated_id_array_trigger_definition(
         view_name: str,
         log_field: str,
-        triggers_data: list[dict[str, str | dict[str, str]]],
+        log_triggers: list[dict[str, str | dict[str, str]]],
     ) -> str:
         TRIGGER_TEMPLATE = string.Template(dedent("""\
-            CREATE TRIGGER ${trigger_name} ${trigger_operations} ON ${trigger_table}
-            FOR EACH ROW EXECUTE FUNCTION log_${trigger_type}_modified_calculated_id_array_field('${view_name}', '${log_collection_id_column}', '${log_collection_id_sql}', '${log_field}', '${trigger_column}', '${changed_item_column}', '${changed_item_sql}');
+            CREATE TRIGGER ${trigger_name} ${trigger_operations} ON ${on_table}
+            FOR EACH ROW EXECUTE FUNCTION log_${trigger_type}_modified_calculated_id_array_field('${view_name}', '${log_collection_id_column}', '${log_collection_id_sql}', '${log_field}', '${relational_column}', '${log_value_column}', '${log_value_sql}');
             """))
         processed_tables: dict[str, int] = {}
         parts: list[str] = []
@@ -2427,33 +2427,38 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             "log_field": log_field,
         }
 
-        for data in triggers_data:
-            trigger_table = data["on_table"]
-            columns = data.get("on_columns")
+        for log_trigger in log_triggers:
+            on_table = log_trigger["on_table"]
+            on_columns = log_trigger.get("on_columns")
 
-            if trigger_table not in processed_tables:
-                processed_tables[trigger_table] = 1
+            if on_table not in processed_tables:
+                processed_tables[on_table] = 1
                 unique_index = None
             else:
-                processed_tables[trigger_table] += 1
-                unique_index = processed_tables[trigger_table]
+                processed_tables[on_table] += 1
+                unique_index = processed_tables[on_table]
 
-            trigger_columns_iu = f" OR UPDATE OF {columns}" if columns else ""
-            trigger_columns_ud = f" UPDATE OF {columns} OR" if columns else ""
+            trigger_columns_iu = f" OR UPDATE OF {on_columns}" if on_columns else ""
+            trigger_columns_ud = f" UPDATE OF {on_columns} OR" if on_columns else ""
             trigger_name_iu, trigger_name_ud = (
                 HelperGetNames.get_log_calculated_id_array_trigger_names(
-                    view_name, log_field, trigger_table, bool(columns), unique_index
+                    view_name, log_field, on_table, bool(on_columns), unique_index
                 )
             )
 
             subst_common = {
                 **subst_base,
-                "trigger_table": trigger_table,
-                "log_collection_id_column": data.get("log_collection_id_column") or "",
-                "log_collection_id_sql": data.get("log_collection_id_sql") or "",
-                "trigger_column": data["relational_column"],
-                "changed_item_column": data.get("log_value_column") or "",
-                "changed_item_sql": data.get("log_value_sql") or "",
+                **{
+                    attr: (log_trigger.get(attr) or "")
+                    for attr in [
+                        "log_collection_id_sql",
+                        "log_collection_id_column",
+                        "log_value_sql",
+                        "log_value_column",
+                    ]
+                },
+                "on_table": on_table,
+                "relational_column": log_trigger["relational_column"],
             }
             subst_iu = {
                 **subst_common,

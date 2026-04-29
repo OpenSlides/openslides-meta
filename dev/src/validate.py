@@ -571,7 +571,7 @@ class Checker:
         return None
 
     def check_log_triggers(self, collectionfield: str, field: dict[str, Any]) -> None:
-        if not (data_list := field.get("log_triggers")):
+        if not (log_triggers := field.get("log_triggers")):
             self.errors.append(
                 f"For {collectionfield} 'log_triggers' attribute must be defined because it has 'sql' attribute."
             )
@@ -586,29 +586,29 @@ class Checker:
             "log_value_column",
             "log_value_sql",
         ]
-        for i in range(len(data_list)):
+        for i in range(len(log_triggers)):
             base_error_message = f"Error in item {i} of {collectionfield}.log_triggers"
-            data = data_list[i]
+            log_trigger = log_triggers[i]
             missing_required_attributes = [
                 attr_name
                 for attr_name in ["on_table", "relational_column"]
-                if not data.get(attr_name)
+                if not log_trigger.get(attr_name)
             ]
             if missing_required_attributes:
                 self.errors.append(
                     f"{base_error_message}: some of the required attributes are missing: {', '.join(missing_required_attributes)}."
                 )
 
-            if (
-                trigger_table := data.get("on_table")
-            ) and not trigger_table.endswith("_t"):
+            if (on_table := log_trigger.get("on_table")) and not on_table.endswith(
+                "_t"
+            ):
                 self.errors.append(
-                    f"{base_error_message}: '{trigger_table}' is not a valid value for 'on_table' (must end with '_t')."
+                    f"{base_error_message}: '{on_table}' is not a valid value for 'on_table' (must end with '_t')."
                 )
 
             for base_attr_name in ["log_collection_id", "log_value"]:
                 values_present = [
-                    bool(data.get(f"{base_attr_name}_{option}"))
+                    bool(log_trigger.get(f"{base_attr_name}_{option}"))
                     for option in ["column", "sql"]
                 ]
                 if not any(values_present):
@@ -620,7 +620,7 @@ class Checker:
                         f"For for item {i} of {collectionfield}.log_triggers value in '{base_attr_name}_column' will be ignored because '{base_attr_name}_sql' is defined."
                     )
 
-            for attr in data.keys():
+            for attr in log_trigger.keys():
                 if attr not in valid_attributes:
                     self.errors.append(
                         f"{base_error_message}: attribute '{attr}' is invalid."
