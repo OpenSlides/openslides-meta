@@ -1986,7 +1986,7 @@ class Helper:
 
         """)
     LOG_CALCULATED_ID_ARRAY_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
-            CREATE OR REPLACE FUNCTION ${trigger_type}_log_modified_calculated_id_array_field()
+            CREATE OR REPLACE FUNCTION log_${trigger_type}_modified_calculated_id_array_field()
             RETURNS trigger AS $$log_modified_calculated_id_array_field_trigger$$
             -- Expects in this order:
             -- 0. log_collection – Target collection for the log entry
@@ -2412,7 +2412,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
     ) -> str:
         TRIGGER_TEMPLATE = string.Template(dedent("""\
             CREATE TRIGGER ${trigger_name} ${trigger_operations} ON ${trigger_table}
-            FOR EACH ROW EXECUTE FUNCTION ${trigger_type}_log_modified_calculated_id_array_field('${view_name}', '${log_collection_id_column}', '${log_collection_id_sql}', '${log_field}', '${trigger_column}', '${changed_item_column}', '${changed_item_sql}');
+            FOR EACH ROW EXECUTE FUNCTION log_${trigger_type}_modified_calculated_id_array_field('${view_name}', '${log_collection_id_column}', '${log_collection_id_sql}', '${log_field}', '${trigger_column}', '${changed_item_column}', '${changed_item_sql}');
             """))
         processed_tables: dict[str, int] = {}
         parts: list[str] = []

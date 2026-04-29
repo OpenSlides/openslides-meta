@@ -418,7 +418,7 @@ class HelperGetNames:
         Gets the name of the trigger for logging changes on calculated fields
         on insert and update operations on the related table.
         """
-        return f"tr_i{'u' if update else ''}_log_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
+        return f"tr_log_i{'u' if update else ''}_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
 
     @staticmethod
     @max_length
@@ -433,7 +433,7 @@ class HelperGetNames:
         Gets the name of the trigger for logging changes on calculated fields
         on update and delete operations on the related table.
         """
-        return f"tr_{'u' if update else ''}d_log_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
+        return f"tr_log_{'u' if update else ''}d_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
 
     @staticmethod
     def get_log_calculated_id_array_trigger_names(
