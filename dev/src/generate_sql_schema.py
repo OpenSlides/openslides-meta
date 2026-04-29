@@ -440,14 +440,10 @@ class GenerateCodeBlocks:
     def get_log_calculated_id_array_trigger_params(type_: str) -> dict[str, str]:
         if type_ == "iu":
             hstore_type = "new"
-            comments = """\
-            -- No need to process new instance without field
-                -- Value deletion on update is processed in after-trigger"""
+            comment = "-- Value deletion on update is processed in after-trigger"
         else:
             hstore_type = "old"
-            comments = """\
-            -- No need to process deleted instance without field
-                -- Value adding on update is processed in before-trigger"""
+            comment = "-- Value adding on update is processed in before-trigger"
         return {
             "trigger_type": type_,
             "changed_item_state": "added" if type_ == "iu" else "deleted",
@@ -459,7 +455,7 @@ class GenerateCodeBlocks:
             "fetched_log_value_state": "old" if type_ == "iu" else "new",
             "trigger_return_value": "NEW" if type_ == "iu" else "NULL",
             "instance_state": "new" if type_ == "iu" else "deleted",
-            "comments": dedent(comments),
+            "comment": comment,
         }
 
     @classmethod
@@ -1999,33 +1995,24 @@ class Helper:
             --    (ignored if 'log_collection_id_sql' is provided => may be NULL)
             -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
             -- 3. log_field – Field to be logged
-            -- 4. trigger_column – Column whose change triggers logging
-            -- 5. ${changed_item_state}_item_column – Column used to fetch the value ${changed_item_state_phrase} 'log_field'
+            -- 4. ${changed_item_state}_item_column – Column used to fetch the value ${changed_item_state_phrase} 'log_field'
             --    (ignored if '${changed_item_state}_item_sql' is provided => may be NULL)
-            -- 6. ${changed_item_state}_item_sql – Custom SQL to fetch the value ${changed_item_state_phrase} 'log_field'
+            -- 5. ${changed_item_state}_item_sql – Custom SQL to fetch the value ${changed_item_state_phrase} 'log_field'
             DECLARE
                 log_collection TEXT := TG_ARGV[0];
                 log_collection_id_column TEXT := TG_ARGV[1];
                 log_collection_id_sql TEXT := TG_ARGV[2];
                 log_field TEXT := TG_ARGV[3];
-                trigger_column TEXT := TG_ARGV[4];
-                ${changed_item_state}_item_column TEXT := TG_ARGV[5];
-                ${changed_item_state}_item_sql TEXT := TG_ARGV[6];
+                ${changed_item_state}_item_column TEXT := TG_ARGV[4];
+                ${changed_item_state}_item_sql TEXT := TG_ARGV[5];
 
                 ${hstore_type}_hstore hstore := hstore(${hstore});
-                ${hstore_type}_trigger_value INTEGER;
                 log_collection_id INTEGER;
                 ${changed_item_state}_item INTEGER;
                 ${fetched_log_value_state}_log_field_value INTEGER[];
                 fqid_var TEXT;
             BEGIN
-                ${comments}
-                ${hstore_type}_trigger_value := ${hstore_type}_hstore -> trigger_column;
-                IF ${hstore_type}_trigger_value IS NULL THEN
-                    RETURN ${trigger_return_value};
-                END IF;
-
-                -- Related log_collection item is not updated -> return
+                -- No related log_collection instance -> return
                 IF (log_collection_id_sql <> '') THEN
                     EXECUTE log_collection_id_sql INTO log_collection_id USING ${hstore};
                 ELSE
@@ -2037,6 +2024,7 @@ class Helper:
                 END IF;
 
                 -- No value in column used for log_field -> return
+                ${comment}
                 IF (${changed_item_state}_item_sql <> '') THEN
                     EXECUTE ${changed_item_state}_item_sql INTO ${changed_item_state}_item USING ${hstore};
                 ELSE
@@ -2413,11 +2401,11 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
     def get_log_calculated_id_array_trigger_definition(
         view_name: str,
         log_field: str,
-        log_triggers: list[dict[str, str | dict[str, str]]],
+        log_triggers: list[dict[str, str]],
     ) -> str:
         TRIGGER_TEMPLATE = string.Template(dedent("""\
             CREATE TRIGGER ${trigger_name} ${trigger_operations} ON ${on_table}
-            FOR EACH ROW EXECUTE FUNCTION log_${trigger_type}_modified_calculated_id_array_field('${view_name}', '${log_collection_id_column}', '${log_collection_id_sql}', '${log_field}', '${relational_column}', '${log_value_column}', '${log_value_sql}');
+            FOR EACH ROW EXECUTE FUNCTION log_${trigger_type}_modified_calculated_id_array_field('${view_name}', '${log_collection_id_column}', '${log_collection_id_sql}', '${log_field}', '${log_value_column}', '${log_value_sql}');
             """))
         processed_tables: dict[str, int] = {}
         parts: list[str] = []
@@ -2458,7 +2446,6 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                     ]
                 },
                 "on_table": on_table,
-                "relational_column": log_trigger["relational_column"],
             }
             subst_iu = {
                 **subst_common,

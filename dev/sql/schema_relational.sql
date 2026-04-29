@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'befdc1a8ac45dfa1b9f84391dca75340'
+-- MODELS_YML_CHECKSUM = '1de0700134a3096c9686eca84111beae'
 
 
 -- ENUM definitions
@@ -262,34 +262,24 @@ RETURNS trigger AS $log_modified_calculated_id_array_field_trigger$
 --    (ignored if 'log_collection_id_sql' is provided => may be NULL)
 -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
 -- 3. log_field – Field to be logged
--- 4. trigger_column – Column whose change triggers logging
--- 5. added_item_column – Column used to fetch the value added to 'log_field'
+-- 4. added_item_column – Column used to fetch the value added to 'log_field'
 --    (ignored if 'added_item_sql' is provided => may be NULL)
--- 6. added_item_sql – Custom SQL to fetch the value added to 'log_field'
+-- 5. added_item_sql – Custom SQL to fetch the value added to 'log_field'
 DECLARE
     log_collection TEXT := TG_ARGV[0];
     log_collection_id_column TEXT := TG_ARGV[1];
     log_collection_id_sql TEXT := TG_ARGV[2];
     log_field TEXT := TG_ARGV[3];
-    trigger_column TEXT := TG_ARGV[4];
-    added_item_column TEXT := TG_ARGV[5];
-    added_item_sql TEXT := TG_ARGV[6];
+    added_item_column TEXT := TG_ARGV[4];
+    added_item_sql TEXT := TG_ARGV[5];
 
     new_hstore hstore := hstore(NEW);
-    new_trigger_value INTEGER;
     log_collection_id INTEGER;
     added_item INTEGER;
     old_log_field_value INTEGER[];
     fqid_var TEXT;
 BEGIN
-    -- No need to process new instance without field
-    -- Value deletion on update is processed in after-trigger
-    new_trigger_value := new_hstore -> trigger_column;
-    IF new_trigger_value IS NULL THEN
-        RETURN NEW;
-    END IF;
-
-    -- Related log_collection item is not updated -> return
+    -- No related log_collection instance -> return
     IF (log_collection_id_sql <> '') THEN
         EXECUTE log_collection_id_sql INTO log_collection_id USING NEW;
     ELSE
@@ -301,6 +291,7 @@ BEGIN
     END IF;
 
     -- No value in column used for log_field -> return
+    -- Value deletion on update is processed in after-trigger
     IF (added_item_sql <> '') THEN
         EXECUTE added_item_sql INTO added_item USING NEW;
     ELSE
@@ -330,34 +321,24 @@ RETURNS trigger AS $log_modified_calculated_id_array_field_trigger$
 --    (ignored if 'log_collection_id_sql' is provided => may be NULL)
 -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
 -- 3. log_field – Field to be logged
--- 4. trigger_column – Column whose change triggers logging
--- 5. deleted_item_column – Column used to fetch the value deleted from 'log_field'
+-- 4. deleted_item_column – Column used to fetch the value deleted from 'log_field'
 --    (ignored if 'deleted_item_sql' is provided => may be NULL)
--- 6. deleted_item_sql – Custom SQL to fetch the value deleted from 'log_field'
+-- 5. deleted_item_sql – Custom SQL to fetch the value deleted from 'log_field'
 DECLARE
     log_collection TEXT := TG_ARGV[0];
     log_collection_id_column TEXT := TG_ARGV[1];
     log_collection_id_sql TEXT := TG_ARGV[2];
     log_field TEXT := TG_ARGV[3];
-    trigger_column TEXT := TG_ARGV[4];
-    deleted_item_column TEXT := TG_ARGV[5];
-    deleted_item_sql TEXT := TG_ARGV[6];
+    deleted_item_column TEXT := TG_ARGV[4];
+    deleted_item_sql TEXT := TG_ARGV[5];
 
     old_hstore hstore := hstore(OLD);
-    old_trigger_value INTEGER;
     log_collection_id INTEGER;
     deleted_item INTEGER;
     new_log_field_value INTEGER[];
     fqid_var TEXT;
 BEGIN
-    -- No need to process deleted instance without field
-    -- Value adding on update is processed in before-trigger
-    old_trigger_value := old_hstore -> trigger_column;
-    IF old_trigger_value IS NULL THEN
-        RETURN NULL;
-    END IF;
-
-    -- Related log_collection item is not updated -> return
+    -- No related log_collection instance -> return
     IF (log_collection_id_sql <> '') THEN
         EXECUTE log_collection_id_sql INTO log_collection_id USING OLD;
     ELSE
@@ -369,6 +350,7 @@ BEGIN
     END IF;
 
     -- No value in column used for log_field -> return
+    -- Value adding on update is processed in before-trigger
     IF (deleted_item_sql <> '') THEN
         EXECUTE deleted_item_sql INTO deleted_item USING OLD;
     ELSE
@@ -4214,17 +4196,17 @@ CREATE TRIGGER tr_log_committee_t_default_meeting_id AFTER INSERT OR UPDATE OF d
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'default_meeting_id', 'default_meeting_for_committee_id');
 
 CREATE TRIGGER tr_log_i_committee_user_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
-FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('committee', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id', 'user_ids', 'meeting_id', 'user_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('committee', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id', 'user_ids', 'user_id', '');
 CREATE TRIGGER tr_log_d_committee_user_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
-FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('committee', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id', 'user_ids', 'meeting_id', 'user_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('committee', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id', 'user_ids', 'user_id', '');
 CREATE TRIGGER tr_log_i_committee_user_ids_from_nm_committee_manager_idd4a2a53 BEFORE INSERT ON nm_committee_manager_ids_user_t
-FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('committee', 'committee_id', '', 'user_ids', 'committee_id', 'user_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('committee', 'committee_id', '', 'user_ids', 'user_id', '');
 CREATE TRIGGER tr_log_d_committee_user_ids_from_nm_committee_manager_id82dfd00 AFTER DELETE ON nm_committee_manager_ids_user_t
-FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('committee', 'committee_id', '', 'user_ids', 'committee_id', 'user_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('committee', 'committee_id', '', 'user_ids', 'user_id', '');
 CREATE TRIGGER tr_log_iu_committee_user_ids_from_user_t BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
-FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('committee', 'home_committee_id', '', 'user_ids', 'home_committee_id', 'id', '');
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('committee', 'home_committee_id', '', 'user_ids', 'id', '');
 CREATE TRIGGER tr_log_ud_committee_user_ids_from_user_t AFTER UPDATE OF home_committee_id OR DELETE ON user_t
-FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('committee', 'home_committee_id', '', 'user_ids', 'home_committee_id', 'id', '');
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('committee', 'home_committee_id', '', 'user_ids', 'id', '');
 
 
 CREATE TRIGGER tr_log_nm_committee_manager_ids_user_t AFTER INSERT OR UPDATE OR DELETE ON nm_committee_manager_ids_user_t
@@ -4427,9 +4409,9 @@ CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELET
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
 CREATE TRIGGER tr_log_i_meeting_user_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
-FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('meeting', 'meeting_id', '', 'user_ids', 'meeting_id', 'user_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('meeting', 'meeting_id', '', 'user_ids', 'user_id', '');
 CREATE TRIGGER tr_log_d_meeting_user_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
-FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('meeting', 'meeting_id', '', 'user_ids', 'meeting_id', 'user_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('meeting', 'meeting_id', '', 'user_ids', 'user_id', '');
 
 CREATE TRIGGER tr_log_meeting_t_reference_projector_id AFTER INSERT OR UPDATE OF reference_projector_id OR DELETE ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('projector', 'reference_projector_id', 'used_as_reference_projector_meeting_id');
@@ -4936,25 +4918,25 @@ CREATE TRIGGER tr_log_user_t_gender_id AFTER INSERT OR UPDATE OF gender_id OR DE
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('gender', 'gender_id', 'user_ids');
 
 CREATE TRIGGER tr_log_i_user_committee_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
-FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'meeting_id', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id');
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id');
 CREATE TRIGGER tr_log_d_user_committee_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
-FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'meeting_id', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id');
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id');
 CREATE TRIGGER tr_log_i_user_committee_ids_from_nm_committee_manager_id3c34791 BEFORE INSERT ON nm_committee_manager_ids_user_t
-FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'committee_id', 'committee_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'committee_id', '');
 CREATE TRIGGER tr_log_d_user_committee_ids_from_nm_committee_manager_id8cfd923 AFTER DELETE ON nm_committee_manager_ids_user_t
-FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'committee_id', 'committee_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'committee_id', '');
 CREATE TRIGGER tr_log_iu_user_committee_ids_from_user_t BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
-FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'id', '', 'committee_ids', 'home_committee_id', 'home_committee_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'id', '', 'committee_ids', 'home_committee_id', '');
 CREATE TRIGGER tr_log_ud_user_committee_ids_from_user_t AFTER UPDATE OF home_committee_id OR DELETE ON user_t
-FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'id', '', 'committee_ids', 'home_committee_id', 'home_committee_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'id', '', 'committee_ids', 'home_committee_id', '');
 
 CREATE TRIGGER tr_log_user_t_home_committee_id AFTER INSERT OR UPDATE OF home_committee_id OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('committee', 'home_committee_id', 'native_user_ids');
 
 CREATE TRIGGER tr_log_i_user_meeting_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
-FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'user_id', '', 'meeting_ids', 'user_id', 'meeting_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'user_id', '', 'meeting_ids', 'meeting_id', '');
 CREATE TRIGGER tr_log_d_user_meeting_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
-FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'user_id', '', 'meeting_ids', 'user_id', 'meeting_id', '');
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'user_id', '', 'meeting_ids', 'meeting_id', '');
 
 CREATE TRIGGER tr_log_user_t_organization_id AFTER INSERT OR UPDATE OF organization_id OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('organization', 'organization_id', 'user_ids');

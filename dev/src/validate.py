@@ -570,7 +570,7 @@ class Checker:
             return f"{from_collectionfield} points to {to_collectionfield}, but {to_collectionfield} does not point back."
         return None
 
-    def check_log_triggers(self, collectionfield: str, field: dict[str, Any]) -> None:
+    def check_log_triggers(self, collectionfield: str, field: dict[str, str]) -> None:
         if not (log_triggers := field.get("log_triggers")):
             self.errors.append(
                 f"For {collectionfield} 'log_triggers' attribute must be defined because it has 'sql' attribute."
@@ -580,7 +580,6 @@ class Checker:
         valid_attributes = [
             "on_table",
             "on_columns",
-            "relational_column",
             "log_collection_id_column",
             "log_collection_id_sql",
             "log_value_column",
@@ -589,19 +588,11 @@ class Checker:
         for i in range(len(log_triggers)):
             base_error_message = f"Error in item {i} of {collectionfield}.log_triggers"
             log_trigger = log_triggers[i]
-            missing_required_attributes = [
-                attr_name
-                for attr_name in ["on_table", "relational_column"]
-                if not log_trigger.get(attr_name)
-            ]
-            if missing_required_attributes:
+            if not (on_table := log_trigger.get("on_table")):
                 self.errors.append(
-                    f"{base_error_message}: some of the required attributes are missing: {', '.join(missing_required_attributes)}."
+                    f"{base_error_message}: missing a required attribute 'on_table'."
                 )
-
-            if (on_table := log_trigger.get("on_table")) and not on_table.endswith(
-                "_t"
-            ):
+            elif not on_table.endswith("_t"):
                 self.errors.append(
                     f"{base_error_message}: '{on_table}' is not a valid value for 'on_table' (must end with '_t')."
                 )

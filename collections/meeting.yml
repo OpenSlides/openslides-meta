@@ -1079,7 +1079,6 @@ fields:
     restriction_mode: A
     log_triggers:
       - on_table: meeting_user_t
-        relational_column: meeting_id
         log_collection_id_column: meeting_id
         log_value_column: user_id
   reference_projector_id:
