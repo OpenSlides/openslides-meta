@@ -324,6 +324,9 @@ class Checker:
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
             valid_attributes.extend(("reference", "deferred", "sql"))
+            if field.get("sql"):
+                valid_attributes.append("log_triggers")
+                self.check_log_triggers(collectionfield, field)
             if "default" in field and field_name == "organization_id":
                 # added as a workaround to allow defaulting to the ONE_ORGANIZATION
                 print(f"Default in {collection}/{field_name} temporarily allowed.")
@@ -566,6 +569,61 @@ class Checker:
         if from_collectionfield not in to_unified:
             return f"{from_collectionfield} points to {to_collectionfield}, but {to_collectionfield} does not point back."
         return None
+
+    def check_log_triggers(self, collectionfield: str, field: dict[str, str]) -> None:
+        if not (log_triggers := field.get("log_triggers")):
+            self.errors.append(
+                f"For {collectionfield} 'log_triggers' attribute must be defined because it has 'sql' attribute."
+            )
+            return
+        elif not isinstance(log_triggers, list):
+            self.errors.append(
+                f"Invalid value for 'log_triggers' of {collectionfield}: must be a list of dictionaries."
+            )
+            return
+
+        valid_attributes = [
+            "on_table",
+            "on_columns",
+            "log_collection_id_column",
+            "log_collection_id_sql",
+            "log_value_column",
+            "log_value_sql",
+        ]
+        for i in range(len(log_triggers)):
+            base_error_message = f"Error in item {i} of {collectionfield}.log_triggers"
+            log_trigger = log_triggers[i]
+            if not isinstance(log_trigger, dict):
+                self.errors.append(f"{base_error_message}: must be a dictionary.")
+                continue
+            if not (on_table := log_trigger.get("on_table")):
+                self.errors.append(
+                    f"{base_error_message}: missing a required attribute 'on_table'."
+                )
+            elif not on_table.endswith("_t"):
+                self.errors.append(
+                    f"{base_error_message}: '{on_table}' is not a valid value for 'on_table' (must end with '_t')."
+                )
+
+            for base_attr_name in ["log_collection_id", "log_value"]:
+                values_present = [
+                    bool(log_trigger.get(f"{base_attr_name}_{option}"))
+                    for option in ["column", "sql"]
+                ]
+                if not any(values_present):
+                    self.errors.append(
+                        f"{base_error_message}: either '{base_attr_name}_sql' or '{base_attr_name}_column' must be defined."
+                    )
+                elif all(values_present):
+                    print(
+                        f"For for item {i} of {collectionfield}.log_triggers value in '{base_attr_name}_column' will be ignored because '{base_attr_name}_sql' is defined."
+                    )
+
+            for attr in log_trigger.keys():
+                if attr not in valid_attributes:
+                    self.errors.append(
+                        f"{base_error_message}: attribute '{attr}' is invalid."
+                    )
 
     def validate_enum(self, collectionfield: str, enum: Any) -> list[str] | None:
         """

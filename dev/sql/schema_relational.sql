@@ -1,7 +1,11 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
+<<<<<<< HEAD
 -- MODELS_YML_CHECKSUM = 'af4bddeb0886627cfdfbe034078d11f5'
+=======
+-- MODELS_YML_CHECKSUM = '98e4ee6c397072a2a2e82064c0d4aa09'
+>>>>>>> 1c25721 (Add log triggers for calculated fields (#479))
 
 
 -- ENUM definitions
@@ -116,6 +120,24 @@ END;
 $sequences_trigger$
 LANGUAGE plpgsql;
 
+CREATE TABLE os_notify_log_t (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    operation varchar(32),
+    fqid varchar(256) NOT NULL,
+    updated_fields varchar(63)[],
+    xact_id xid8,
+    timestamp timestamptz,
+    CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
+);
+
+CREATE TABLE version (
+    migration_index INTEGER PRIMARY KEY,
+    migration_state TEXT,
+    replace_tables JSONB
+);
+
+-- Log functions
+
 CREATE OR REPLACE PROCEDURE log_field_change(
     operation_var TEXT,
     fqid_var TEXT,
@@ -167,43 +189,6 @@ BEGIN
     RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $log_modified_trigger$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
-DECLARE
-    is_valid BOOLEAN;
-BEGIN
-    IF tz IS NULL THEN
-        RETURN TRUE;
-    END IF;
-
-    SELECT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name=tz) INTO is_valid;
-    RETURN is_valid;
-END;
-$$ language plpgsql STABLE;
-
-CREATE FUNCTION check_unique_ids_pair()
-RETURNS trigger
-AS $unique_ids_pair_trigger$
--- usage with 1 parameter IN TRIGGER DEFINITION:
--- base_column_name: name of write fields before adding numeric suffixes
--- Guards against mirrored duplicates by skipping one of the pairs.
-DECLARE
-    base_column_name text;
-    value_1 integer;
-    value_2 integer;
-BEGIN
-    base_column_name := TG_ARGV[0];
-    value_1 := hstore(NEW) -> (base_column_name || '_1');
-    value_2 := hstore(NEW) -> (base_column_name || '_2');
-
-    IF (value_1 > value_2) THEN
-        RETURN NULL;
-    END IF;
-
-    RETURN NEW;
-END;
-$unique_ids_pair_trigger$
-LANGUAGE plpgsql;
 
 CREATE FUNCTION notify_transaction_end() RETURNS trigger AS $notify_trigger$
 DECLARE
@@ -273,21 +258,162 @@ BEGIN
 END;
 $log_modified_related_trigger$ LANGUAGE plpgsql;
 
-CREATE TABLE os_notify_log_t (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    operation varchar(32),
-    fqid varchar(256) NOT NULL,
-    updated_fields varchar(63)[],
-    xact_id xid8,
-    timestamp timestamptz,
-    CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
-);
+CREATE OR REPLACE FUNCTION log_iu_modified_calculated_id_array_field()
+RETURNS trigger AS $log_modified_calculated_id_array_field_trigger$
+-- Expects in this order:
+-- 0. log_collection – Target collection for the log entry
+-- 1. log_collection_id_column – Column used to fetch the 'log_collection' id
+--    (ignored if 'log_collection_id_sql' is provided => may be NULL)
+-- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
+-- 3. log_field – Field to be logged
+-- 4. added_item_column – Column used to fetch the value added to 'log_field'
+--    (ignored if 'added_item_sql' is provided => may be NULL)
+-- 5. added_item_sql – Custom SQL to fetch the value added to 'log_field'
+DECLARE
+    log_collection TEXT := TG_ARGV[0];
+    log_collection_id_column TEXT := TG_ARGV[1];
+    log_collection_id_sql TEXT := TG_ARGV[2];
+    log_field TEXT := TG_ARGV[3];
+    added_item_column TEXT := TG_ARGV[4];
+    added_item_sql TEXT := TG_ARGV[5];
 
-CREATE TABLE version (
-    migration_index INTEGER PRIMARY KEY,
-    migration_state TEXT,
-    replace_tables JSONB
-);
+    new_hstore hstore := hstore(NEW);
+    log_collection_id INTEGER;
+    added_item INTEGER;
+    old_log_field_value INTEGER[];
+    fqid_var TEXT;
+BEGIN
+    -- No related log_collection instance -> return
+    IF (log_collection_id_sql <> '') THEN
+        EXECUTE log_collection_id_sql INTO log_collection_id USING NEW;
+    ELSE
+        log_collection_id := new_hstore -> log_collection_id_column;
+    END IF;
+
+    IF log_collection_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    -- No value in column used for log_field -> return
+    -- Value deletion on update is processed in after-trigger
+    IF (added_item_sql <> '') THEN
+        EXECUTE added_item_sql INTO added_item USING NEW;
+    ELSE
+        added_item := new_hstore -> added_item_column;
+    END IF;
+
+    IF added_item IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    -- Add log entry only if log_field value actually changes
+    EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO old_log_field_value;
+    IF old_log_field_value IS NULL OR NOT (added_item = ANY(old_log_field_value)) THEN
+        fqid_var := log_collection || '/' || log_collection_id;
+        CALL log_field_change('update', fqid_var, ARRAY[log_field]);
+    END IF;
+
+    RETURN NEW;
+END;
+$log_modified_calculated_id_array_field_trigger$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION log_ud_modified_calculated_id_array_field()
+RETURNS trigger AS $log_modified_calculated_id_array_field_trigger$
+-- Expects in this order:
+-- 0. log_collection – Target collection for the log entry
+-- 1. log_collection_id_column – Column used to fetch the 'log_collection' id
+--    (ignored if 'log_collection_id_sql' is provided => may be NULL)
+-- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
+-- 3. log_field – Field to be logged
+-- 4. deleted_item_column – Column used to fetch the value deleted from 'log_field'
+--    (ignored if 'deleted_item_sql' is provided => may be NULL)
+-- 5. deleted_item_sql – Custom SQL to fetch the value deleted from 'log_field'
+DECLARE
+    log_collection TEXT := TG_ARGV[0];
+    log_collection_id_column TEXT := TG_ARGV[1];
+    log_collection_id_sql TEXT := TG_ARGV[2];
+    log_field TEXT := TG_ARGV[3];
+    deleted_item_column TEXT := TG_ARGV[4];
+    deleted_item_sql TEXT := TG_ARGV[5];
+
+    old_hstore hstore := hstore(OLD);
+    log_collection_id INTEGER;
+    deleted_item INTEGER;
+    new_log_field_value INTEGER[];
+    fqid_var TEXT;
+BEGIN
+    -- No related log_collection instance -> return
+    IF (log_collection_id_sql <> '') THEN
+        EXECUTE log_collection_id_sql INTO log_collection_id USING OLD;
+    ELSE
+        log_collection_id := old_hstore -> log_collection_id_column;
+    END IF;
+
+    IF log_collection_id IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    -- No value in column used for log_field -> return
+    -- Value adding on update is processed in before-trigger
+    IF (deleted_item_sql <> '') THEN
+        EXECUTE deleted_item_sql INTO deleted_item USING OLD;
+    ELSE
+        deleted_item := old_hstore -> deleted_item_column;
+    END IF;
+
+    IF deleted_item IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    -- Add log entry only if log_field value actually changes
+    EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO new_log_field_value;
+    IF new_log_field_value IS NULL OR NOT (deleted_item = ANY(new_log_field_value)) THEN
+        fqid_var := log_collection || '/' || log_collection_id;
+        CALL log_field_change('update', fqid_var, ARRAY[log_field]);
+    END IF;
+
+    RETURN NULL;
+END;
+$log_modified_calculated_id_array_field_trigger$ LANGUAGE plpgsql;
+
+-- Validation triggers
+
+CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
+DECLARE
+    is_valid BOOLEAN;
+BEGIN
+    IF tz IS NULL THEN
+        RETURN TRUE;
+    END IF;
+
+    SELECT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name=tz) INTO is_valid;
+    RETURN is_valid;
+END;
+$$ language plpgsql STABLE;
+
+CREATE FUNCTION check_unique_ids_pair()
+RETURNS trigger
+AS $unique_ids_pair_trigger$
+-- usage with 1 parameter IN TRIGGER DEFINITION:
+-- base_column_name: name of write fields before adding numeric suffixes
+-- Guards against mirrored duplicates by skipping one of the pairs.
+DECLARE
+    base_column_name text;
+    value_1 integer;
+    value_2 integer;
+BEGIN
+    base_column_name := TG_ARGV[0];
+    value_1 := hstore(NEW) -> (base_column_name || '_1');
+    value_2 := hstore(NEW) -> (base_column_name || '_2');
+
+    IF (value_1 > value_2) THEN
+        RETURN NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$unique_ids_pair_trigger$
+LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
 BEGIN
@@ -2819,7 +2945,9 @@ CREATE VIEW "committee" AS SELECT *,
     UNION
 
     -- Select user_id from home committees
-    SELECT u.id FROM user_t u WHERE u.home_committee_id = c.id
+    SELECT u.id
+    FROM user_t u
+    WHERE u.home_committee_id = c.id
   ) _
 ) AS user_ids
 ,
@@ -3968,6 +4096,20 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 CREATE TRIGGER tr_log_committee_t_default_meeting_id AFTER INSERT OR UPDATE OF default_meeting_id OR DELETE ON committee_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'default_meeting_id', 'default_meeting_for_committee_id');
 
+CREATE TRIGGER tr_log_i_committee_user_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('committee', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id', 'user_ids', 'user_id', '');
+CREATE TRIGGER tr_log_d_committee_user_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('committee', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id', 'user_ids', 'user_id', '');
+CREATE TRIGGER tr_log_i_committee_user_ids_from_nm_committee_manager_idd4a2a53 BEFORE INSERT ON nm_committee_manager_ids_user_t
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('committee', 'committee_id', '', 'user_ids', 'user_id', '');
+CREATE TRIGGER tr_log_d_committee_user_ids_from_nm_committee_manager_id82dfd00 AFTER DELETE ON nm_committee_manager_ids_user_t
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('committee', 'committee_id', '', 'user_ids', 'user_id', '');
+CREATE TRIGGER tr_log_iu_committee_user_ids_from_user_t BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('committee', 'home_committee_id', '', 'user_ids', 'id', '');
+CREATE TRIGGER tr_log_ud_committee_user_ids_from_user_t AFTER UPDATE OF home_committee_id OR DELETE ON user_t
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('committee', 'home_committee_id', '', 'user_ids', 'id', '');
+
+
 CREATE TRIGGER tr_log_nm_committee_manager_ids_user_t AFTER INSERT OR UPDATE OR DELETE ON nm_committee_manager_ids_user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('committee','committee_id','manager_ids','user','user_id','committee_management_ids');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_committee_manager_ids_user_t
@@ -4166,6 +4308,12 @@ CREATE TRIGGER tr_log_nm_meeting_present_user_ids_user_t AFTER INSERT OR UPDATE 
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting','meeting_id','present_user_ids','user','user_id','is_present_in_meeting_ids');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_present_user_ids_user_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+CREATE TRIGGER tr_log_i_meeting_user_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('meeting', 'meeting_id', '', 'user_ids', 'user_id', '');
+CREATE TRIGGER tr_log_d_meeting_user_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('meeting', 'meeting_id', '', 'user_ids', 'user_id', '');
+
 CREATE TRIGGER tr_log_meeting_t_reference_projector_id AFTER INSERT OR UPDATE OF reference_projector_id OR DELETE ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('projector', 'reference_projector_id', 'used_as_reference_projector_meeting_id');
 CREATE TRIGGER tr_log_meeting_t_list_of_speakers_countdown_id AFTER INSERT OR UPDATE OF list_of_speakers_countdown_id OR DELETE ON meeting_t
@@ -4669,8 +4817,28 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 
 CREATE TRIGGER tr_log_user_t_gender_id AFTER INSERT OR UPDATE OF gender_id OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('gender', 'gender_id', 'user_ids');
+
+CREATE TRIGGER tr_log_i_user_committee_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id');
+CREATE TRIGGER tr_log_d_user_committee_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', '', 'SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id');
+CREATE TRIGGER tr_log_i_user_committee_ids_from_nm_committee_manager_id3c34791 BEFORE INSERT ON nm_committee_manager_ids_user_t
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'committee_id', '');
+CREATE TRIGGER tr_log_d_user_committee_ids_from_nm_committee_manager_id8cfd923 AFTER DELETE ON nm_committee_manager_ids_user_t
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'user_id', '', 'committee_ids', 'committee_id', '');
+CREATE TRIGGER tr_log_iu_user_committee_ids_from_user_t BEFORE INSERT OR UPDATE OF home_committee_id ON user_t
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'id', '', 'committee_ids', 'home_committee_id', '');
+CREATE TRIGGER tr_log_ud_user_committee_ids_from_user_t AFTER UPDATE OF home_committee_id OR DELETE ON user_t
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'id', '', 'committee_ids', 'home_committee_id', '');
+
 CREATE TRIGGER tr_log_user_t_home_committee_id AFTER INSERT OR UPDATE OF home_committee_id OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('committee', 'home_committee_id', 'native_user_ids');
+
+CREATE TRIGGER tr_log_i_user_meeting_ids_from_meeting_user_t BEFORE INSERT ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION log_iu_modified_calculated_id_array_field('user', 'user_id', '', 'meeting_ids', 'meeting_id', '');
+CREATE TRIGGER tr_log_d_user_meeting_ids_from_meeting_user_t AFTER DELETE ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 'user_id', '', 'meeting_ids', 'meeting_id', '');
+
 CREATE TRIGGER tr_log_user_t_organization_id AFTER INSERT OR UPDATE OF organization_id OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('organization', 'organization_id', 'user_ids');
 
