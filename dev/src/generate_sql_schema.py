@@ -146,6 +146,7 @@ class GenerateCodeBlocks:
             "sequence_scope",
             # "on_delete", # must have other name then the key-value-store one
             "sql",
+            "log_triggers",
             "equal_fields",
             "unique",
         }
@@ -169,6 +170,14 @@ class GenerateCodeBlocks:
         missing_handled_collections_meta_attributes = set()
         im_table_code = ""
         errors: list[str] = []
+
+        for type_ in ["iu", "ud"]:
+            pre_code += (
+                Helper.LOG_CALCULATED_ID_ARRAY_TRIGGER_FUNCTION_TEMPLATE.substitute(
+                    cls.get_log_calculated_id_array_trigger_params(type_)
+                )
+            )
+        pre_code += Helper.FILE_TEMPLATE_CONSTANT_TRIGGERS
 
         for type_ in ["1_1", "1_n", "n_m"]:
             pre_code += Helper.NOT_NULL_TRIGGER_FUNCTION_TEMPLATE.substitute(
@@ -427,6 +436,28 @@ class GenerateCodeBlocks:
             ),
         }
 
+    @staticmethod
+    def get_log_calculated_id_array_trigger_params(type_: str) -> dict[str, str]:
+        if type_ == "iu":
+            hstore_type = "new"
+            comment = "-- Value deletion on update is processed in after-trigger"
+        else:
+            hstore_type = "old"
+            comment = "-- Value adding on update is processed in before-trigger"
+        return {
+            "trigger_type": type_,
+            "changed_item_state": "added" if type_ == "iu" else "deleted",
+            "changed_item_state_phrase": (
+                "added to" if type_ == "iu" else "deleted from"
+            ),
+            "hstore_type": hstore_type,
+            "hstore": hstore_type.upper(),
+            "fetched_log_value_state": "old" if type_ == "iu" else "new",
+            "trigger_return_value": "NEW" if type_ == "iu" else "NULL",
+            "instance_state": "new" if type_ == "iu" else "deleted",
+            "comment": comment,
+        }
+
     @classmethod
     def get_method(
         cls, fname: str, fdata: dict[str, Any]
@@ -678,6 +709,17 @@ class GenerateCodeBlocks:
                         )
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
+                text["create_trigger_notify"] = (
+                    "\n"
+                    + (
+                        Helper.get_log_calculated_id_array_trigger_definition(
+                            table_name,
+                            fname,
+                            fdata.get("log_triggers", {}),
+                        )
+                    )
+                    + "\n"
+                )
             else:
                 foreign_table_column = cast(str, foreign_table_field.column)
                 foreign_table_field_ref_id = cast(str, foreign_table_field.ref_column)
@@ -1359,6 +1401,24 @@ class Helper:
         $sequences_trigger$
         LANGUAGE plpgsql;
 
+        CREATE TABLE os_notify_log_t (
+            id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+            operation varchar(32),
+            fqid varchar(256) NOT NULL,
+            updated_fields varchar(63)[],
+            xact_id xid8,
+            timestamp timestamptz,
+            CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
+        );
+
+        CREATE TABLE version (
+            migration_index INTEGER PRIMARY KEY,
+            migration_state TEXT,
+            replace_tables JSONB
+        );
+
+        -- Log functions
+
         CREATE OR REPLACE PROCEDURE log_field_change(
             operation_var TEXT,
             fqid_var TEXT,
@@ -1410,43 +1470,6 @@ class Helper:
             RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
-
-        CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
-        DECLARE
-            is_valid BOOLEAN;
-        BEGIN
-            IF tz IS NULL THEN
-                RETURN TRUE;
-            END IF;
-
-            SELECT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name=tz) INTO is_valid;
-            RETURN is_valid;
-        END;
-        $$ language plpgsql STABLE;
-
-        CREATE FUNCTION check_unique_ids_pair()
-        RETURNS trigger
-        AS $unique_ids_pair_trigger$
-        -- usage with 1 parameter IN TRIGGER DEFINITION:
-        -- base_column_name: name of write fields before adding numeric suffixes
-        -- Guards against mirrored duplicates by skipping one of the pairs.
-        DECLARE
-            base_column_name text;
-            value_1 integer;
-            value_2 integer;
-        BEGIN
-            base_column_name := TG_ARGV[0];
-            value_1 := hstore(NEW) -> (base_column_name || '_1');
-            value_2 := hstore(NEW) -> (base_column_name || '_2');
-
-            IF (value_1 > value_2) THEN
-                RETURN NULL;
-            END IF;
-
-            RETURN NEW;
-        END;
-        $unique_ids_pair_trigger$
-        LANGUAGE plpgsql;
 
         CREATE FUNCTION notify_transaction_end() RETURNS trigger AS $notify_trigger$
         DECLARE
@@ -1515,22 +1538,46 @@ class Helper:
             RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $log_modified_related_trigger$ LANGUAGE plpgsql;
+    """)
+    FILE_TEMPLATE_CONSTANT_TRIGGERS = dedent("""
+        -- Validation triggers
 
-        CREATE TABLE os_notify_log_t (
-            id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-            operation varchar(32),
-            fqid varchar(256) NOT NULL,
-            updated_fields varchar(63)[],
-            xact_id xid8,
-            timestamp timestamptz,
-            CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
-        );
+        CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
+        DECLARE
+            is_valid BOOLEAN;
+        BEGIN
+            IF tz IS NULL THEN
+                RETURN TRUE;
+            END IF;
 
-        CREATE TABLE version (
-            migration_index INTEGER PRIMARY KEY,
-            migration_state TEXT,
-            replace_tables JSONB
-        );
+            SELECT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name=tz) INTO is_valid;
+            RETURN is_valid;
+        END;
+        $$ language plpgsql STABLE;
+
+        CREATE FUNCTION check_unique_ids_pair()
+        RETURNS trigger
+        AS $unique_ids_pair_trigger$
+        -- usage with 1 parameter IN TRIGGER DEFINITION:
+        -- base_column_name: name of write fields before adding numeric suffixes
+        -- Guards against mirrored duplicates by skipping one of the pairs.
+        DECLARE
+            base_column_name text;
+            value_1 integer;
+            value_2 integer;
+        BEGIN
+            base_column_name := TG_ARGV[0];
+            value_1 := hstore(NEW) -> (base_column_name || '_1');
+            value_2 := hstore(NEW) -> (base_column_name || '_2');
+
+            IF (value_1 > value_2) THEN
+                RETURN NULL;
+            END IF;
+
+            RETURN NEW;
+        END;
+        $unique_ids_pair_trigger$
+        LANGUAGE plpgsql;
 
         CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
         BEGIN
@@ -1814,6 +1861,66 @@ class Helper:
         $check_equals_meeting_id_for_meeting$ LANGUAGE plpgsql;
 
         """)
+    LOG_CALCULATED_ID_ARRAY_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
+            CREATE OR REPLACE FUNCTION log_${trigger_type}_modified_calculated_id_array_field()
+            RETURNS trigger AS $$log_modified_calculated_id_array_field_trigger$$
+            -- Expects in this order:
+            -- 0. log_collection – Target collection for the log entry
+            -- 1. log_collection_id_column – Column used to fetch the 'log_collection' id
+            --    (ignored if 'log_collection_id_sql' is provided => may be NULL)
+            -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
+            -- 3. log_field – Field to be logged
+            -- 4. ${changed_item_state}_item_column – Column used to fetch the value ${changed_item_state_phrase} 'log_field'
+            --    (ignored if '${changed_item_state}_item_sql' is provided => may be NULL)
+            -- 5. ${changed_item_state}_item_sql – Custom SQL to fetch the value ${changed_item_state_phrase} 'log_field'
+            DECLARE
+                log_collection TEXT := TG_ARGV[0];
+                log_collection_id_column TEXT := TG_ARGV[1];
+                log_collection_id_sql TEXT := TG_ARGV[2];
+                log_field TEXT := TG_ARGV[3];
+                ${changed_item_state}_item_column TEXT := TG_ARGV[4];
+                ${changed_item_state}_item_sql TEXT := TG_ARGV[5];
+
+                ${hstore_type}_hstore hstore := hstore(${hstore});
+                log_collection_id INTEGER;
+                ${changed_item_state}_item INTEGER;
+                ${fetched_log_value_state}_log_field_value INTEGER[];
+                fqid_var TEXT;
+            BEGIN
+                -- No related log_collection instance -> return
+                IF (log_collection_id_sql <> '') THEN
+                    EXECUTE log_collection_id_sql INTO log_collection_id USING ${hstore};
+                ELSE
+                    log_collection_id := ${hstore_type}_hstore -> log_collection_id_column;
+                END IF;
+
+                IF log_collection_id IS NULL THEN
+                    RETURN ${trigger_return_value};
+                END IF;
+
+                -- No value in column used for log_field -> return
+                ${comment}
+                IF (${changed_item_state}_item_sql <> '') THEN
+                    EXECUTE ${changed_item_state}_item_sql INTO ${changed_item_state}_item USING ${hstore};
+                ELSE
+                    ${changed_item_state}_item := ${hstore_type}_hstore -> ${changed_item_state}_item_column;
+                END IF;
+
+                IF ${changed_item_state}_item IS NULL THEN
+                    RETURN ${trigger_return_value};
+                END IF;
+
+                -- Add log entry only if log_field value actually changes
+                EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO ${fetched_log_value_state}_log_field_value;
+                IF ${fetched_log_value_state}_log_field_value IS NULL OR NOT (${changed_item_state}_item = ANY(${fetched_log_value_state}_log_field_value)) THEN
+                    fqid_var := log_collection || '/' || log_collection_id;
+                    CALL log_field_change('update', fqid_var, ARRAY[log_field]);
+                END IF;
+
+                RETURN ${trigger_return_value};
+            END;
+            $$log_modified_calculated_id_array_field_trigger$$ LANGUAGE plpgsql;
+        """))
     NOT_NULL_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
             CREATE FUNCTION check_not_null_for_${trigger_type}() RETURNS trigger AS $$not_null_trigger$$
             ${docstring}
@@ -2164,6 +2271,75 @@ class Helper:
         own_table = HelperGetNames.get_table_name(table_name)
         return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}', '{updated_field}');\n"""
+
+    @staticmethod
+    def get_log_calculated_id_array_trigger_definition(
+        view_name: str,
+        log_field: str,
+        log_triggers: list[dict[str, str]],
+    ) -> str:
+        TRIGGER_TEMPLATE = string.Template(dedent("""\
+            CREATE TRIGGER ${trigger_name} ${trigger_operations} ON ${on_table}
+            FOR EACH ROW EXECUTE FUNCTION log_${trigger_type}_modified_calculated_id_array_field('${view_name}', '${log_collection_id_column}', '${log_collection_id_sql}', '${log_field}', '${log_value_column}', '${log_value_sql}');
+            """))
+        processed_tables: dict[str, int] = {}
+        parts: list[str] = []
+
+        subst_base = {
+            "view_name": view_name,
+            "log_field": log_field,
+        }
+
+        for log_trigger in log_triggers:
+            on_table = log_trigger["on_table"]
+            on_columns = log_trigger.get("on_columns")
+
+            if on_table not in processed_tables:
+                processed_tables[on_table] = 1
+                unique_index = None
+            else:
+                processed_tables[on_table] += 1
+                unique_index = processed_tables[on_table]
+
+            trigger_columns_iu = f" OR UPDATE OF {on_columns}" if on_columns else ""
+            trigger_columns_ud = f" UPDATE OF {on_columns} OR" if on_columns else ""
+            trigger_name_iu, trigger_name_ud = (
+                HelperGetNames.get_log_calculated_id_array_trigger_names(
+                    view_name, log_field, on_table, bool(on_columns), unique_index
+                )
+            )
+
+            subst_common = {
+                **subst_base,
+                **{
+                    attr: (log_trigger.get(attr) or "")
+                    for attr in [
+                        "log_collection_id_sql",
+                        "log_collection_id_column",
+                        "log_value_sql",
+                        "log_value_column",
+                    ]
+                },
+                "on_table": on_table,
+            }
+            subst_iu = {
+                **subst_common,
+                "trigger_type": "iu",
+                "trigger_name": trigger_name_iu,
+                "trigger_operations": f"BEFORE INSERT{trigger_columns_iu}",
+            }
+
+            subst_ud = {
+                **subst_common,
+                "trigger_type": "ud",
+                "trigger_name": trigger_name_ud,
+                "trigger_operations": f"AFTER{trigger_columns_ud} DELETE",
+            }
+
+            parts.append(TRIGGER_TEMPLATE.substitute(subst_iu))
+            parts.append(TRIGGER_TEMPLATE.substitute(subst_ud))
+
+        return "".join(parts)
 
     @staticmethod
     def get_nm_table_for_n_m_relation_lists(
