@@ -1,7 +1,11 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
+<<<<<<< HEAD
 -- MODELS_YML_CHECKSUM = '31d05ea25c6ef9b5c4114bb52ef78907'
+=======
+-- MODELS_YML_CHECKSUM = '1d21231a60abeaafd4073c20fa4a17fc'
+>>>>>>> 2eabb46 (Remove option user equal_fields trigger (#477))
 
 
 -- ENUM definitions
@@ -527,112 +531,6 @@ BEGIN
     RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
 END;
 $check_equals_intermediate_trigger$ LANGUAGE plpgsql;
-
--- expects in this order:
--- * own table name (i.e. name of table that isn't user),
--- * user relation field in said table for which the check was triggered
--- * the name of the meeting_user table (necessary for migrations)
--- checks if meeting_id of NEW is equal to meeting_id of connected user,
--- which is grandfathered in from whichever meeting_user connects that user to that meeting.
-CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_user()
-RETURNS trigger AS $check_equals_meeting_id_for_user_trigger$
-DECLARE
-    ref_column TEXT;
-    user_id INTEGER;
-    user_equal_val TEXT;
-    own_id INTEGER;
-    own_equal_val TEXT;
-    own_collection TEXT;
-    muser_table_identifier TEXT;
-    i INTEGER := 0;
-BEGIN
-
-    WHILE i < TG_NARGS LOOP
-        own_collection := TG_ARGV[i];
-        ref_column := TG_ARGV[i+1];
-        muser_table_identifier := TG_ARGV[i+2];
-        EXECUTE format(
-            'SELECT ($1).id, ($1).meeting_id, ($1).%I',
-            ref_column
-        ) INTO own_id, own_equal_val, user_id USING NEW;
-        EXECUTE format(
-            'SELECT meeting_id
-            FROM %I
-            WHERE user_id = %L AND meeting_id = %L',
-            muser_table_identifier,
-            user_id,
-            own_equal_val
-        ) INTO user_equal_val;
-
-        PERFORM raise_equality_exception_conditionally(
-            'meeting_id',
-            ref_column,
-            own_collection,
-            own_id,
-            own_equal_val,
-            'user',
-            user_id,
-            user_equal_val
-        );
-
-        i := i + 3;
-    END LOOP;
-
-    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
-END;
-$check_equals_meeting_id_for_user_trigger$ LANGUAGE plpgsql;
-
--- called on meeting_user delete.
--- expects in this order:
--- * own table name (i.e. name of table that isn't user),
--- * user relation field in said table for which the check was triggered
--- Checks if the other table has any row with the same meeting_id pointing to that user.
-CREATE OR REPLACE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete()
-RETURNS trigger AS $check_equals_meeting_id_user_on_meeting_user_delete_trigger$
-DECLARE
-    ref_column TEXT;
-    foreign_id INTEGER;
-    foreign_equal_val TEXT;
-    own_id INTEGER;
-    own_equal_val TEXT;
-    own_collection TEXT;
-    i INTEGER := 0;
-BEGIN
-    WHILE i < TG_NARGS LOOP
-        own_collection := TG_ARGV[i];
-        ref_column := TG_ARGV[i+1];
-        EXECUTE format(
-            'SELECT ($1).user_id, ($1).meeting_id'
-        ) INTO foreign_id, foreign_equal_val USING OLD;
-        FOR own_id, own_equal_val in EXECUTE format(
-            'SELECT id, meeting_id
-            FROM %I
-            WHERE %I = %L AND meeting_id = %L',
-            own_collection,
-            ref_column,
-            foreign_id,
-            foreign_equal_val
-        ) LOOP
-            IF own_id IS NOT NULL THEN
-                PERFORM raise_equality_exception_conditionally(
-                    'meeting_id',
-                    ref_column,
-                    own_collection,
-                    own_id,
-                    own_equal_val,
-                    'user',
-                    foreign_id,
-                    NULL
-                );
-            END IF;
-        END LOOP;
-
-        i := i + 2;
-    END LOOP;
-
-    RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
-END;
-$check_equals_meeting_id_user_on_meeting_user_delete_trigger$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_meeting()
 RETURNS trigger AS $check_equals_meeting_id_for_meeting$
@@ -5171,12 +5069,6 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_motion_
 FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'motion', 'content_object_id_motion_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_option_ids AFTER INSERT ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'motion', 'content_object_id_motion_id', 'meeting_id', TRUE);
-
-
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_user_id AFTER INSERT ON option_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('option', 'content_object_id_user_id', 'meeting_user_t');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_user_id_back AFTER DELETE ON meeting_user_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('option', 'content_object_id_user_id');
 
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_poll_cand57125c5 AFTER INSERT ON option_t INITIALLY DEFERRED
