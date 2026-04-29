@@ -976,12 +976,12 @@ class GenerateCodeBlocks:
             if isinstance(field, TableFieldType):
                 # Assume that these are always primary
                 field_def = field.field_def
-            elif (
-                collection == "user"
-                and field == "meeting_id"
-                and "meeting_id" not in InternalHelper.MODELS["user"]["fields"]
-            ):
-                return "", False
+            # elif (
+            #     collection == "user"
+            #     and field == "meeting_id"
+            #     and "meeting_id" not in InternalHelper.MODELS["user"]["fields"]
+            # ):
+            #     return "", False
             elif collection == "meeting" and field == "meeting_id":
                 field_def = None
             else:
@@ -1028,28 +1028,28 @@ class GenerateCodeBlocks:
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column
             )
-            if (
-                foreign_table_field.table == "user"
-                and equal_field == "meeting_id"
-                and "meeting_id" not in InternalHelper.MODELS["user"]["fields"]
-            ):
-                print(
-                    f"Not generating equal_fields-user-meeting_id-trigger for {own_table} {own_table_field.column}."
-                )
-            else:
-                foreign_event_str = cls.get_event_string(
-                    foreign_with_update, [equal_field]
-                )
-                foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
-                    equal_field, foreign_table, foreign_table_field.column
-                )
-                sql += dedent(f"""
-                    CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', FALSE);
-                    CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', TRUE);
+            # if (
+            #     foreign_table_field.table == "user"
+            #     and equal_field == "meeting_id"
+            #     and "meeting_id" not in InternalHelper.MODELS["user"]["fields"]
+            # ):
+            #     print(
+            #         f"Not generating equal_fields-user-meeting_id-trigger for {own_table} {own_table_field.column}."
+            #     )
+            # else:
+            foreign_event_str = cls.get_event_string(
+                foreign_with_update, [equal_field]
+            )
+            foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+                equal_field, foreign_table, foreign_table_field.column
+            )
+            sql += dedent(f"""
+                CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
+                FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', FALSE);
+                CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
+                FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', TRUE);
 
-                """)
+            """)
         return sql
 
     @classmethod
@@ -1121,15 +1121,16 @@ class GenerateCodeBlocks:
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, specified_relation_field
             )
+            # if (
+            #     foreign_table_field.table == "user"
+            #     and equal_field == "meeting_id"
+            #     and "meeting_id" not in InternalHelper.MODELS["user"]["fields"]
+            # ):
+            #     print(
+            #         f"Not generating equal_fields-user-meeting_id-trigger for {own_table} {own_table_field.column}."
+            #     )
+            # elif (
             if (
-                foreign_table_field.table == "user"
-                and equal_field == "meeting_id"
-                and "meeting_id" not in InternalHelper.MODELS["user"]["fields"]
-            ):
-                print(
-                    f"Not generating equal_fields-user-meeting_id-trigger for {own_table} {own_table_field.column}."
-                )
-            elif (
                 foreign_table_field.table == "meeting"
                 and equal_field == "meeting_id"
                 and "meeting_id" not in InternalHelper.MODELS["meeting"]["fields"]
