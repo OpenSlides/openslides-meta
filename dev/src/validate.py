@@ -576,6 +576,11 @@ class Checker:
                 f"For {collectionfield} 'log_triggers' attribute must be defined because it has 'sql' attribute."
             )
             return
+        elif not isinstance(log_triggers, list):
+            self.errors.append(
+                f"Invalid value for 'log_triggers' of {collectionfield}: must be a list of dictionaries."
+            )
+            return
 
         valid_attributes = [
             "on_table",
@@ -588,6 +593,9 @@ class Checker:
         for i in range(len(log_triggers)):
             base_error_message = f"Error in item {i} of {collectionfield}.log_triggers"
             log_trigger = log_triggers[i]
+            if not isinstance(log_trigger, dict):
+                self.errors.append(f"{base_error_message}: must be a dictionary.")
+                continue
             if not (on_table := log_trigger.get("on_table")):
                 self.errors.append(
                     f"{base_error_message}: missing a required attribute 'on_table'."
