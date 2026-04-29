@@ -178,6 +178,7 @@ class GenerateCodeBlocks:
                 )
             )
         pre_code += Helper.FILE_TEMPLATE_CONSTANT_TRIGGERS
+
         for type_ in ["1_1", "1_n", "n_m"]:
             pre_code += Helper.NOT_NULL_TRIGGER_FUNCTION_TEMPLATE.substitute(
                 cls.get_not_null_trigger_params(type_)
@@ -1427,6 +1428,24 @@ class Helper:
         $sequences_trigger$
         LANGUAGE plpgsql;
 
+        CREATE TABLE os_notify_log_t (
+            id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+            operation varchar(32),
+            fqid varchar(256) NOT NULL,
+            updated_fields varchar(63)[],
+            xact_id xid8,
+            timestamp timestamptz,
+            CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
+        );
+
+        CREATE TABLE version (
+            migration_index INTEGER PRIMARY KEY,
+            migration_state TEXT,
+            replace_tables JSONB
+        );
+
+        -- Log functions
+
         CREATE OR REPLACE PROCEDURE log_field_change(
             operation_var TEXT,
             fqid_var TEXT,
@@ -1478,39 +1497,6 @@ class Helper:
             RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
-
-        CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
-        BEGIN
-            PERFORM now() AT TIME ZONE tz;
-            RETURN TRUE;
-        EXCEPTION WHEN invalid_parameter_value THEN
-            RETURN FALSE;
-        END;
-        $$ language plpgsql STABLE;
-
-        CREATE FUNCTION check_unique_ids_pair()
-        RETURNS trigger
-        AS $unique_ids_pair_trigger$
-        -- usage with 1 parameter IN TRIGGER DEFINITION:
-        -- base_column_name: name of write fields before adding numeric suffixes
-        -- Guards against mirrored duplicates by skipping one of the pairs.
-        DECLARE
-            base_column_name text;
-            value_1 integer;
-            value_2 integer;
-        BEGIN
-            base_column_name := TG_ARGV[0];
-            value_1 := hstore(NEW) -> (base_column_name || '_1');
-            value_2 := hstore(NEW) -> (base_column_name || '_2');
-
-            IF (value_1 > value_2) THEN
-                RETURN NULL;
-            END IF;
-
-            RETURN NEW;
-        END;
-        $unique_ids_pair_trigger$
-        LANGUAGE plpgsql;
 
         CREATE FUNCTION notify_transaction_end() RETURNS trigger AS $notify_trigger$
         DECLARE
@@ -1579,24 +1565,43 @@ class Helper:
             RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $log_modified_related_trigger$ LANGUAGE plpgsql;
-
-        CREATE TABLE os_notify_log_t (
-            id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-            operation varchar(32),
-            fqid varchar(256) NOT NULL,
-            updated_fields varchar(63)[],
-            xact_id xid8,
-            timestamp timestamptz,
-            CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
-        );
-
-        CREATE TABLE version (
-            migration_index INTEGER PRIMARY KEY,
-            migration_state TEXT,
-            replace_tables JSONB
-        );
     """)
-    FILE_TEMPLATE_CONSTANT_TRIGGERS = dedent("""\n
+    FILE_TEMPLATE_CONSTANT_TRIGGERS = dedent("""
+        -- Validation triggers
+
+        CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
+        BEGIN
+            PERFORM now() AT TIME ZONE tz;
+            RETURN TRUE;
+        EXCEPTION WHEN invalid_parameter_value THEN
+            RETURN FALSE;
+        END;
+        $$ language plpgsql STABLE;
+
+        CREATE FUNCTION check_unique_ids_pair()
+        RETURNS trigger
+        AS $unique_ids_pair_trigger$
+        -- usage with 1 parameter IN TRIGGER DEFINITION:
+        -- base_column_name: name of write fields before adding numeric suffixes
+        -- Guards against mirrored duplicates by skipping one of the pairs.
+        DECLARE
+            base_column_name text;
+            value_1 integer;
+            value_2 integer;
+        BEGIN
+            base_column_name := TG_ARGV[0];
+            value_1 := hstore(NEW) -> (base_column_name || '_1');
+            value_2 := hstore(NEW) -> (base_column_name || '_2');
+
+            IF (value_1 > value_2) THEN
+                RETURN NULL;
+            END IF;
+
+            RETURN NEW;
+        END;
+        $unique_ids_pair_trigger$
+        LANGUAGE plpgsql;
+
         CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
         BEGIN
             RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
