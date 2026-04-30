@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   title:
@@ -64,7 +64,7 @@ fields:
     - organization
     restriction_mode: A
     required: true
-    constant: true
+    constant_strict: true
   meeting_mediafile_ids:
     type: relation-list
     to: meeting_mediafile/mediafile_id

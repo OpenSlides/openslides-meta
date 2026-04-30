@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   name:
@@ -149,6 +149,6 @@ fields:
     to: meeting/motion_state_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
     deferred: true
 

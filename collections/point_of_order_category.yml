@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   text:
@@ -19,7 +19,7 @@ fields:
     to: meeting/point_of_order_category_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
   speaker_ids:
     type: relation-list
     to: speaker/point_of_order_category_id

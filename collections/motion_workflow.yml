@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   name:
@@ -16,7 +16,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 
   state_ids:
     type: relation-list
@@ -45,5 +45,5 @@ fields:
     to: meeting/motion_workflow_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

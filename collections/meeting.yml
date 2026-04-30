@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   external_id:
@@ -1052,7 +1052,7 @@ fields:
     to: committee/meeting_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
   default_meeting_for_committee_id:
     type: relation
     to: committee/default_meeting_id

@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   options:
@@ -78,7 +78,7 @@ fields:
     to: meeting/all_projection_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 
 # A projection is an M2M model between a projector and an element which is assigned to it.
 # It can either be the current projection, a preview or a history projection (i.e. previously

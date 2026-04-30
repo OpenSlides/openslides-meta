@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   title:
@@ -19,7 +19,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 
   attachment_meeting_mediafile_ids:
     type: relation-list
@@ -60,5 +60,5 @@ fields:
     to: meeting/topic_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   title:
@@ -48,5 +48,5 @@ fields:
     to: meeting/projector_countdown_ids
     restriction_mode: A
     required: true
-    constant: true
+    constant_strict: true
 

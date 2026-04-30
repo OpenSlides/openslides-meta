@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   weight:
@@ -30,5 +30,5 @@ fields:
     to: meeting/motion_editor_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

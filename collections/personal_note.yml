@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   note:
@@ -41,5 +41,5 @@ fields:
     to: meeting/personal_note_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

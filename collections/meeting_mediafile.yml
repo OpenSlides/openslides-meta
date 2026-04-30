@@ -1,11 +1,11 @@
 unique_together:
-- mediafile_id, meeting_id 
+- mediafile_id, meeting_id
 
 fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   mediafile_id:

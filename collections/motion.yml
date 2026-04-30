@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   number:
@@ -23,7 +23,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: C
-    constant: true
+    constant_strict: true
   title:
     type: string
     required: true
@@ -278,7 +278,7 @@ fields:
     to: meeting/motion_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 
   history_entry_ids:
     type: relation-list

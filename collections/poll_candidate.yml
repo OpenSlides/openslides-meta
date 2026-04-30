@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   poll_candidate_list_id:
@@ -29,5 +29,5 @@ fields:
     reference: meeting
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

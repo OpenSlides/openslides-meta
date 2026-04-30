@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   begin_time:
@@ -78,5 +78,5 @@ fields:
     to: meeting/speaker_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   comment:
@@ -31,14 +31,14 @@ fields:
     to: user/meeting_user_ids
     required: true
     restriction_mode: C
-    constant: true
+    constant_strict: true
   meeting_id:
     type: relation
     reference: meeting
     to: meeting/meeting_user_ids
     required: true
     restriction_mode: C
-    constant: true
+    constant_strict: true
 
   personal_note_ids:
     type: relation-list

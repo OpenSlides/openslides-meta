@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   title:
@@ -19,7 +19,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 
   motion_ids:
     type: relation-list
@@ -51,5 +51,5 @@ fields:
     to: meeting/motion_block_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

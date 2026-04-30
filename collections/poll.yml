@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   title:
@@ -110,7 +110,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
   content_object_id:
     type: generic-relation
     reference:
@@ -163,5 +163,5 @@ fields:
     reference: meeting
     restriction_mode: A
     required: true
-    constant: true
+    constant_strict: true
 

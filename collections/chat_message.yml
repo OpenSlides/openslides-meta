@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   content:
@@ -25,12 +25,12 @@ fields:
     to: chat_group/chat_message_ids
     restriction_mode: A
     required: true
-    constant: true
+    constant_strict: true
   meeting_id:
     type: relation
     reference: meeting
     to: meeting/chat_message_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
     required: true
 
   comment:
@@ -35,5 +35,5 @@ fields:
     to: meeting/motion_comment_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 
