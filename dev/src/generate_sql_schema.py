@@ -942,7 +942,9 @@ class GenerateCodeBlocks:
             """)
 
     @staticmethod
-    def get_trigger_prevent_updates(collection_name: str, fname: str, allow_new_null: bool) -> str:
+    def get_trigger_prevent_updates(
+        collection_name: str, fname: str, allow_new_null: bool
+    ) -> str:
         trigger_name = HelperGetNames.get_constant_field_trigger_name(
             collection_name, fname
         )
