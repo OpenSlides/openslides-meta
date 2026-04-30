@@ -19,6 +19,7 @@ fields:
     to: meeting/meeting_mediafile_ids
     reference: meeting
     required: true
+    constant_strict: true
     restriction_mode: A
   is_public:
     type: boolean
