@@ -12,7 +12,7 @@ fields:
   original_user_id:
     type: number
     restriction_mode: A
-    constant: true
+    constant_strict: true
   user_id:
     type: relation
     to: user/history_position_ids

@@ -64,7 +64,7 @@ fields:
     required: true
     equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_strict: true
   parent_id:
     type: relation
     reference: agenda_item

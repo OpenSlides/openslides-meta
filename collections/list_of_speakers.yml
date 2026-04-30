@@ -40,7 +40,7 @@ fields:
     required: true
     equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_strict: true
   speaker_ids:
     type: relation-list
     to: speaker/list_of_speakers_id

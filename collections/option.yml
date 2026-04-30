@@ -31,13 +31,13 @@ fields:
     reference: poll
     equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_strict: true
   used_as_global_option_in_poll_id:
     type: relation
     to: poll/global_option_id
     equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_strict: true
   vote_ids:
     type: relation-list
     to: vote/option_id

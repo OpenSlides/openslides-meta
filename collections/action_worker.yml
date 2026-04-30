@@ -33,5 +33,5 @@ fields:
     description: "Id of the calling user. If the action is called via internal route, the value will be -1."
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

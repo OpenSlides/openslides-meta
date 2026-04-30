@@ -53,7 +53,7 @@ fields:
     required: true
     equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_strict: true
   structure_level_list_of_speakers_id:
     type: relation
     equal_fields: meeting_id

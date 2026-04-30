@@ -14,12 +14,12 @@ fields:
     type: string
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
   user_token:
     type: string
     required: true
     restriction_mode: B
-    constant: true
+    constant_strict: true
 
   option_id:
     type: relation
@@ -28,7 +28,7 @@ fields:
     equal_fields: meeting_id
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
   user_id:
     type: relation
     to: user/vote_ids

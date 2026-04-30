@@ -126,7 +126,7 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     required: true
-    constant: true
+    constant_strict: true
   option_ids:
     type: relation-list
     to: option/poll_id
@@ -141,7 +141,7 @@ fields:
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_strict: true
   voted_ids:
     type: relation-list
     to: user/poll_voted_ids

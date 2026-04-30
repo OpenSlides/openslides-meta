@@ -64,7 +64,7 @@ fields:
     restriction_mode: F
     enum: languages
     default: "en"
-    constant: true
+    constant_strict: true
 
   # Configuration (only for the server owner)
   jitsi_domain:

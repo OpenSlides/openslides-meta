@@ -25,5 +25,5 @@ fields:
     equal_fields: meeting_id
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
 

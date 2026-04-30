@@ -11,7 +11,7 @@ fields:
   original_model_id:
     type: string
     restriction_mode: A
-    constant: true
+    constant_strict: true
   model_id:
     type: generic-relation
     to:
@@ -30,7 +30,7 @@ fields:
     to: history_position/entry_ids
     required: true
     restriction_mode: A
-    constant: true
+    constant_strict: true
     reference: history_position
   meeting_id:
     type: relation

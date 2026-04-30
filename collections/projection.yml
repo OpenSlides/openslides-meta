@@ -71,7 +71,7 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     required: true
-    constant: true
+    constant_strict: true
   meeting_id:
     type: relation
     reference: meeting

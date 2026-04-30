@@ -12,7 +12,7 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     required: true
-    constant: true
+    constant_strict: true
   user_id:
     type: relation
     to: user/poll_candidate_ids
