@@ -310,7 +310,16 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null"""
-        return f"tr_i_{table_name}_{column_name}"
+        return f"tr_i_not_null_{table_name}_{column_name}"
+
+    @staticmethod
+    @max_length
+    def get_not_null_delete_trigger_name_base(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """Gets the name of the delete trigger for not null."""
+        return f"tr_d_not_null_{table_name}_{column_name}"
 
     @staticmethod
     @max_length
@@ -319,7 +328,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null"""
-        return f"tr_ud_{table_name}_{column_name}"
+        return f"tr_ud_not_null_{table_name}_{column_name}"
 
     @staticmethod
     @max_length
@@ -329,6 +338,17 @@ class HelperGetNames:
     ) -> str:
         """gets the name of the insert trigger for not null on relation lists"""
         return HelperGetNames.get_not_null_insert_trigger_name_base(
+            table_name, column_name
+        )
+
+    @staticmethod
+    @max_length
+    def get_not_null_rel_list_delete_trigger_name(
+        table_name: str,
+        column_name: str,
+    ) -> str:
+        """Gets the name of the delete trigger for not null on relation lists."""
+        return HelperGetNames.get_not_null_delete_trigger_name_base(
             table_name, column_name
         )
 
@@ -393,9 +413,67 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_log_calculated_id_array_trigger_name_iu(
+        table_name: str,
+        column_name: str,
+        trigger_table: str,
+        update: bool,
+        unique_index: str,
+    ) -> str:
+        """
+        Gets the name of the trigger for logging changes on calculated fields
+        on insert and update operations on the related table.
+        """
+        return f"tr_log_i{'u' if update else ''}_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
+
+    @staticmethod
+    @max_length
+    def get_log_calculated_id_array_trigger_name_ud(
+        table_name: str,
+        column_name: str,
+        trigger_table: str,
+        update: bool,
+        unique_index: str,
+    ) -> str:
+        """
+        Gets the name of the trigger for logging changes on calculated fields
+        on update and delete operations on the related table.
+        """
+        return f"tr_log_{'u' if update else ''}d_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
+
+    @staticmethod
+    def get_log_calculated_id_array_trigger_names(
+        table_name: str,
+        column_name: str,
+        trigger_table: str,
+        update: bool,
+        unique_index: int | None = None,
+    ) -> tuple[str, str]:
+        """Gets the named of the triggers for logging changes on calculated fields"""
+        index_string = f"_{unique_index}" if unique_index is not None else ""
+        return HelperGetNames.get_log_calculated_id_array_trigger_name_iu(
+            table_name, column_name, trigger_table, update, index_string
+        ), HelperGetNames.get_log_calculated_id_array_trigger_name_ud(
+            table_name, column_name, trigger_table, update, index_string
+        )
+
+    @staticmethod
+    @max_length
     def get_timezone_constraint_name(table_name: str, field_name: str) -> str:
         """gets the name of the constraint for timezone fields"""
         return f"timezone_{table_name}_{field_name}"
+
+    @staticmethod
+    @max_length
+    def get_partitioned_sequence_trigger_name(view_name: str, actual_field: str) -> str:
+        """Gets the name of the constraint for sequential number fields."""
+        return f"tr_generate_sequence_{view_name}_{actual_field}"
+
+    @staticmethod
+    @max_length
+    def get_unique_ids_trigger_name(view: str, column: str) -> str:
+        """Gets the name of the constraint for self referencing nm fields."""
+        return f"tr_restrict_unique_ids_pair_{view}_{column}"
 
     @staticmethod
     def get_equal_field_trigger_name_helper(

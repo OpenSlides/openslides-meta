@@ -55,7 +55,6 @@ fields:
     - motion
     - user
     - poll_candidate_list
-    equal_fields: meeting_id
     restriction_mode: A
     constant: true
   meeting_id:
