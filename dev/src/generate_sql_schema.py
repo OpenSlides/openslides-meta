@@ -152,7 +152,6 @@ class GenerateCodeBlocks:
             "log_triggers",
             "equal_fields",
             "unique",
-            "constant",
             "constant_strict",
         }
         collection_meta_handled_attributes = {
@@ -547,11 +546,7 @@ class GenerateCodeBlocks:
             subst["type"] = tmp
         if fdata.get("constant_strict"):
             text["create_trigger_prevent_updates_code"] = (
-                cls.get_trigger_prevent_updates(table_name, fname, False)
-            )
-        elif fdata.get("constant"):
-            text["create_trigger_prevent_updates_code"] = (
-                cls.get_trigger_prevent_updates(table_name, fname, True)
+                cls.get_trigger_prevent_updates(table_name, fname)
             )
         return text, subst
 
@@ -994,9 +989,7 @@ class GenerateCodeBlocks:
             """)
 
     @staticmethod
-    def get_trigger_prevent_updates(
-        collection_name: str, fname: str, allow_new_null: bool
-    ) -> str:
+    def get_trigger_prevent_updates(collection_name: str, fname: str) -> str:
         trigger_name = HelperGetNames.get_constant_field_trigger_name(
             collection_name, fname
         )
@@ -1004,7 +997,7 @@ class GenerateCodeBlocks:
         return dedent(f"""
             -- definition trigger prevent_updates for {collection_name}.{fname}
             CREATE TRIGGER {trigger_name} BEFORE UPDATE OF {fname} ON {table_name}
-            FOR EACH ROW EXECUTE FUNCTION prevent_updates('{collection_name}', '{fname}', {allow_new_null});
+            FOR EACH ROW EXECUTE FUNCTION prevent_updates('{collection_name}', '{fname}');
             """)
 
     @classmethod
@@ -1620,7 +1613,6 @@ class Helper:
         DECLARE
             collection TEXT := TG_ARGV[0];
             constant_column TEXT := TG_ARGV[1];
-            allow_new_null BOOLEAN := TG_ARGV[2];
             old_value TEXT;
             new_value TEXT;
         BEGIN
@@ -1630,10 +1622,6 @@ class Helper:
             END IF;
 
             new_value := hstore(NEW) -> constant_column;
-            IF allow_new_null AND new_value IS NULL THEN
-                RETURN NEW;
-            END IF;
-
             IF old_value IS DISTINCT FROM new_value THEN
                 RAISE EXCEPTION 'Constant value constraint violated for %/%: % can not be updated once set.', collection, NEW.id, constant_column;
             END IF;
