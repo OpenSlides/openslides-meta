@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   message:
@@ -22,5 +22,5 @@ fields:
     to: meeting/projector_message_ids
     restriction_mode: A
     required: true
-    constant_strict: true
+    constant: true
 

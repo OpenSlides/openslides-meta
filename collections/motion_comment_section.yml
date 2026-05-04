@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   name:
@@ -20,7 +20,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
   submitter_can_write:
     type: boolean
     restriction_mode: A
@@ -47,5 +47,5 @@ fields:
     to: meeting/motion_comment_section_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

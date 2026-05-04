@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   name:

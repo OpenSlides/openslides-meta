@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   external_id:
@@ -64,7 +64,7 @@ fields:
     restriction_mode: F
     enum: languages
     default: "en"
-    constant_strict: true
+    constant: true
 
   # Configuration (only for the server owner)
   jitsi_domain:
@@ -1052,7 +1052,7 @@ fields:
     to: committee/meeting_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
   default_meeting_for_committee_id:
     type: relation
     to: committee/default_meeting_id

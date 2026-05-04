@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   weight:
@@ -23,12 +23,12 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     required: true
-    constant_strict: true
+    constant: true
   meeting_id:
     type: relation
     reference: meeting
     to: meeting/motion_submitter_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   name:
@@ -34,6 +34,6 @@ fields:
     required: true
     reference: meeting
     to: meeting/structure_level_ids
-    constant_strict: true
+    constant: true
     restriction_mode: A
 

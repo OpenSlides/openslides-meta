@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   title:
@@ -110,7 +110,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
   content_object_id:
     type: generic-relation
     reference:
@@ -126,7 +126,7 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     required: true
-    constant_strict: true
+    constant: true
   option_ids:
     type: relation-list
     to: option/poll_id
@@ -141,7 +141,7 @@ fields:
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
-    constant_strict: true
+    constant: true
   voted_ids:
     type: relation-list
     to: user/poll_voted_ids
@@ -163,5 +163,5 @@ fields:
     reference: meeting
     restriction_mode: A
     required: true
-    constant_strict: true
+    constant: true
 

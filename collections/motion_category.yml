@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   name:
@@ -28,7 +28,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 
   parent_id:
     type: relation
@@ -52,5 +52,5 @@ fields:
     to: meeting/motion_category_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

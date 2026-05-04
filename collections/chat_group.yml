@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   name:
@@ -38,5 +38,5 @@ fields:
     to: meeting/chat_group_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

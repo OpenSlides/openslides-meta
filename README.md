@@ -69,10 +69,10 @@ Each collection-file has the following format:
       fields the value as to be an id of an existing object.
     - The property `equal_fields` describes fields that must have the same value in
       the instance and the related instance.
-    - The property `constant_strict` describes fields values in which can not be
+    - The property `constant` describes fields values in which can not be
       updated once set (protected by batabase constraint).
-    - The property `constant` describes fields that should be protected from being changed
-      inside of the regular extarnal actions (logic should be defined in the services).
+    - The property `constant_legacy` describes fields that should be protected from being
+      changed inside of the regular extarnal actions (logic should be defined in the services).
 - Restriction Mode:
   The field `restriction_mode` is required for every field. It puts the field into a
   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview

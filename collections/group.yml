@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   external_id:
@@ -149,5 +149,5 @@ fields:
     to: meeting/group_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

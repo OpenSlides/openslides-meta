@@ -152,7 +152,7 @@ class GenerateCodeBlocks:
             "log_triggers",
             "equal_fields",
             "unique",
-            "constant_strict",
+            "constant",
         }
         collection_meta_handled_attributes = {
             "unique_together",
@@ -544,7 +544,7 @@ class GenerateCodeBlocks:
                     {"maxLength": 256, "field_name": fname, "table_name": table_name}
                 )
             subst["type"] = tmp
-        if fdata.get("constant_strict"):
+        if fdata.get("constant"):
             text["create_trigger_prevent_updates_code"] = (
                 cls.get_trigger_prevent_updates(table_name, fname)
             )
@@ -1048,7 +1048,7 @@ class GenerateCodeBlocks:
             else:
                 field_def = InternalHelper.get_models(collection, field)
                 field_name = field
-            if field_def and not field_def.get("constant_strict"):
+            if field_def and not field_def.get("constant"):
                 on_update_fields.append(field_name)
         return HelperGetNames.get_table_name(table_field.table), on_update_fields
 

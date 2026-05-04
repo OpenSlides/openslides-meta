@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   mediafile_id:
@@ -19,7 +19,7 @@ fields:
     to: meeting/meeting_mediafile_ids
     reference: meeting
     required: true
-    constant_strict: true
+    constant: true
     restriction_mode: A
   is_public:
     type: boolean

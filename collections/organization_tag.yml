@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   name:
@@ -28,6 +28,6 @@ fields:
     default: 1
     to: organization/organization_tag_ids
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 

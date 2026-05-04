@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'c51d6f6f3f9e91da98cddcc4ae6fee42'
+-- MODELS_YML_CHECKSUM = 'f34599b1cc3cc0a9d3462c2105cbcdae'
 
 
 -- ENUM definitions
@@ -6296,4 +6296,4 @@ There are 2 errors/warnings
     projection/content: type:JSON is marked as a calculated field and not generated in schema
 */
 
-/*   Missing attribute handling for on_delete, constant, deferred */
+/*   Missing attribute handling for on_delete, constant_legacy, deferred */

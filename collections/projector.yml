@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   name:
@@ -96,7 +96,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 
   current_projection_ids:
     type: relation-list
@@ -196,5 +196,5 @@ fields:
     to: meeting/projector_ids
     restriction_mode: A
     required: true
-    constant_strict: true
+    constant: true
 

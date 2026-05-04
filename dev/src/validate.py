@@ -62,7 +62,7 @@ OPTIONAL_ATTRIBUTES = (
     "required",
     "read_only",
     "constant",
-    "constant_strict",
+    "constant_legacy",
     "unique",
     "sequence_scope",
 )

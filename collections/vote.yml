@@ -2,24 +2,24 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   weight:
     type: decimal(6)
     required: true
     restriction_mode: A
-    constant: true
+    constant_legacy: true
   value:
     type: string
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
   user_token:
     type: string
     required: true
     restriction_mode: B
-    constant_strict: true
+    constant: true
 
   option_id:
     type: relation
@@ -28,7 +28,7 @@ fields:
     equal_fields: meeting_id
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
   user_id:
     type: relation
     to: user/vote_ids
@@ -45,5 +45,5 @@ fields:
     reference: meeting
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

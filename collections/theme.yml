@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   name:
@@ -163,6 +163,6 @@ fields:
     reference: organization
     to: organization/theme_ids
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 

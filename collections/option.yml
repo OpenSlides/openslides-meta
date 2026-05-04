@@ -5,7 +5,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   weight:
@@ -31,13 +31,13 @@ fields:
     reference: poll
     equal_fields: meeting_id
     restriction_mode: A
-    constant_strict: true
+    constant: true
   used_as_global_option_in_poll_id:
     type: relation
     to: poll/global_option_id
     equal_fields: meeting_id
     restriction_mode: A
-    constant_strict: true
+    constant: true
   vote_ids:
     type: relation-list
     to: vote/option_id
@@ -56,12 +56,12 @@ fields:
     - user
     - poll_candidate_list
     restriction_mode: A
-    constant: true
+    constant_legacy: true
   meeting_id:
     type: relation
     to: meeting/option_ids
     reference: meeting
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

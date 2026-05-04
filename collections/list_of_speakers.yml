@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   closed:
@@ -16,7 +16,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
   moderator_notes:
     type: HTMLStrict
     restriction_mode: B
@@ -40,7 +40,7 @@ fields:
     required: true
     equal_fields: meeting_id
     restriction_mode: A
-    constant_strict: true
+    constant: true
   speaker_ids:
     type: relation-list
     to: speaker/list_of_speakers_id
@@ -65,5 +65,5 @@ fields:
     to: meeting/list_of_speakers_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

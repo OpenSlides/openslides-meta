@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   title:
@@ -38,7 +38,7 @@ fields:
     read_only: true
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 
   candidate_ids:
     type: relation-list
@@ -65,7 +65,7 @@ fields:
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
-    constant_strict: true
+    constant: true
   tag_ids:
     type: relation-list
     to: tag/tagged_ids
@@ -88,7 +88,7 @@ fields:
     to: meeting/assignment_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 
   history_entry_ids:
     type: relation-list

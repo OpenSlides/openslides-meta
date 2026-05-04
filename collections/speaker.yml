@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   begin_time:
@@ -44,7 +44,7 @@ fields:
   point_of_order:
     type: boolean
     restriction_mode: A
-    constant: true
+    constant_legacy: true
 
   list_of_speakers_id:
     type: relation
@@ -53,7 +53,7 @@ fields:
     required: true
     equal_fields: meeting_id
     restriction_mode: A
-    constant_strict: true
+    constant: true
   structure_level_list_of_speakers_id:
     type: relation
     equal_fields: meeting_id
@@ -78,5 +78,5 @@ fields:
     to: meeting/speaker_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

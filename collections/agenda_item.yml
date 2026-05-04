@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   item_number:
@@ -64,7 +64,7 @@ fields:
     required: true
     equal_fields: meeting_id
     restriction_mode: A
-    constant_strict: true
+    constant: true
   parent_id:
     type: relation
     reference: agenda_item
@@ -93,5 +93,5 @@ fields:
     to: meeting/agenda_item_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 

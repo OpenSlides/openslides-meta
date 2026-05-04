@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   username:
@@ -210,6 +210,6 @@ fields:
     to: organization/user_ids
     required: true
     restriction_mode: F
-    constant_strict: true
+    constant: true
     default: 1
 

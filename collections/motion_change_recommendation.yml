@@ -2,7 +2,7 @@ fields:
   id:
     type: number
     restriction_mode: A
-    constant_strict: true
+    constant: true
     required: true
 
   rejected:
@@ -50,12 +50,12 @@ fields:
     required: true
     equal_fields: meeting_id
     restriction_mode: A
-    constant_strict: true
+    constant: true
   meeting_id:
     type: relation
     reference: meeting
     to: meeting/motion_change_recommendation_ids
     required: true
     restriction_mode: A
-    constant_strict: true
+    constant: true
 
