@@ -389,7 +389,7 @@ class HelperGetNames:
     @max_length
     def get_constant_field_trigger_name(table_name: str, fname: str) -> str:
         """gets the name of constant constraint"""
-        return f"constant_{table_name}_{fname}"
+        return f"tr_constant_{table_name}_{fname}"
 
     @staticmethod
     @max_length
