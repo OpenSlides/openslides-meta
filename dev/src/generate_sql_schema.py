@@ -1030,30 +1030,32 @@ class GenerateCodeBlocks:
     @classmethod
     def get_equal_field_trigger_config(
         cls, table_field: TableFieldType, fields: list[TableFieldType | str]
-    ) -> tuple[str, bool]:
+    ) -> tuple[str, list[str]]:
         """
         Checks the configuration of the relation and returns:
         - The name of the table that should be used
         - If the field can be updated
         """
-        with_update = False
         collection = table_field.table
+        on_update_fields = []
         for field in fields:
             if isinstance(field, TableFieldType):
                 # Assume that these are always primary
                 field_def = field.field_def
+                field_name = field.column
             elif collection == "meeting" and field == "meeting_id":
                 field_def = None
             else:
                 field_def = InternalHelper.get_models(collection, field)
+                field_name = field
             if field_def and not field_def.get("constant_strict"):
-                with_update = True
-        return HelperGetNames.get_table_name(table_field.table), with_update
+                on_update_fields.append(field_name)
+        return HelperGetNames.get_table_name(table_field.table), on_update_fields
 
     @classmethod
-    def get_event_string(cls, is_update: bool, fields: list[str]) -> str:
-        if is_update:
-            return f"INSERT OR UPDATE OF {', '.join(fields)}"
+    def get_event_string(cls, on_update_fields: list[str]) -> str:
+        if on_update_fields:
+            return f"INSERT OR UPDATE OF {', '.join(on_update_fields)}"
         else:
             return "INSERT"
 
@@ -1068,14 +1070,12 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [own_table_field, equal_field]
             )
-            own_event_str = cls.get_event_string(
-                own_with_update, [own_table_field.column, equal_field]
-            )
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
             if (
                 "reference" in own_table_field.field_def
@@ -1088,7 +1088,7 @@ class GenerateCodeBlocks:
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column
             )
-            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
+            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
             foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, foreign_table, foreign_table_field.column
             )
@@ -1113,17 +1113,15 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [equal_field]
             )
-            own_event_str = cls.get_event_string(own_with_update, [equal_field])
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
-            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
-            intermediate_event_str = cls.get_event_string(
-                True, [own_intermediate_field, foreign_intermediate_field]
-            )
+            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
+            intermediate_event_str = cls.get_event_string([])
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column
             )
@@ -1158,14 +1156,12 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [own_table_field, equal_field]
             )
-            own_event_str = cls.get_event_string(
-                own_with_update, [equal_field, specified_relation_field]
-            )
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, specified_relation_field
@@ -1181,9 +1177,7 @@ class GenerateCodeBlocks:
 
                 """)
             else:
-                foreign_event_str = cls.get_event_string(
-                    foreign_with_update, [equal_field]
-                )
+                foreign_event_str = cls.get_event_string(foreign_on_update_fields)
                 foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                     equal_field, foreign_table, foreign_table_field.column
                 )
@@ -1208,17 +1202,15 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [equal_field]
             )
-            own_event_str = cls.get_event_string(own_with_update, [equal_field])
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
-            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
-            intermediate_event_str = cls.get_event_string(
-                True, [own_intermediate_field, foreign_intermediate_field]
-            )
+            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
+            intermediate_event_str = cls.get_event_string([])
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column, foreign_table
             )
