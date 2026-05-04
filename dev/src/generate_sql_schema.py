@@ -1046,7 +1046,7 @@ class GenerateCodeBlocks:
                 field_def = None
             else:
                 field_def = InternalHelper.get_models(collection, field)
-            if field_def and not field_def.get("constant"):
+            if field_def and not field_def.get("constant_strict"):
                 with_update = True
         return HelperGetNames.get_table_name(table_field.table), with_update
 
