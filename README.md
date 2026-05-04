@@ -72,7 +72,7 @@ Each collection-file has the following format:
     - The property `constant` describes fields values in which can not be
       updated once set (protected by batabase constraint).
     - The property `constant_legacy` describes fields that should be protected from being
-      changed inside of the regular extarnal actions (logic should be defined in the services).
+      changed inside of the regular external actions (logic should be defined in the services).
 - Restriction Mode:
   The field `restriction_mode` is required for every field. It puts the field into a
   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview
