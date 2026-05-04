@@ -996,7 +996,7 @@ class GenerateCodeBlocks:
         table_name = HelperGetNames.get_table_name(collection_name)
         return dedent(f"""
             -- definition trigger prevent_updates for {collection_name}.{fname}
-            CREATE CONSTRAINT TRIGGER {trigger_name} AFTER UPDATE OF {fname} ON {table_name} INITIALLY DEFERRED
+            CREATE TRIGGER {trigger_name} BEFORE UPDATE OF {fname} ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION prevent_updates('{collection_name}', '{fname}');
             """)
 

@@ -4021,377 +4021,377 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_
 -- Create triggers for constant fields
 
 -- definition trigger prevent_updates for action_worker.user_id
-CREATE CONSTRAINT TRIGGER constant_action_worker_user_id AFTER UPDATE OF user_id ON action_worker_t INITIALLY DEFERRED
+CREATE TRIGGER constant_action_worker_user_id BEFORE UPDATE OF user_id ON action_worker_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('action_worker', 'user_id');
 
 
 -- definition trigger prevent_updates for agenda_item.content_object_id
-CREATE CONSTRAINT TRIGGER constant_agenda_item_content_object_id AFTER UPDATE OF content_object_id ON agenda_item_t INITIALLY DEFERRED
+CREATE TRIGGER constant_agenda_item_content_object_id BEFORE UPDATE OF content_object_id ON agenda_item_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('agenda_item', 'content_object_id');
 
 -- definition trigger prevent_updates for agenda_item.meeting_id
-CREATE CONSTRAINT TRIGGER constant_agenda_item_meeting_id AFTER UPDATE OF meeting_id ON agenda_item_t INITIALLY DEFERRED
+CREATE TRIGGER constant_agenda_item_meeting_id BEFORE UPDATE OF meeting_id ON agenda_item_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('agenda_item', 'meeting_id');
 
 
 -- definition trigger prevent_updates for assignment.sequential_number
-CREATE CONSTRAINT TRIGGER constant_assignment_sequential_number AFTER UPDATE OF sequential_number ON assignment_t INITIALLY DEFERRED
+CREATE TRIGGER constant_assignment_sequential_number BEFORE UPDATE OF sequential_number ON assignment_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('assignment', 'sequential_number');
 
 -- definition trigger prevent_updates for assignment.meeting_id
-CREATE CONSTRAINT TRIGGER constant_assignment_meeting_id AFTER UPDATE OF meeting_id ON assignment_t INITIALLY DEFERRED
+CREATE TRIGGER constant_assignment_meeting_id BEFORE UPDATE OF meeting_id ON assignment_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('assignment', 'meeting_id');
 
 
 -- definition trigger prevent_updates for assignment_candidate.assignment_id
-CREATE CONSTRAINT TRIGGER constant_assignment_candidate_assignment_id AFTER UPDATE OF assignment_id ON assignment_candidate_t INITIALLY DEFERRED
+CREATE TRIGGER constant_assignment_candidate_assignment_id BEFORE UPDATE OF assignment_id ON assignment_candidate_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('assignment_candidate', 'assignment_id');
 
 -- definition trigger prevent_updates for assignment_candidate.meeting_id
-CREATE CONSTRAINT TRIGGER constant_assignment_candidate_meeting_id AFTER UPDATE OF meeting_id ON assignment_candidate_t INITIALLY DEFERRED
+CREATE TRIGGER constant_assignment_candidate_meeting_id BEFORE UPDATE OF meeting_id ON assignment_candidate_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('assignment_candidate', 'meeting_id');
 
 
 -- definition trigger prevent_updates for chat_group.meeting_id
-CREATE CONSTRAINT TRIGGER constant_chat_group_meeting_id AFTER UPDATE OF meeting_id ON chat_group_t INITIALLY DEFERRED
+CREATE TRIGGER constant_chat_group_meeting_id BEFORE UPDATE OF meeting_id ON chat_group_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('chat_group', 'meeting_id');
 
 
 -- definition trigger prevent_updates for chat_message.chat_group_id
-CREATE CONSTRAINT TRIGGER constant_chat_message_chat_group_id AFTER UPDATE OF chat_group_id ON chat_message_t INITIALLY DEFERRED
+CREATE TRIGGER constant_chat_message_chat_group_id BEFORE UPDATE OF chat_group_id ON chat_message_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('chat_message', 'chat_group_id');
 
 -- definition trigger prevent_updates for chat_message.meeting_id
-CREATE CONSTRAINT TRIGGER constant_chat_message_meeting_id AFTER UPDATE OF meeting_id ON chat_message_t INITIALLY DEFERRED
+CREATE TRIGGER constant_chat_message_meeting_id BEFORE UPDATE OF meeting_id ON chat_message_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('chat_message', 'meeting_id');
 
 
 -- definition trigger prevent_updates for committee.organization_id
-CREATE CONSTRAINT TRIGGER constant_committee_organization_id AFTER UPDATE OF organization_id ON committee_t INITIALLY DEFERRED
+CREATE TRIGGER constant_committee_organization_id BEFORE UPDATE OF organization_id ON committee_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('committee', 'organization_id');
 
 
 -- definition trigger prevent_updates for gender.organization_id
-CREATE CONSTRAINT TRIGGER constant_gender_organization_id AFTER UPDATE OF organization_id ON gender_t INITIALLY DEFERRED
+CREATE TRIGGER constant_gender_organization_id BEFORE UPDATE OF organization_id ON gender_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('gender', 'organization_id');
 
 
 -- definition trigger prevent_updates for group.meeting_id
-CREATE CONSTRAINT TRIGGER constant_group_meeting_id AFTER UPDATE OF meeting_id ON group_t INITIALLY DEFERRED
+CREATE TRIGGER constant_group_meeting_id BEFORE UPDATE OF meeting_id ON group_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('group', 'meeting_id');
 
 
 -- definition trigger prevent_updates for history_entry.original_model_id
-CREATE CONSTRAINT TRIGGER constant_history_entry_original_model_id AFTER UPDATE OF original_model_id ON history_entry_t INITIALLY DEFERRED
+CREATE TRIGGER constant_history_entry_original_model_id BEFORE UPDATE OF original_model_id ON history_entry_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('history_entry', 'original_model_id');
 
 -- definition trigger prevent_updates for history_entry.position_id
-CREATE CONSTRAINT TRIGGER constant_history_entry_position_id AFTER UPDATE OF position_id ON history_entry_t INITIALLY DEFERRED
+CREATE TRIGGER constant_history_entry_position_id BEFORE UPDATE OF position_id ON history_entry_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('history_entry', 'position_id');
 
 
 -- definition trigger prevent_updates for history_position.original_user_id
-CREATE CONSTRAINT TRIGGER constant_history_position_original_user_id AFTER UPDATE OF original_user_id ON history_position_t INITIALLY DEFERRED
+CREATE TRIGGER constant_history_position_original_user_id BEFORE UPDATE OF original_user_id ON history_position_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('history_position', 'original_user_id');
 
 
 -- definition trigger prevent_updates for list_of_speakers.sequential_number
-CREATE CONSTRAINT TRIGGER constant_list_of_speakers_sequential_number AFTER UPDATE OF sequential_number ON list_of_speakers_t INITIALLY DEFERRED
+CREATE TRIGGER constant_list_of_speakers_sequential_number BEFORE UPDATE OF sequential_number ON list_of_speakers_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('list_of_speakers', 'sequential_number');
 
 -- definition trigger prevent_updates for list_of_speakers.content_object_id
-CREATE CONSTRAINT TRIGGER constant_list_of_speakers_content_object_id AFTER UPDATE OF content_object_id ON list_of_speakers_t INITIALLY DEFERRED
+CREATE TRIGGER constant_list_of_speakers_content_object_id BEFORE UPDATE OF content_object_id ON list_of_speakers_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('list_of_speakers', 'content_object_id');
 
 -- definition trigger prevent_updates for list_of_speakers.meeting_id
-CREATE CONSTRAINT TRIGGER constant_list_of_speakers_meeting_id AFTER UPDATE OF meeting_id ON list_of_speakers_t INITIALLY DEFERRED
+CREATE TRIGGER constant_list_of_speakers_meeting_id BEFORE UPDATE OF meeting_id ON list_of_speakers_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('list_of_speakers', 'meeting_id');
 
 
 -- definition trigger prevent_updates for mediafile.owner_id
-CREATE CONSTRAINT TRIGGER constant_mediafile_owner_id AFTER UPDATE OF owner_id ON mediafile_t INITIALLY DEFERRED
+CREATE TRIGGER constant_mediafile_owner_id BEFORE UPDATE OF owner_id ON mediafile_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('mediafile', 'owner_id');
 
 
 -- definition trigger prevent_updates for meeting.language
-CREATE CONSTRAINT TRIGGER constant_meeting_language AFTER UPDATE OF language ON meeting_t INITIALLY DEFERRED
+CREATE TRIGGER constant_meeting_language BEFORE UPDATE OF language ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting', 'language');
 
 -- definition trigger prevent_updates for meeting.committee_id
-CREATE CONSTRAINT TRIGGER constant_meeting_committee_id AFTER UPDATE OF committee_id ON meeting_t INITIALLY DEFERRED
+CREATE TRIGGER constant_meeting_committee_id BEFORE UPDATE OF committee_id ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting', 'committee_id');
 
 
 -- definition trigger prevent_updates for meeting_mediafile.meeting_id
-CREATE CONSTRAINT TRIGGER constant_meeting_mediafile_meeting_id AFTER UPDATE OF meeting_id ON meeting_mediafile_t INITIALLY DEFERRED
+CREATE TRIGGER constant_meeting_mediafile_meeting_id BEFORE UPDATE OF meeting_id ON meeting_mediafile_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting_mediafile', 'meeting_id');
 
 
 -- definition trigger prevent_updates for meeting_user.user_id
-CREATE CONSTRAINT TRIGGER constant_meeting_user_user_id AFTER UPDATE OF user_id ON meeting_user_t INITIALLY DEFERRED
+CREATE TRIGGER constant_meeting_user_user_id BEFORE UPDATE OF user_id ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting_user', 'user_id');
 
 -- definition trigger prevent_updates for meeting_user.meeting_id
-CREATE CONSTRAINT TRIGGER constant_meeting_user_meeting_id AFTER UPDATE OF meeting_id ON meeting_user_t INITIALLY DEFERRED
+CREATE TRIGGER constant_meeting_user_meeting_id BEFORE UPDATE OF meeting_id ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting_user', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion.sequential_number
-CREATE CONSTRAINT TRIGGER constant_motion_sequential_number AFTER UPDATE OF sequential_number ON motion_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_sequential_number BEFORE UPDATE OF sequential_number ON motion_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion', 'sequential_number');
 
 -- definition trigger prevent_updates for motion.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_meeting_id AFTER UPDATE OF meeting_id ON motion_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_meeting_id BEFORE UPDATE OF meeting_id ON motion_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_block.sequential_number
-CREATE CONSTRAINT TRIGGER constant_motion_block_sequential_number AFTER UPDATE OF sequential_number ON motion_block_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_block_sequential_number BEFORE UPDATE OF sequential_number ON motion_block_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_block', 'sequential_number');
 
 -- definition trigger prevent_updates for motion_block.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_block_meeting_id AFTER UPDATE OF meeting_id ON motion_block_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_block_meeting_id BEFORE UPDATE OF meeting_id ON motion_block_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_block', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_category.sequential_number
-CREATE CONSTRAINT TRIGGER constant_motion_category_sequential_number AFTER UPDATE OF sequential_number ON motion_category_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_category_sequential_number BEFORE UPDATE OF sequential_number ON motion_category_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_category', 'sequential_number');
 
 -- definition trigger prevent_updates for motion_category.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_category_meeting_id AFTER UPDATE OF meeting_id ON motion_category_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_category_meeting_id BEFORE UPDATE OF meeting_id ON motion_category_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_category', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_change_recommendation.motion_id
-CREATE CONSTRAINT TRIGGER constant_motion_change_recommendation_motion_id AFTER UPDATE OF motion_id ON motion_change_recommendation_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_change_recommendation_motion_id BEFORE UPDATE OF motion_id ON motion_change_recommendation_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_change_recommendation', 'motion_id');
 
 -- definition trigger prevent_updates for motion_change_recommendation.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_change_recommendation_meeting_id AFTER UPDATE OF meeting_id ON motion_change_recommendation_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_change_recommendation_meeting_id BEFORE UPDATE OF meeting_id ON motion_change_recommendation_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_change_recommendation', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_comment.motion_id
-CREATE CONSTRAINT TRIGGER constant_motion_comment_motion_id AFTER UPDATE OF motion_id ON motion_comment_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_comment_motion_id BEFORE UPDATE OF motion_id ON motion_comment_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment', 'motion_id');
 
 -- definition trigger prevent_updates for motion_comment.section_id
-CREATE CONSTRAINT TRIGGER constant_motion_comment_section_id AFTER UPDATE OF section_id ON motion_comment_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_comment_section_id BEFORE UPDATE OF section_id ON motion_comment_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment', 'section_id');
 
 -- definition trigger prevent_updates for motion_comment.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_comment_meeting_id AFTER UPDATE OF meeting_id ON motion_comment_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_comment_meeting_id BEFORE UPDATE OF meeting_id ON motion_comment_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_comment_section.sequential_number
-CREATE CONSTRAINT TRIGGER constant_motion_comment_section_sequential_number AFTER UPDATE OF sequential_number ON motion_comment_section_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_comment_section_sequential_number BEFORE UPDATE OF sequential_number ON motion_comment_section_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment_section', 'sequential_number');
 
 -- definition trigger prevent_updates for motion_comment_section.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_comment_section_meeting_id AFTER UPDATE OF meeting_id ON motion_comment_section_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_comment_section_meeting_id BEFORE UPDATE OF meeting_id ON motion_comment_section_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment_section', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_editor.motion_id
-CREATE CONSTRAINT TRIGGER constant_motion_editor_motion_id AFTER UPDATE OF motion_id ON motion_editor_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_editor_motion_id BEFORE UPDATE OF motion_id ON motion_editor_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_editor', 'motion_id');
 
 -- definition trigger prevent_updates for motion_editor.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_editor_meeting_id AFTER UPDATE OF meeting_id ON motion_editor_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_editor_meeting_id BEFORE UPDATE OF meeting_id ON motion_editor_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_editor', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_state.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_state_meeting_id AFTER UPDATE OF meeting_id ON motion_state_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_state_meeting_id BEFORE UPDATE OF meeting_id ON motion_state_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_state', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_submitter.motion_id
-CREATE CONSTRAINT TRIGGER constant_motion_submitter_motion_id AFTER UPDATE OF motion_id ON motion_submitter_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_submitter_motion_id BEFORE UPDATE OF motion_id ON motion_submitter_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_submitter', 'motion_id');
 
 -- definition trigger prevent_updates for motion_submitter.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_submitter_meeting_id AFTER UPDATE OF meeting_id ON motion_submitter_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_submitter_meeting_id BEFORE UPDATE OF meeting_id ON motion_submitter_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_submitter', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_supporter.motion_id
-CREATE CONSTRAINT TRIGGER constant_motion_supporter_motion_id AFTER UPDATE OF motion_id ON motion_supporter_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_supporter_motion_id BEFORE UPDATE OF motion_id ON motion_supporter_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_supporter', 'motion_id');
 
 -- definition trigger prevent_updates for motion_supporter.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_supporter_meeting_id AFTER UPDATE OF meeting_id ON motion_supporter_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_supporter_meeting_id BEFORE UPDATE OF meeting_id ON motion_supporter_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_supporter', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_workflow.sequential_number
-CREATE CONSTRAINT TRIGGER constant_motion_workflow_sequential_number AFTER UPDATE OF sequential_number ON motion_workflow_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_workflow_sequential_number BEFORE UPDATE OF sequential_number ON motion_workflow_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_workflow', 'sequential_number');
 
 -- definition trigger prevent_updates for motion_workflow.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_workflow_meeting_id AFTER UPDATE OF meeting_id ON motion_workflow_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_workflow_meeting_id BEFORE UPDATE OF meeting_id ON motion_workflow_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_workflow', 'meeting_id');
 
 
 -- definition trigger prevent_updates for motion_working_group_speaker.motion_id
-CREATE CONSTRAINT TRIGGER constant_motion_working_group_speaker_motion_id AFTER UPDATE OF motion_id ON motion_working_group_speaker_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_working_group_speaker_motion_id BEFORE UPDATE OF motion_id ON motion_working_group_speaker_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_working_group_speaker', 'motion_id');
 
 -- definition trigger prevent_updates for motion_working_group_speaker.meeting_id
-CREATE CONSTRAINT TRIGGER constant_motion_working_group_speaker_meeting_id AFTER UPDATE OF meeting_id ON motion_working_group_speaker_t INITIALLY DEFERRED
+CREATE TRIGGER constant_motion_working_group_speaker_meeting_id BEFORE UPDATE OF meeting_id ON motion_working_group_speaker_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_working_group_speaker', 'meeting_id');
 
 
 -- definition trigger prevent_updates for option.poll_id
-CREATE CONSTRAINT TRIGGER constant_option_poll_id AFTER UPDATE OF poll_id ON option_t INITIALLY DEFERRED
+CREATE TRIGGER constant_option_poll_id BEFORE UPDATE OF poll_id ON option_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('option', 'poll_id');
 
 -- definition trigger prevent_updates for option.meeting_id
-CREATE CONSTRAINT TRIGGER constant_option_meeting_id AFTER UPDATE OF meeting_id ON option_t INITIALLY DEFERRED
+CREATE TRIGGER constant_option_meeting_id BEFORE UPDATE OF meeting_id ON option_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('option', 'meeting_id');
 
 
 -- definition trigger prevent_updates for organization_tag.organization_id
-CREATE CONSTRAINT TRIGGER constant_organization_tag_organization_id AFTER UPDATE OF organization_id ON organization_tag_t INITIALLY DEFERRED
+CREATE TRIGGER constant_organization_tag_organization_id BEFORE UPDATE OF organization_id ON organization_tag_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('organization_tag', 'organization_id');
 
 
 -- definition trigger prevent_updates for personal_note.meeting_user_id
-CREATE CONSTRAINT TRIGGER constant_personal_note_meeting_user_id AFTER UPDATE OF meeting_user_id ON personal_note_t INITIALLY DEFERRED
+CREATE TRIGGER constant_personal_note_meeting_user_id BEFORE UPDATE OF meeting_user_id ON personal_note_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('personal_note', 'meeting_user_id');
 
 -- definition trigger prevent_updates for personal_note.content_object_id
-CREATE CONSTRAINT TRIGGER constant_personal_note_content_object_id AFTER UPDATE OF content_object_id ON personal_note_t INITIALLY DEFERRED
+CREATE TRIGGER constant_personal_note_content_object_id BEFORE UPDATE OF content_object_id ON personal_note_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('personal_note', 'content_object_id');
 
 -- definition trigger prevent_updates for personal_note.meeting_id
-CREATE CONSTRAINT TRIGGER constant_personal_note_meeting_id AFTER UPDATE OF meeting_id ON personal_note_t INITIALLY DEFERRED
+CREATE TRIGGER constant_personal_note_meeting_id BEFORE UPDATE OF meeting_id ON personal_note_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('personal_note', 'meeting_id');
 
 
 -- definition trigger prevent_updates for point_of_order_category.meeting_id
-CREATE CONSTRAINT TRIGGER constant_point_of_order_category_meeting_id AFTER UPDATE OF meeting_id ON point_of_order_category_t INITIALLY DEFERRED
+CREATE TRIGGER constant_point_of_order_category_meeting_id BEFORE UPDATE OF meeting_id ON point_of_order_category_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('point_of_order_category', 'meeting_id');
 
 
 -- definition trigger prevent_updates for poll.sequential_number
-CREATE CONSTRAINT TRIGGER constant_poll_sequential_number AFTER UPDATE OF sequential_number ON poll_t INITIALLY DEFERRED
+CREATE TRIGGER constant_poll_sequential_number BEFORE UPDATE OF sequential_number ON poll_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'sequential_number');
 
 -- definition trigger prevent_updates for poll.content_object_id
-CREATE CONSTRAINT TRIGGER constant_poll_content_object_id AFTER UPDATE OF content_object_id ON poll_t INITIALLY DEFERRED
+CREATE TRIGGER constant_poll_content_object_id BEFORE UPDATE OF content_object_id ON poll_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'content_object_id');
 
 -- definition trigger prevent_updates for poll.global_option_id
-CREATE CONSTRAINT TRIGGER constant_poll_global_option_id AFTER UPDATE OF global_option_id ON poll_t INITIALLY DEFERRED
+CREATE TRIGGER constant_poll_global_option_id BEFORE UPDATE OF global_option_id ON poll_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'global_option_id');
 
 -- definition trigger prevent_updates for poll.meeting_id
-CREATE CONSTRAINT TRIGGER constant_poll_meeting_id AFTER UPDATE OF meeting_id ON poll_t INITIALLY DEFERRED
+CREATE TRIGGER constant_poll_meeting_id BEFORE UPDATE OF meeting_id ON poll_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'meeting_id');
 
 
 -- definition trigger prevent_updates for poll_candidate.poll_candidate_list_id
-CREATE CONSTRAINT TRIGGER constant_poll_candidate_poll_candidate_list_id AFTER UPDATE OF poll_candidate_list_id ON poll_candidate_t INITIALLY DEFERRED
+CREATE TRIGGER constant_poll_candidate_poll_candidate_list_id BEFORE UPDATE OF poll_candidate_list_id ON poll_candidate_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_candidate', 'poll_candidate_list_id');
 
 -- definition trigger prevent_updates for poll_candidate.meeting_id
-CREATE CONSTRAINT TRIGGER constant_poll_candidate_meeting_id AFTER UPDATE OF meeting_id ON poll_candidate_t INITIALLY DEFERRED
+CREATE TRIGGER constant_poll_candidate_meeting_id BEFORE UPDATE OF meeting_id ON poll_candidate_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_candidate', 'meeting_id');
 
 
 -- definition trigger prevent_updates for poll_candidate_list.meeting_id
-CREATE CONSTRAINT TRIGGER constant_poll_candidate_list_meeting_id AFTER UPDATE OF meeting_id ON poll_candidate_list_t INITIALLY DEFERRED
+CREATE TRIGGER constant_poll_candidate_list_meeting_id BEFORE UPDATE OF meeting_id ON poll_candidate_list_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_candidate_list', 'meeting_id');
 
 
 -- definition trigger prevent_updates for projection.content_object_id
-CREATE CONSTRAINT TRIGGER constant_projection_content_object_id AFTER UPDATE OF content_object_id ON projection_t INITIALLY DEFERRED
+CREATE TRIGGER constant_projection_content_object_id BEFORE UPDATE OF content_object_id ON projection_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('projection', 'content_object_id');
 
 -- definition trigger prevent_updates for projection.meeting_id
-CREATE CONSTRAINT TRIGGER constant_projection_meeting_id AFTER UPDATE OF meeting_id ON projection_t INITIALLY DEFERRED
+CREATE TRIGGER constant_projection_meeting_id BEFORE UPDATE OF meeting_id ON projection_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('projection', 'meeting_id');
 
 
 -- definition trigger prevent_updates for projector.sequential_number
-CREATE CONSTRAINT TRIGGER constant_projector_sequential_number AFTER UPDATE OF sequential_number ON projector_t INITIALLY DEFERRED
+CREATE TRIGGER constant_projector_sequential_number BEFORE UPDATE OF sequential_number ON projector_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('projector', 'sequential_number');
 
 -- definition trigger prevent_updates for projector.meeting_id
-CREATE CONSTRAINT TRIGGER constant_projector_meeting_id AFTER UPDATE OF meeting_id ON projector_t INITIALLY DEFERRED
+CREATE TRIGGER constant_projector_meeting_id BEFORE UPDATE OF meeting_id ON projector_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('projector', 'meeting_id');
 
 
 -- definition trigger prevent_updates for projector_countdown.meeting_id
-CREATE CONSTRAINT TRIGGER constant_projector_countdown_meeting_id AFTER UPDATE OF meeting_id ON projector_countdown_t INITIALLY DEFERRED
+CREATE TRIGGER constant_projector_countdown_meeting_id BEFORE UPDATE OF meeting_id ON projector_countdown_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('projector_countdown', 'meeting_id');
 
 
 -- definition trigger prevent_updates for projector_message.meeting_id
-CREATE CONSTRAINT TRIGGER constant_projector_message_meeting_id AFTER UPDATE OF meeting_id ON projector_message_t INITIALLY DEFERRED
+CREATE TRIGGER constant_projector_message_meeting_id BEFORE UPDATE OF meeting_id ON projector_message_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('projector_message', 'meeting_id');
 
 
 -- definition trigger prevent_updates for speaker.list_of_speakers_id
-CREATE CONSTRAINT TRIGGER constant_speaker_list_of_speakers_id AFTER UPDATE OF list_of_speakers_id ON speaker_t INITIALLY DEFERRED
+CREATE TRIGGER constant_speaker_list_of_speakers_id BEFORE UPDATE OF list_of_speakers_id ON speaker_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('speaker', 'list_of_speakers_id');
 
 -- definition trigger prevent_updates for speaker.meeting_id
-CREATE CONSTRAINT TRIGGER constant_speaker_meeting_id AFTER UPDATE OF meeting_id ON speaker_t INITIALLY DEFERRED
+CREATE TRIGGER constant_speaker_meeting_id BEFORE UPDATE OF meeting_id ON speaker_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('speaker', 'meeting_id');
 
 
 -- definition trigger prevent_updates for structure_level.meeting_id
-CREATE CONSTRAINT TRIGGER constant_structure_level_meeting_id AFTER UPDATE OF meeting_id ON structure_level_t INITIALLY DEFERRED
+CREATE TRIGGER constant_structure_level_meeting_id BEFORE UPDATE OF meeting_id ON structure_level_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('structure_level', 'meeting_id');
 
 
 -- definition trigger prevent_updates for structure_level_list_of_speakers.meeting_id
-CREATE CONSTRAINT TRIGGER constant_structure_level_list_of_speakers_meeting_id AFTER UPDATE OF meeting_id ON structure_level_list_of_speakers_t INITIALLY DEFERRED
+CREATE TRIGGER constant_structure_level_list_of_speakers_meeting_id BEFORE UPDATE OF meeting_id ON structure_level_list_of_speakers_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('structure_level_list_of_speakers', 'meeting_id');
 
 
 -- definition trigger prevent_updates for tag.meeting_id
-CREATE CONSTRAINT TRIGGER constant_tag_meeting_id AFTER UPDATE OF meeting_id ON tag_t INITIALLY DEFERRED
+CREATE TRIGGER constant_tag_meeting_id BEFORE UPDATE OF meeting_id ON tag_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('tag', 'meeting_id');
 
 
 -- definition trigger prevent_updates for theme.organization_id
-CREATE CONSTRAINT TRIGGER constant_theme_organization_id AFTER UPDATE OF organization_id ON theme_t INITIALLY DEFERRED
+CREATE TRIGGER constant_theme_organization_id BEFORE UPDATE OF organization_id ON theme_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('theme', 'organization_id');
 
 
 -- definition trigger prevent_updates for topic.sequential_number
-CREATE CONSTRAINT TRIGGER constant_topic_sequential_number AFTER UPDATE OF sequential_number ON topic_t INITIALLY DEFERRED
+CREATE TRIGGER constant_topic_sequential_number BEFORE UPDATE OF sequential_number ON topic_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('topic', 'sequential_number');
 
 -- definition trigger prevent_updates for topic.meeting_id
-CREATE CONSTRAINT TRIGGER constant_topic_meeting_id AFTER UPDATE OF meeting_id ON topic_t INITIALLY DEFERRED
+CREATE TRIGGER constant_topic_meeting_id BEFORE UPDATE OF meeting_id ON topic_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('topic', 'meeting_id');
 
 
 -- definition trigger prevent_updates for user.organization_id
-CREATE CONSTRAINT TRIGGER constant_user_organization_id AFTER UPDATE OF organization_id ON user_t INITIALLY DEFERRED
+CREATE TRIGGER constant_user_organization_id BEFORE UPDATE OF organization_id ON user_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('user', 'organization_id');
 
 
 -- definition trigger prevent_updates for vote.value
-CREATE CONSTRAINT TRIGGER constant_vote_value AFTER UPDATE OF value ON vote_t INITIALLY DEFERRED
+CREATE TRIGGER constant_vote_value BEFORE UPDATE OF value ON vote_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'value');
 
 -- definition trigger prevent_updates for vote.user_token
-CREATE CONSTRAINT TRIGGER constant_vote_user_token AFTER UPDATE OF user_token ON vote_t INITIALLY DEFERRED
+CREATE TRIGGER constant_vote_user_token BEFORE UPDATE OF user_token ON vote_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'user_token');
 
 -- definition trigger prevent_updates for vote.option_id
-CREATE CONSTRAINT TRIGGER constant_vote_option_id AFTER UPDATE OF option_id ON vote_t INITIALLY DEFERRED
+CREATE TRIGGER constant_vote_option_id BEFORE UPDATE OF option_id ON vote_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'option_id');
 
 -- definition trigger prevent_updates for vote.meeting_id
-CREATE CONSTRAINT TRIGGER constant_vote_meeting_id AFTER UPDATE OF meeting_id ON vote_t INITIALLY DEFERRED
+CREATE TRIGGER constant_vote_meeting_id BEFORE UPDATE OF meeting_id ON vote_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'meeting_id');
 
 
