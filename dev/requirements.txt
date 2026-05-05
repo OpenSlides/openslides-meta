@@ -10,7 +10,7 @@ pyyaml==6.0.3
 simplejson==4.0.1
 debugpy==1.8.20
 requests==2.33.1
-psycopg[binary]==3.3.3
+psycopg[binary]==3.3.4
 python-sql==1.8.1
 
 # typing
