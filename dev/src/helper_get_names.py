@@ -387,6 +387,12 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_constant_field_trigger_name(table_name: str, fname: str) -> str:
+        """gets the name of constant constraint"""
+        return f"tr_constant_{table_name}_{fname}"
+
+    @staticmethod
+    @max_length
     def get_notify_trigger_name(table_name: str) -> str:
         """gets the name of the trigger for logging changes on models"""
         return f"tr_log_{table_name}"

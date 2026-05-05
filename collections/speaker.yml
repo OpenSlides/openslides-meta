@@ -44,7 +44,7 @@ fields:
   point_of_order:
     type: boolean
     restriction_mode: A
-    constant: true
+    constant_legacy: true
 
   list_of_speakers_id:
     type: relation

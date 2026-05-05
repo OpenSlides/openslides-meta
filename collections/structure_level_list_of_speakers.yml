@@ -51,5 +51,6 @@ fields:
     reference: meeting
     to: meeting/structure_level_list_of_speakers_ids
     required: true
+    constant: true
     restriction_mode: A
 

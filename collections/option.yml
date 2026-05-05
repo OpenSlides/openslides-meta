@@ -37,7 +37,7 @@ fields:
     to: poll/global_option_id
     equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_legacy: true
   vote_ids:
     type: relation-list
     to: vote/option_id
@@ -56,7 +56,7 @@ fields:
     - user
     - poll_candidate_list
     restriction_mode: A
-    constant: true
+    constant_legacy: true
   meeting_id:
     type: relation
     to: meeting/option_ids
