@@ -1605,15 +1605,9 @@ class Helper:
         DECLARE
             collection TEXT := TG_ARGV[0];
             constant_column TEXT := TG_ARGV[1];
-            old_value TEXT;
-            new_value TEXT;
+            old_value TEXT := hstore(OLD) -> constant_column;
+            new_value TEXT := hstore(NEW) -> constant_column;
         BEGIN
-            old_value := hstore(OLD) -> constant_column;
-            IF old_value IS NULL THEN
-                RETURN NEW;
-            END IF;
-
-            new_value := hstore(NEW) -> constant_column;
             IF old_value IS DISTINCT FROM new_value THEN
                 RAISE EXCEPTION 'Constant value constraint violated for %/%: % can not be updated once set.', collection, NEW.id, constant_column;
             END IF;

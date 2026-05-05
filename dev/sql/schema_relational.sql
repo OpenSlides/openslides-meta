@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'f34599b1cc3cc0a9d3462c2105cbcdae'
+-- MODELS_YML_CHECKSUM = 'd9e38d61c6f4557dbfda3a3daa39848a'
 
 
 -- ENUM definitions
@@ -421,15 +421,9 @@ CREATE OR REPLACE FUNCTION prevent_updates() RETURNS trigger AS $constant_field_
 DECLARE
     collection TEXT := TG_ARGV[0];
     constant_column TEXT := TG_ARGV[1];
-    old_value TEXT;
-    new_value TEXT;
+    old_value TEXT := hstore(OLD) -> constant_column;
+    new_value TEXT := hstore(NEW) -> constant_column;
 BEGIN
-    old_value := hstore(OLD) -> constant_column;
-    IF old_value IS NULL THEN
-        RETURN NEW;
-    END IF;
-
-    new_value := hstore(NEW) -> constant_column;
     IF old_value IS DISTINCT FROM new_value THEN
         RAISE EXCEPTION 'Constant value constraint violated for %/%: % can not be updated once set.', collection, NEW.id, constant_column;
     END IF;
@@ -4284,10 +4278,6 @@ FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'sequential_number');
 CREATE TRIGGER tr_constant_poll_content_object_id BEFORE UPDATE OF content_object_id ON poll_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'content_object_id');
 
--- definition trigger prevent_updates for poll.global_option_id
-CREATE TRIGGER tr_constant_poll_global_option_id BEFORE UPDATE OF global_option_id ON poll_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'global_option_id');
-
 -- definition trigger prevent_updates for poll.meeting_id
 CREATE TRIGGER tr_constant_poll_meeting_id BEFORE UPDATE OF meeting_id ON poll_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'meeting_id');
@@ -5672,7 +5662,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_topic_t_poll_ids AFTER INSERT ON t
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_global_option_id AFTER INSERT ON poll_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_global_option_id AFTER INSERT OR UPDATE OF global_option_id ON poll_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'option', 'global_option_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_used_as_global_option_in_poll_id AFTER INSERT ON option_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'option', 'global_option_id', 'meeting_id', TRUE);
