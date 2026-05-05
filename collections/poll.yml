@@ -94,7 +94,6 @@ fields:
     to: ballot/poll_id
     reference: ballot
     on_delete: CASCADE
-    equal_fields: meeting_id
     restriction_mode: A
   voted_ids:
     type: relation-list

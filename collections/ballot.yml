@@ -17,18 +17,10 @@ fields:
     type: text
     restriction_mode: B
     constant: true
-  meeting_id:
-    type: relation
-    reference: meeting
-    to: meeting/ballot_ids
-    restriction_mode: A
-    required: true
-    constant: true
   poll_id:
     type: relation
     reference: poll
     to: poll/ballot_ids
-    equal_fields: meeting_id
     required: true
     restriction_mode: A
     constant: true
