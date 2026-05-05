@@ -903,12 +903,6 @@ fields:
     reference: poll
     on_delete: CASCADE
     restriction_mode: B
-  ballot_ids:
-    type: relation-list
-    to: ballot/meeting_id
-    reference: ballot
-    on_delete: CASCADE
-    restriction_mode: B
   assignment_ids:
     type: relation-list
     to: assignment/meeting_id
