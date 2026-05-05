@@ -41,6 +41,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     create_trigger_1_1_relation_not_null: str
     create_trigger_1_n_relation_not_null: str
     create_trigger_n_m_relation_not_null: str
+    create_trigger_prevent_updates_code: str
     create_trigger_unique_ids_pair_code: str
     create_trigger_equal_fields_code: str
     create_trigger_notify: str
@@ -103,6 +104,7 @@ class GenerateCodeBlocks:
         str,
         str,
         str,
+        str,
         list[str],
     ]:
         """
@@ -122,6 +124,7 @@ class GenerateCodeBlocks:
           create_trigger_1_1_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_1_relation
           create_trigger_1_n_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_n
           create_trigger_n_m_relation_not_null_code: Definitions of triggers calling check_not_null_for_n_m
+          create_trigger_prevent_updates_code: Definitions of triggers calling prevent_updates check
           create_trigger_unique_ids_pair_code: Definitions of triggers calling check_unique_ids_pair
           create_trigger_equal_fields_code: Definitions of triggers checking equal_fields
           create_trigger_notify_code: Definitions of triggers calling notify_modified_models
@@ -149,6 +152,7 @@ class GenerateCodeBlocks:
             "log_triggers",
             "equal_fields",
             "unique",
+            "constant",
         }
         collection_meta_handled_attributes = {
             "unique_together",
@@ -162,6 +166,7 @@ class GenerateCodeBlocks:
         create_trigger_1_1_relation_not_null_code: str = ""
         create_trigger_1_n_relation_not_null_code: str = ""
         create_trigger_n_m_relation_not_null_code: str = ""
+        create_trigger_prevent_updates_code: str = ""
         create_trigger_unique_ids_pair_code: str = ""
         create_trigger_equal_fields_code: str = ""
         create_trigger_notify_code: str = ""
@@ -259,6 +264,8 @@ class GenerateCodeBlocks:
                 create_trigger_1_n_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_n_m_relation_not_null"]:
                 create_trigger_n_m_relation_not_null_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_prevent_updates_code"]:
+                create_trigger_prevent_updates_code += code + "\n"
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
                 create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["create_trigger_equal_fields_code"]:
@@ -294,6 +301,7 @@ class GenerateCodeBlocks:
             create_trigger_1_1_relation_not_null_code,
             create_trigger_1_n_relation_not_null_code,
             create_trigger_n_m_relation_not_null_code,
+            create_trigger_prevent_updates_code,
             create_trigger_unique_ids_pair_code,
             create_trigger_equal_fields_code,
             create_trigger_notify_code,
@@ -536,6 +544,10 @@ class GenerateCodeBlocks:
                     {"maxLength": 256, "field_name": fname, "table_name": table_name}
                 )
             subst["type"] = tmp
+        if fdata.get("constant"):
+            text["create_trigger_prevent_updates_code"] = (
+                cls.get_trigger_prevent_updates(table_name, fname)
+            )
         return text, subst
 
     @classmethod
@@ -976,6 +988,18 @@ class GenerateCodeBlocks:
 
             """)
 
+    @staticmethod
+    def get_trigger_prevent_updates(collection_name: str, fname: str) -> str:
+        trigger_name = HelperGetNames.get_constant_field_trigger_name(
+            collection_name, fname
+        )
+        table_name = HelperGetNames.get_table_name(collection_name)
+        return dedent(f"""
+            -- definition trigger prevent_updates for {collection_name}.{fname}
+            CREATE TRIGGER {trigger_name} BEFORE UPDATE OF {fname} ON {table_name}
+            FOR EACH ROW EXECUTE FUNCTION prevent_updates('{collection_name}', '{fname}');
+            """)
+
     @classmethod
     def get_equal_fields(
         cls,
@@ -1006,30 +1030,32 @@ class GenerateCodeBlocks:
     @classmethod
     def get_equal_field_trigger_config(
         cls, table_field: TableFieldType, fields: list[TableFieldType | str]
-    ) -> tuple[str, bool]:
+    ) -> tuple[str, list[str]]:
         """
         Checks the configuration of the relation and returns:
         - The name of the table that should be used
         - If the field can be updated
         """
-        with_update = False
         collection = table_field.table
+        on_update_fields = []
         for field in fields:
             if isinstance(field, TableFieldType):
                 # Assume that these are always primary
                 field_def = field.field_def
+                field_name = field.column
             elif collection == "meeting" and field == "meeting_id":
                 field_def = None
             else:
                 field_def = InternalHelper.get_models(collection, field)
+                field_name = field
             if field_def and not field_def.get("constant"):
-                with_update = True
-        return HelperGetNames.get_table_name(table_field.table), with_update
+                on_update_fields.append(field_name)
+        return HelperGetNames.get_table_name(table_field.table), on_update_fields
 
     @classmethod
-    def get_event_string(cls, is_update: bool, fields: list[str]) -> str:
-        if is_update:
-            return f"INSERT OR UPDATE OF {', '.join(fields)}"
+    def get_event_string(cls, on_update_fields: list[str]) -> str:
+        if on_update_fields:
+            return f"INSERT OR UPDATE OF {', '.join(on_update_fields)}"
         else:
             return "INSERT"
 
@@ -1044,14 +1070,12 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [own_table_field, equal_field]
             )
-            own_event_str = cls.get_event_string(
-                own_with_update, [own_table_field.column, equal_field]
-            )
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
             if (
                 "reference" in own_table_field.field_def
@@ -1064,7 +1088,7 @@ class GenerateCodeBlocks:
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column
             )
-            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
+            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
             foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, foreign_table, foreign_table_field.column
             )
@@ -1089,17 +1113,15 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [equal_field]
             )
-            own_event_str = cls.get_event_string(own_with_update, [equal_field])
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
-            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
-            intermediate_event_str = cls.get_event_string(
-                True, [own_intermediate_field, foreign_intermediate_field]
-            )
+            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
+            intermediate_event_str = cls.get_event_string([])
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column
             )
@@ -1134,14 +1156,12 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [own_table_field, equal_field]
             )
-            own_event_str = cls.get_event_string(
-                own_with_update, [equal_field, specified_relation_field]
-            )
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, specified_relation_field
@@ -1157,9 +1177,7 @@ class GenerateCodeBlocks:
 
                 """)
             else:
-                foreign_event_str = cls.get_event_string(
-                    foreign_with_update, [equal_field]
-                )
+                foreign_event_str = cls.get_event_string(foreign_on_update_fields)
                 foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                     equal_field, foreign_table, foreign_table_field.column
                 )
@@ -1184,17 +1202,15 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [equal_field]
             )
-            own_event_str = cls.get_event_string(own_with_update, [equal_field])
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
-            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
-            intermediate_event_str = cls.get_event_string(
-                True, [own_intermediate_field, foreign_intermediate_field]
-            )
+            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
+            intermediate_event_str = cls.get_event_string([])
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column, foreign_table
             )
@@ -1584,6 +1600,20 @@ class Helper:
             RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
         END;
         $read_only_trigger$ LANGUAGE plpgsql;
+
+        CREATE OR REPLACE FUNCTION prevent_updates() RETURNS trigger AS $constant_field_trigger$
+        DECLARE
+            collection TEXT := TG_ARGV[0];
+            constant_column TEXT := TG_ARGV[1];
+            old_value TEXT := hstore(OLD) -> constant_column;
+            new_value TEXT := hstore(NEW) -> constant_column;
+        BEGIN
+            IF old_value IS DISTINCT FROM new_value THEN
+                RAISE EXCEPTION 'Constant value constraint violated for %/%: % can not be updated.', collection, NEW.id, constant_column;
+            END IF;
+            RETURN NEW;
+        END;
+        $constant_field_trigger$ LANGUAGE plpgsql;
 
         CREATE OR REPLACE FUNCTION raise_equality_exception_conditionally(check_column TEXT, ref_column TEXT, own_collection TEXT, own_id INTEGER, own_equal_val TEXT, foreign_collection TEXT, foreign_id INTEGER, foreign_equal_val TEXT)
         RETURNS void AS $equality_exception$
@@ -2823,6 +2853,7 @@ def main() -> None:
         create_trigger_1_1_relation_not_null_code,
         create_trigger_1_n_relation_not_null_code,
         create_trigger_n_m_relation_not_null_code,
+        create_trigger_prevent_updates_code,
         create_trigger_unique_ids_pair_code,
         create_trigger_equal_fields_code,
         create_trigger_notify_code,
@@ -2858,6 +2889,8 @@ def main() -> None:
             "\n\n-- Create triggers checking foreign_ids not null for n:m relationships\n"
         )
         dest.write(create_trigger_n_m_relation_not_null_code)
+        dest.write("\n\n-- Create triggers for constant fields\n")
+        dest.write(create_trigger_prevent_updates_code)
         dest.write(
             "\n\n-- Create triggers preventing mirrored duplicates in fields referencing themselves\n"
         )

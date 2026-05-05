@@ -28,5 +28,6 @@ fields:
     default: 1
     to: organization/organization_tag_ids
     restriction_mode: A
+    constant: true
     required: true
 

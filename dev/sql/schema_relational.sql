@@ -1,7 +1,11 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
+<<<<<<< HEAD
 -- MODELS_YML_CHECKSUM = 'c68769421c4b9dab5d0cc2dbbbe2cb6d'
+=======
+-- MODELS_YML_CHECKSUM = 'd9e38d61c6f4557dbfda3a3daa39848a'
+>>>>>>> 2ee6efe (Add prevent_updates trigger (#489))
 
 
 -- ENUM definitions
@@ -416,6 +420,20 @@ BEGIN
     RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
 END;
 $read_only_trigger$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION prevent_updates() RETURNS trigger AS $constant_field_trigger$
+DECLARE
+    collection TEXT := TG_ARGV[0];
+    constant_column TEXT := TG_ARGV[1];
+    old_value TEXT := hstore(OLD) -> constant_column;
+    new_value TEXT := hstore(NEW) -> constant_column;
+BEGIN
+    IF old_value IS DISTINCT FROM new_value THEN
+        RAISE EXCEPTION 'Constant value constraint violated for %/%: % can not be updated.', collection, NEW.id, constant_column;
+    END IF;
+    RETURN NEW;
+END;
+$constant_field_trigger$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION raise_equality_exception_conditionally(check_column TEXT, ref_column TEXT, own_collection TEXT, own_id INTEGER, own_equal_val TEXT, foreign_collection TEXT, foreign_id INTEGER, foreign_equal_val TEXT)
 RETURNS void AS $equality_exception$
@@ -3997,6 +4015,380 @@ FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('nm_group_meeting_user_ids_
 
 
 
+-- Create triggers for constant fields
+
+-- definition trigger prevent_updates for action_worker.user_id
+CREATE TRIGGER tr_constant_action_worker_user_id BEFORE UPDATE OF user_id ON action_worker_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('action_worker', 'user_id');
+
+
+-- definition trigger prevent_updates for agenda_item.content_object_id
+CREATE TRIGGER tr_constant_agenda_item_content_object_id BEFORE UPDATE OF content_object_id ON agenda_item_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('agenda_item', 'content_object_id');
+
+-- definition trigger prevent_updates for agenda_item.meeting_id
+CREATE TRIGGER tr_constant_agenda_item_meeting_id BEFORE UPDATE OF meeting_id ON agenda_item_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('agenda_item', 'meeting_id');
+
+
+-- definition trigger prevent_updates for assignment.sequential_number
+CREATE TRIGGER tr_constant_assignment_sequential_number BEFORE UPDATE OF sequential_number ON assignment_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('assignment', 'sequential_number');
+
+-- definition trigger prevent_updates for assignment.meeting_id
+CREATE TRIGGER tr_constant_assignment_meeting_id BEFORE UPDATE OF meeting_id ON assignment_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('assignment', 'meeting_id');
+
+
+-- definition trigger prevent_updates for assignment_candidate.assignment_id
+CREATE TRIGGER tr_constant_assignment_candidate_assignment_id BEFORE UPDATE OF assignment_id ON assignment_candidate_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('assignment_candidate', 'assignment_id');
+
+-- definition trigger prevent_updates for assignment_candidate.meeting_id
+CREATE TRIGGER tr_constant_assignment_candidate_meeting_id BEFORE UPDATE OF meeting_id ON assignment_candidate_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('assignment_candidate', 'meeting_id');
+
+
+-- definition trigger prevent_updates for chat_group.meeting_id
+CREATE TRIGGER tr_constant_chat_group_meeting_id BEFORE UPDATE OF meeting_id ON chat_group_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('chat_group', 'meeting_id');
+
+
+-- definition trigger prevent_updates for chat_message.chat_group_id
+CREATE TRIGGER tr_constant_chat_message_chat_group_id BEFORE UPDATE OF chat_group_id ON chat_message_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('chat_message', 'chat_group_id');
+
+-- definition trigger prevent_updates for chat_message.meeting_id
+CREATE TRIGGER tr_constant_chat_message_meeting_id BEFORE UPDATE OF meeting_id ON chat_message_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('chat_message', 'meeting_id');
+
+
+-- definition trigger prevent_updates for committee.organization_id
+CREATE TRIGGER tr_constant_committee_organization_id BEFORE UPDATE OF organization_id ON committee_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('committee', 'organization_id');
+
+
+-- definition trigger prevent_updates for gender.organization_id
+CREATE TRIGGER tr_constant_gender_organization_id BEFORE UPDATE OF organization_id ON gender_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('gender', 'organization_id');
+
+
+-- definition trigger prevent_updates for group.meeting_id
+CREATE TRIGGER tr_constant_group_meeting_id BEFORE UPDATE OF meeting_id ON group_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('group', 'meeting_id');
+
+
+-- definition trigger prevent_updates for history_entry.original_model_id
+CREATE TRIGGER tr_constant_history_entry_original_model_id BEFORE UPDATE OF original_model_id ON history_entry_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('history_entry', 'original_model_id');
+
+-- definition trigger prevent_updates for history_entry.position_id
+CREATE TRIGGER tr_constant_history_entry_position_id BEFORE UPDATE OF position_id ON history_entry_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('history_entry', 'position_id');
+
+
+-- definition trigger prevent_updates for history_position.original_user_id
+CREATE TRIGGER tr_constant_history_position_original_user_id BEFORE UPDATE OF original_user_id ON history_position_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('history_position', 'original_user_id');
+
+
+-- definition trigger prevent_updates for list_of_speakers.sequential_number
+CREATE TRIGGER tr_constant_list_of_speakers_sequential_number BEFORE UPDATE OF sequential_number ON list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('list_of_speakers', 'sequential_number');
+
+-- definition trigger prevent_updates for list_of_speakers.content_object_id
+CREATE TRIGGER tr_constant_list_of_speakers_content_object_id BEFORE UPDATE OF content_object_id ON list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('list_of_speakers', 'content_object_id');
+
+-- definition trigger prevent_updates for list_of_speakers.meeting_id
+CREATE TRIGGER tr_constant_list_of_speakers_meeting_id BEFORE UPDATE OF meeting_id ON list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('list_of_speakers', 'meeting_id');
+
+
+-- definition trigger prevent_updates for mediafile.owner_id
+CREATE TRIGGER tr_constant_mediafile_owner_id BEFORE UPDATE OF owner_id ON mediafile_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('mediafile', 'owner_id');
+
+
+-- definition trigger prevent_updates for meeting.language
+CREATE TRIGGER tr_constant_meeting_language BEFORE UPDATE OF language ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting', 'language');
+
+-- definition trigger prevent_updates for meeting.committee_id
+CREATE TRIGGER tr_constant_meeting_committee_id BEFORE UPDATE OF committee_id ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting', 'committee_id');
+
+
+-- definition trigger prevent_updates for meeting_mediafile.meeting_id
+CREATE TRIGGER tr_constant_meeting_mediafile_meeting_id BEFORE UPDATE OF meeting_id ON meeting_mediafile_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting_mediafile', 'meeting_id');
+
+
+-- definition trigger prevent_updates for meeting_user.user_id
+CREATE TRIGGER tr_constant_meeting_user_user_id BEFORE UPDATE OF user_id ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting_user', 'user_id');
+
+-- definition trigger prevent_updates for meeting_user.meeting_id
+CREATE TRIGGER tr_constant_meeting_user_meeting_id BEFORE UPDATE OF meeting_id ON meeting_user_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting_user', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion.sequential_number
+CREATE TRIGGER tr_constant_motion_sequential_number BEFORE UPDATE OF sequential_number ON motion_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion', 'sequential_number');
+
+-- definition trigger prevent_updates for motion.meeting_id
+CREATE TRIGGER tr_constant_motion_meeting_id BEFORE UPDATE OF meeting_id ON motion_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_block.sequential_number
+CREATE TRIGGER tr_constant_motion_block_sequential_number BEFORE UPDATE OF sequential_number ON motion_block_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_block', 'sequential_number');
+
+-- definition trigger prevent_updates for motion_block.meeting_id
+CREATE TRIGGER tr_constant_motion_block_meeting_id BEFORE UPDATE OF meeting_id ON motion_block_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_block', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_category.sequential_number
+CREATE TRIGGER tr_constant_motion_category_sequential_number BEFORE UPDATE OF sequential_number ON motion_category_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_category', 'sequential_number');
+
+-- definition trigger prevent_updates for motion_category.meeting_id
+CREATE TRIGGER tr_constant_motion_category_meeting_id BEFORE UPDATE OF meeting_id ON motion_category_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_category', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_change_recommendation.motion_id
+CREATE TRIGGER tr_constant_motion_change_recommendation_motion_id BEFORE UPDATE OF motion_id ON motion_change_recommendation_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_change_recommendation', 'motion_id');
+
+-- definition trigger prevent_updates for motion_change_recommendation.meeting_id
+CREATE TRIGGER tr_constant_motion_change_recommendation_meeting_id BEFORE UPDATE OF meeting_id ON motion_change_recommendation_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_change_recommendation', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_comment.motion_id
+CREATE TRIGGER tr_constant_motion_comment_motion_id BEFORE UPDATE OF motion_id ON motion_comment_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment', 'motion_id');
+
+-- definition trigger prevent_updates for motion_comment.section_id
+CREATE TRIGGER tr_constant_motion_comment_section_id BEFORE UPDATE OF section_id ON motion_comment_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment', 'section_id');
+
+-- definition trigger prevent_updates for motion_comment.meeting_id
+CREATE TRIGGER tr_constant_motion_comment_meeting_id BEFORE UPDATE OF meeting_id ON motion_comment_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_comment_section.sequential_number
+CREATE TRIGGER tr_constant_motion_comment_section_sequential_number BEFORE UPDATE OF sequential_number ON motion_comment_section_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment_section', 'sequential_number');
+
+-- definition trigger prevent_updates for motion_comment_section.meeting_id
+CREATE TRIGGER tr_constant_motion_comment_section_meeting_id BEFORE UPDATE OF meeting_id ON motion_comment_section_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_comment_section', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_editor.motion_id
+CREATE TRIGGER tr_constant_motion_editor_motion_id BEFORE UPDATE OF motion_id ON motion_editor_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_editor', 'motion_id');
+
+-- definition trigger prevent_updates for motion_editor.meeting_id
+CREATE TRIGGER tr_constant_motion_editor_meeting_id BEFORE UPDATE OF meeting_id ON motion_editor_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_editor', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_state.meeting_id
+CREATE TRIGGER tr_constant_motion_state_meeting_id BEFORE UPDATE OF meeting_id ON motion_state_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_state', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_submitter.motion_id
+CREATE TRIGGER tr_constant_motion_submitter_motion_id BEFORE UPDATE OF motion_id ON motion_submitter_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_submitter', 'motion_id');
+
+-- definition trigger prevent_updates for motion_submitter.meeting_id
+CREATE TRIGGER tr_constant_motion_submitter_meeting_id BEFORE UPDATE OF meeting_id ON motion_submitter_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_submitter', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_supporter.motion_id
+CREATE TRIGGER tr_constant_motion_supporter_motion_id BEFORE UPDATE OF motion_id ON motion_supporter_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_supporter', 'motion_id');
+
+-- definition trigger prevent_updates for motion_supporter.meeting_id
+CREATE TRIGGER tr_constant_motion_supporter_meeting_id BEFORE UPDATE OF meeting_id ON motion_supporter_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_supporter', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_workflow.sequential_number
+CREATE TRIGGER tr_constant_motion_workflow_sequential_number BEFORE UPDATE OF sequential_number ON motion_workflow_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_workflow', 'sequential_number');
+
+-- definition trigger prevent_updates for motion_workflow.meeting_id
+CREATE TRIGGER tr_constant_motion_workflow_meeting_id BEFORE UPDATE OF meeting_id ON motion_workflow_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_workflow', 'meeting_id');
+
+
+-- definition trigger prevent_updates for motion_working_group_speaker.motion_id
+CREATE TRIGGER tr_constant_motion_working_group_speaker_motion_id BEFORE UPDATE OF motion_id ON motion_working_group_speaker_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_working_group_speaker', 'motion_id');
+
+-- definition trigger prevent_updates for motion_working_group_speaker.meeting_id
+CREATE TRIGGER tr_constant_motion_working_group_speaker_meeting_id BEFORE UPDATE OF meeting_id ON motion_working_group_speaker_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_working_group_speaker', 'meeting_id');
+
+
+-- definition trigger prevent_updates for option.poll_id
+CREATE TRIGGER tr_constant_option_poll_id BEFORE UPDATE OF poll_id ON option_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('option', 'poll_id');
+
+-- definition trigger prevent_updates for option.meeting_id
+CREATE TRIGGER tr_constant_option_meeting_id BEFORE UPDATE OF meeting_id ON option_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('option', 'meeting_id');
+
+
+-- definition trigger prevent_updates for organization_tag.organization_id
+CREATE TRIGGER tr_constant_organization_tag_organization_id BEFORE UPDATE OF organization_id ON organization_tag_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('organization_tag', 'organization_id');
+
+
+-- definition trigger prevent_updates for personal_note.meeting_user_id
+CREATE TRIGGER tr_constant_personal_note_meeting_user_id BEFORE UPDATE OF meeting_user_id ON personal_note_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('personal_note', 'meeting_user_id');
+
+-- definition trigger prevent_updates for personal_note.content_object_id
+CREATE TRIGGER tr_constant_personal_note_content_object_id BEFORE UPDATE OF content_object_id ON personal_note_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('personal_note', 'content_object_id');
+
+-- definition trigger prevent_updates for personal_note.meeting_id
+CREATE TRIGGER tr_constant_personal_note_meeting_id BEFORE UPDATE OF meeting_id ON personal_note_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('personal_note', 'meeting_id');
+
+
+-- definition trigger prevent_updates for point_of_order_category.meeting_id
+CREATE TRIGGER tr_constant_point_of_order_category_meeting_id BEFORE UPDATE OF meeting_id ON point_of_order_category_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('point_of_order_category', 'meeting_id');
+
+
+-- definition trigger prevent_updates for poll.sequential_number
+CREATE TRIGGER tr_constant_poll_sequential_number BEFORE UPDATE OF sequential_number ON poll_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'sequential_number');
+
+-- definition trigger prevent_updates for poll.content_object_id
+CREATE TRIGGER tr_constant_poll_content_object_id BEFORE UPDATE OF content_object_id ON poll_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'content_object_id');
+
+-- definition trigger prevent_updates for poll.meeting_id
+CREATE TRIGGER tr_constant_poll_meeting_id BEFORE UPDATE OF meeting_id ON poll_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'meeting_id');
+
+
+-- definition trigger prevent_updates for poll_candidate.poll_candidate_list_id
+CREATE TRIGGER tr_constant_poll_candidate_poll_candidate_list_id BEFORE UPDATE OF poll_candidate_list_id ON poll_candidate_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_candidate', 'poll_candidate_list_id');
+
+-- definition trigger prevent_updates for poll_candidate.meeting_id
+CREATE TRIGGER tr_constant_poll_candidate_meeting_id BEFORE UPDATE OF meeting_id ON poll_candidate_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_candidate', 'meeting_id');
+
+
+-- definition trigger prevent_updates for poll_candidate_list.meeting_id
+CREATE TRIGGER tr_constant_poll_candidate_list_meeting_id BEFORE UPDATE OF meeting_id ON poll_candidate_list_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_candidate_list', 'meeting_id');
+
+
+-- definition trigger prevent_updates for projection.content_object_id
+CREATE TRIGGER tr_constant_projection_content_object_id BEFORE UPDATE OF content_object_id ON projection_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('projection', 'content_object_id');
+
+-- definition trigger prevent_updates for projection.meeting_id
+CREATE TRIGGER tr_constant_projection_meeting_id BEFORE UPDATE OF meeting_id ON projection_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('projection', 'meeting_id');
+
+
+-- definition trigger prevent_updates for projector.sequential_number
+CREATE TRIGGER tr_constant_projector_sequential_number BEFORE UPDATE OF sequential_number ON projector_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('projector', 'sequential_number');
+
+-- definition trigger prevent_updates for projector.meeting_id
+CREATE TRIGGER tr_constant_projector_meeting_id BEFORE UPDATE OF meeting_id ON projector_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('projector', 'meeting_id');
+
+
+-- definition trigger prevent_updates for projector_countdown.meeting_id
+CREATE TRIGGER tr_constant_projector_countdown_meeting_id BEFORE UPDATE OF meeting_id ON projector_countdown_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('projector_countdown', 'meeting_id');
+
+
+-- definition trigger prevent_updates for projector_message.meeting_id
+CREATE TRIGGER tr_constant_projector_message_meeting_id BEFORE UPDATE OF meeting_id ON projector_message_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('projector_message', 'meeting_id');
+
+
+-- definition trigger prevent_updates for speaker.list_of_speakers_id
+CREATE TRIGGER tr_constant_speaker_list_of_speakers_id BEFORE UPDATE OF list_of_speakers_id ON speaker_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('speaker', 'list_of_speakers_id');
+
+-- definition trigger prevent_updates for speaker.meeting_id
+CREATE TRIGGER tr_constant_speaker_meeting_id BEFORE UPDATE OF meeting_id ON speaker_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('speaker', 'meeting_id');
+
+
+-- definition trigger prevent_updates for structure_level.meeting_id
+CREATE TRIGGER tr_constant_structure_level_meeting_id BEFORE UPDATE OF meeting_id ON structure_level_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('structure_level', 'meeting_id');
+
+
+-- definition trigger prevent_updates for structure_level_list_of_speakers.meeting_id
+CREATE TRIGGER tr_constant_structure_level_list_of_speakers_meeting_id BEFORE UPDATE OF meeting_id ON structure_level_list_of_speakers_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('structure_level_list_of_speakers', 'meeting_id');
+
+
+-- definition trigger prevent_updates for tag.meeting_id
+CREATE TRIGGER tr_constant_tag_meeting_id BEFORE UPDATE OF meeting_id ON tag_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('tag', 'meeting_id');
+
+
+-- definition trigger prevent_updates for theme.organization_id
+CREATE TRIGGER tr_constant_theme_organization_id BEFORE UPDATE OF organization_id ON theme_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('theme', 'organization_id');
+
+
+-- definition trigger prevent_updates for topic.sequential_number
+CREATE TRIGGER tr_constant_topic_sequential_number BEFORE UPDATE OF sequential_number ON topic_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('topic', 'sequential_number');
+
+-- definition trigger prevent_updates for topic.meeting_id
+CREATE TRIGGER tr_constant_topic_meeting_id BEFORE UPDATE OF meeting_id ON topic_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('topic', 'meeting_id');
+
+
+-- definition trigger prevent_updates for user.organization_id
+CREATE TRIGGER tr_constant_user_organization_id BEFORE UPDATE OF organization_id ON user_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('user', 'organization_id');
+
+
+-- definition trigger prevent_updates for vote.value
+CREATE TRIGGER tr_constant_vote_value BEFORE UPDATE OF value ON vote_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'value');
+
+-- definition trigger prevent_updates for vote.user_token
+CREATE TRIGGER tr_constant_vote_user_token BEFORE UPDATE OF user_token ON vote_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'user_token');
+
+-- definition trigger prevent_updates for vote.option_id
+CREATE TRIGGER tr_constant_vote_option_id BEFORE UPDATE OF option_id ON vote_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'option_id');
+
+-- definition trigger prevent_updates for vote.meeting_id
+CREATE TRIGGER tr_constant_vote_meeting_id BEFORE UPDATE OF meeting_id ON vote_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'meeting_id');
+
+
+
 -- Create triggers preventing mirrored duplicates in fields referencing themselves
 
 -- definition trigger unique ids pair for motion.identical_motion_ids
@@ -4880,7 +5272,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_topic_t_agenda_item_id AFTER INSER
 FOR EACH ROW EXECUTE FUNCTION check_equals('agenda_item', 'topic', 'content_object_id_topic_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_agenda_item_t_parent_id AFTER INSERT OR UPDATE OF parent_id, meeting_id ON agenda_item_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_agenda_item_t_parent_id AFTER INSERT OR UPDATE OF parent_id ON agenda_item_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('agenda_item', 'agenda_item', 'parent_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_agenda_item_t_child_ids AFTER INSERT ON agenda_item_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('agenda_item', 'agenda_item', 'parent_id', 'meeting_id', TRUE);
@@ -4893,7 +5285,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_assignment_t_candidate_ids AFTER I
 FOR EACH ROW EXECUTE FUNCTION check_equals('assignment_candidate', 'assignment', 'assignment_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_assignment_candidate_t_meeting_user_id AFTER INSERT ON assignment_candidate_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_assignment_candidate_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id ON assignment_candidate_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('assignment_candidate', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_assignment_candidate_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('assignment_candidate', 'meeting_user', 'meeting_user_id', 'meeting_id', TRUE);
@@ -4904,7 +5296,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_chat_group_t_read_group_ids AFTER 
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_chat_group_read_group_ids_group_t', 'chat_group_id', 'chat_group', 'group_id', 'group', 'meeting_id', 'read_group_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_read_chat_group_ids AFTER INSERT ON group_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_chat_group_read_group_ids_group_t', 'group_id', 'group', 'chat_group_id', 'chat_group', 'meeting_id', 'read_chat_group_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_chat_group_t_read_group_ids_intermediate AFTER INSERT OR UPDATE OF chat_group_id, group_id ON nm_chat_group_read_group_ids_group_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_chat_group_t_read_group_ids_intermediate AFTER INSERT ON nm_chat_group_read_group_ids_group_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('chat_group_id', 'chat_group', 'group_id', 'group', 'meeting_id', 'read_group_ids');
 
 
@@ -4912,12 +5304,12 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_chat_group_t_write_group_ids AFTER
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_chat_group_write_group_ids_group_t', 'chat_group_id', 'chat_group', 'group_id', 'group', 'meeting_id', 'write_group_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_write_chat_group_ids AFTER INSERT ON group_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_chat_group_write_group_ids_group_t', 'group_id', 'group', 'chat_group_id', 'chat_group', 'meeting_id', 'write_chat_group_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_chat_group_t_write_group_ids_intermediate AFTER INSERT OR UPDATE OF chat_group_id, group_id ON nm_chat_group_write_group_ids_group_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_chat_group_t_write_group_ids_intermediate AFTER INSERT ON nm_chat_group_write_group_ids_group_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('chat_group_id', 'chat_group', 'group_id', 'group', 'meeting_id', 'write_group_ids');
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_chat_message_t_meeting_user_id AFTER INSERT ON chat_message_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_chat_message_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id ON chat_message_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('chat_message', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_chat_message_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('chat_message', 'meeting_user', 'meeting_user_id', 'meeting_id', TRUE);
@@ -4934,15 +5326,15 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_meeting_user_ids AFTER INS
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_meeting_user_ids_meeting_user_t', 'group_id', 'group', 'meeting_user_id', 'meeting_user', 'meeting_id', 'meeting_user_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_group_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_meeting_user_ids_meeting_user_t', 'meeting_user_id', 'meeting_user', 'group_id', 'group', 'meeting_id', 'group_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_meeting_user_ids_intermediate AFTER INSERT OR UPDATE OF group_id, meeting_user_id ON nm_group_meeting_user_ids_meeting_user_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_meeting_user_ids_intermediate AFTER INSERT ON nm_group_meeting_user_ids_meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('group_id', 'group', 'meeting_user_id', 'meeting_user', 'meeting_id', 'meeting_user_ids');
 
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_meeting_mediafile_access_group_ids AFTER INSERT ON group_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_mmagi_meeting_mediafile_t', 'group_id', 'group', 'meeting_mediafile_id', 'meeting_mediafile', 'meeting_id', 'meeting_mediafile_access_group_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_access_group_ids AFTER INSERT OR UPDATE OF meeting_id ON meeting_mediafile_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_access_group_ids AFTER INSERT ON meeting_mediafile_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_mmagi_meeting_mediafile_t', 'meeting_mediafile_id', 'meeting_mediafile', 'group_id', 'group', 'meeting_id', 'access_group_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_meeting_mediafile_access_gro550f457 AFTER INSERT OR UPDATE OF group_id, meeting_mediafile_id ON nm_group_mmagi_meeting_mediafile_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_meeting_mediafile_access_gro550f457 AFTER INSERT ON nm_group_mmagi_meeting_mediafile_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('group_id', 'group', 'meeting_mediafile_id', 'meeting_mediafile', 'meeting_id', 'meeting_mediafile_access_group_ids');
 
 
@@ -4950,7 +5342,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_read_comment_section_ids A
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_read_comment_section_ids_motion_comment_section_t', 'group_id', 'group', 'motion_comment_section_id', 'motion_comment_section', 'meeting_id', 'read_comment_section_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_comment_section_t_read_group_ids AFTER INSERT ON motion_comment_section_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_read_comment_section_ids_motion_comment_section_t', 'motion_comment_section_id', 'motion_comment_section', 'group_id', 'group', 'meeting_id', 'read_group_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_read_comment_section_ids_intee20888 AFTER INSERT OR UPDATE OF group_id, motion_comment_section_id ON nm_group_read_comment_section_ids_motion_comment_section_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_read_comment_section_ids_intee20888 AFTER INSERT ON nm_group_read_comment_section_ids_motion_comment_section_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('group_id', 'group', 'motion_comment_section_id', 'motion_comment_section', 'meeting_id', 'read_comment_section_ids');
 
 
@@ -4958,7 +5350,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_write_comment_section_ids 
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_write_comment_section_ids_motion_comment_section_t', 'group_id', 'group', 'motion_comment_section_id', 'motion_comment_section', 'meeting_id', 'write_comment_section_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_comment_section_t_write_group_ids AFTER INSERT ON motion_comment_section_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_write_comment_section_ids_motion_comment_section_t', 'motion_comment_section_id', 'motion_comment_section', 'group_id', 'group', 'meeting_id', 'write_group_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_write_comment_section_ids_in069881a AFTER INSERT OR UPDATE OF group_id, motion_comment_section_id ON nm_group_write_comment_section_ids_motion_comment_section_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_write_comment_section_ids_in069881a AFTER INSERT ON nm_group_write_comment_section_ids_motion_comment_section_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('group_id', 'group', 'motion_comment_section_id', 'motion_comment_section', 'meeting_id', 'write_comment_section_ids');
 
 
@@ -4966,7 +5358,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_poll_ids AFTER INSERT ON g
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_poll_ids_poll_t', 'group_id', 'group', 'poll_id', 'poll', 'meeting_id', 'poll_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_entitled_group_ids AFTER INSERT ON poll_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_poll_ids_poll_t', 'poll_id', 'poll', 'group_id', 'group', 'meeting_id', 'entitled_group_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_poll_ids_intermediate AFTER INSERT OR UPDATE OF group_id, poll_id ON nm_group_poll_ids_poll_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_poll_ids_intermediate AFTER INSERT ON nm_group_poll_ids_poll_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('group_id', 'group', 'poll_id', 'poll', 'meeting_id', 'poll_ids');
 
 
@@ -4997,44 +5389,44 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('list_of_speakers', 'topic', 'content
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_list_of_speakers_t_content_object_ide897434 AFTER INSERT ON list_of_speakers_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('list_of_speakers', 'meeting_mediafile', 'content_object_id_meeting_mediafile_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_list_of_speakers_id AFTER INSERT OR UPDATE OF meeting_id ON meeting_mediafile_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_list_of_speakers_id AFTER INSERT ON meeting_mediafile_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('list_of_speakers', 'meeting_mediafile', 'content_object_id_meeting_mediafile_id', 'meeting_id', TRUE);
 
 
 
-CREATE CONSTRAINT TRIGGER equal_owner_id_on_mediafile_t_parent_id AFTER INSERT OR UPDATE OF parent_id, owner_id ON mediafile_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_owner_id_on_mediafile_t_parent_id AFTER INSERT OR UPDATE OF parent_id ON mediafile_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('mediafile', 'mediafile', 'parent_id', 'owner_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_owner_id_on_mediafile_t_child_ids AFTER INSERT ON mediafile_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('mediafile', 'mediafile', 'parent_id', 'owner_id', TRUE);
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_motion_t AFTER INSERT OR UPDATE OF meeting_id ON meeting_mediafile_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_motion_t AFTER INSERT ON meeting_mediafile_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_meeting_mediafile_attachment_ids_t', 'meeting_mediafile_id', 'meeting_mediafile', 'attachment_id_motion_id', 'motion', 'meeting_id', 'attachment_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_attachment_meeting_mediafile_ids AFTER INSERT ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_meeting_mediafile_attachment_ids_t', 'attachment_id_motion_id', 'motion', 'meeting_mediafile_id', 'meeting_mediafile', 'meeting_id', 'attachment_meeting_mediafile_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_m4e89aaf AFTER INSERT OR UPDATE OF meeting_mediafile_id, attachment_id_motion_id ON gm_meeting_mediafile_attachment_ids_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_m4e89aaf AFTER INSERT ON gm_meeting_mediafile_attachment_ids_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('meeting_mediafile_id', 'meeting_mediafile', 'attachment_id_motion_id', 'motion', 'meeting_id', 'attachment_ids');
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_topic_t AFTER INSERT OR UPDATE OF meeting_id ON meeting_mediafile_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_topic_t AFTER INSERT ON meeting_mediafile_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_meeting_mediafile_attachment_ids_t', 'meeting_mediafile_id', 'meeting_mediafile', 'attachment_id_topic_id', 'topic', 'meeting_id', 'attachment_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_topic_t_attachment_meeting_mediafile_ids AFTER INSERT ON topic_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_meeting_mediafile_attachment_ids_t', 'attachment_id_topic_id', 'topic', 'meeting_mediafile_id', 'meeting_mediafile', 'meeting_id', 'attachment_meeting_mediafile_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_t3e058c9 AFTER INSERT OR UPDATE OF meeting_mediafile_id, attachment_id_topic_id ON gm_meeting_mediafile_attachment_ids_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_t3e058c9 AFTER INSERT ON gm_meeting_mediafile_attachment_ids_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('meeting_mediafile_id', 'meeting_mediafile', 'attachment_id_topic_id', 'topic', 'meeting_id', 'attachment_ids');
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_a02016b9 AFTER INSERT OR UPDATE OF meeting_id ON meeting_mediafile_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_a02016b9 AFTER INSERT ON meeting_mediafile_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_meeting_mediafile_attachment_ids_t', 'meeting_mediafile_id', 'meeting_mediafile', 'attachment_id_assignment_id', 'assignment', 'meeting_id', 'attachment_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_assignment_t_attachment_meeting_media9bbdf7 AFTER INSERT ON assignment_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_meeting_mediafile_attachment_ids_t', 'attachment_id_assignment_id', 'assignment', 'meeting_mediafile_id', 'meeting_mediafile', 'meeting_id', 'attachment_meeting_mediafile_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_a29e0815 AFTER INSERT OR UPDATE OF meeting_mediafile_id, attachment_id_assignment_id ON gm_meeting_mediafile_attachment_ids_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_attachment_ids_a29e0815 AFTER INSERT ON gm_meeting_mediafile_attachment_ids_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('meeting_mediafile_id', 'meeting_mediafile', 'attachment_id_assignment_id', 'assignment', 'meeting_id', 'attachment_ids');
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_vote_delegated_to_id AFTER INSERT OR UPDATE OF vote_delegated_to_id, meeting_id ON meeting_user_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_vote_delegated_to_id AFTER INSERT OR UPDATE OF vote_delegated_to_id ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('meeting_user', 'meeting_user', 'vote_delegated_to_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_vote_delegations_from_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('meeting_user', 'meeting_user', 'vote_delegated_to_id', 'meeting_id', TRUE);
@@ -5042,32 +5434,32 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('meeting_user', 'meeting_user', 'vote
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_structure_level_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_meeting_user_structure_level_ids_structure_level_t', 'meeting_user_id', 'meeting_user', 'structure_level_id', 'structure_level', 'meeting_id', 'structure_level_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_t_meeting_user_ids AFTER INSERT OR UPDATE OF meeting_id ON structure_level_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_t_meeting_user_ids AFTER INSERT ON structure_level_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_meeting_user_structure_level_ids_structure_level_t', 'structure_level_id', 'structure_level', 'meeting_user_id', 'meeting_user', 'meeting_id', 'meeting_user_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_structure_level_ids_i91a9439 AFTER INSERT OR UPDATE OF meeting_user_id, structure_level_id ON nm_meeting_user_structure_level_ids_structure_level_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_structure_level_ids_i91a9439 AFTER INSERT ON nm_meeting_user_structure_level_ids_structure_level_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('meeting_user_id', 'meeting_user', 'structure_level_id', 'structure_level', 'meeting_id', 'structure_level_ids');
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_lead_motion_id AFTER INSERT OR UPDATE OF lead_motion_id, meeting_id ON motion_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_lead_motion_id AFTER INSERT OR UPDATE OF lead_motion_id ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion', 'lead_motion_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_amendment_ids AFTER INSERT ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion', 'lead_motion_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_sort_parent_id AFTER INSERT OR UPDATE OF sort_parent_id, meeting_id ON motion_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_sort_parent_id AFTER INSERT OR UPDATE OF sort_parent_id ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion', 'sort_parent_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_sort_child_ids AFTER INSERT ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion', 'sort_parent_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_state_id AFTER INSERT OR UPDATE OF state_id, meeting_id ON motion_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_state_id AFTER INSERT OR UPDATE OF state_id ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion_state', 'state_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_motion_ids AFTER INSERT ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion_state', 'state_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_recommendation_id AFTER INSERT OR UPDATE OF recommendation_id, meeting_id ON motion_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_recommendation_id AFTER INSERT OR UPDATE OF recommendation_id ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion_state', 'recommendation_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_motion_recommendation_ids AFTER INSERT ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion_state', 'recommendation_id', 'meeting_id', TRUE);
@@ -5077,7 +5469,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_state_extension_reference
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_motion_state_extension_reference_ids_t', 'motion_id', 'motion', 'state_extension_reference_id_motion_id', 'motion', 'meeting_id', 'state_extension_reference_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_referenced_in_motion_state_cb2bfc0 AFTER INSERT ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_motion_state_extension_reference_ids_t', 'state_extension_reference_id_motion_id', 'motion', 'motion_id', 'motion', 'meeting_id', 'referenced_in_motion_state_extension_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_state_extension_reference_i05b20ae AFTER INSERT OR UPDATE OF motion_id, state_extension_reference_id_motion_id ON gm_motion_state_extension_reference_ids_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_state_extension_reference_i05b20ae AFTER INSERT ON gm_motion_state_extension_reference_ids_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('motion_id', 'motion', 'state_extension_reference_id_motion_id', 'motion', 'meeting_id', 'state_extension_reference_ids');
 
 
@@ -5085,24 +5477,24 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_recommendation_extension_
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_motion_recommendation_extension_reference_ids_t', 'motion_id', 'motion', 'recommendation_extension_reference_id_motion_id', 'motion', 'meeting_id', 'recommendation_extension_reference_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_referenced_in_motion_recomm09d2a9c AFTER INSERT ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_motion_recommendation_extension_reference_ids_t', 'recommendation_extension_reference_id_motion_id', 'motion', 'motion_id', 'motion', 'meeting_id', 'referenced_in_motion_recommendation_extension_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_recommendation_extension_rebcec849 AFTER INSERT OR UPDATE OF motion_id, recommendation_extension_reference_id_motion_id ON gm_motion_recommendation_extension_reference_ids_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_recommendation_extension_rebcec849 AFTER INSERT ON gm_motion_recommendation_extension_reference_ids_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('motion_id', 'motion', 'recommendation_extension_reference_id_motion_id', 'motion', 'meeting_id', 'recommendation_extension_reference_ids');
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_category_id AFTER INSERT OR UPDATE OF category_id, meeting_id ON motion_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_category_id AFTER INSERT OR UPDATE OF category_id ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion_category', 'category_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_category_t_motion_ids AFTER INSERT ON motion_category_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion_category', 'category_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_block_id AFTER INSERT OR UPDATE OF block_id, meeting_id ON motion_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_block_id AFTER INSERT OR UPDATE OF block_id ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion_block', 'block_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_block_t_motion_ids AFTER INSERT ON motion_block_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion', 'motion_block', 'block_id', 'meeting_id', TRUE);
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_category_t_parent_id AFTER INSERT OR UPDATE OF parent_id, meeting_id ON motion_category_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_category_t_parent_id AFTER INSERT OR UPDATE OF parent_id ON motion_category_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_category', 'motion_category', 'parent_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_category_t_child_ids AFTER INSERT ON motion_category_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_category', 'motion_category', 'parent_id', 'meeting_id', TRUE);
@@ -5129,7 +5521,7 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('motion_comment', 'motion_comment_sec
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_editor_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id, meeting_id ON motion_editor_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_editor_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id ON motion_editor_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_editor', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_motion_editor_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_editor', 'meeting_user', 'meeting_user_id', 'meeting_id', TRUE);
@@ -5142,7 +5534,7 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('motion_editor', 'motion', 'motion_id
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_submitter_withdraw_state_id AFTER INSERT OR UPDATE OF submitter_withdraw_state_id, meeting_id ON motion_state_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_submitter_withdraw_state_id AFTER INSERT OR UPDATE OF submitter_withdraw_state_id ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_submitter_withdraw_back_ids AFTER INSERT ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_state', 'submitter_withdraw_state_id', 'meeting_id', TRUE);
@@ -5158,7 +5550,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_next_state_ids AFTE
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'meeting_id', 'next_state_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_previous_state_ids AFTER INSERT ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'meeting_id', 'previous_state_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT OR UPDATE OF previous_state_id, next_state_id ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'meeting_id', 'next_state_ids');
 
 
@@ -5166,18 +5558,18 @@ CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids AFT
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
 CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_previous_state_ids AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_motion_state_next_state_ids_motion_state_t', 'next_state_id', 'motion_state', 'previous_state_id', 'motion_state', 'workflow_id', 'previous_state_ids');
-CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT OR UPDATE OF previous_state_id, next_state_id ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_workflow_id_on_motion_state_t_next_state_ids_intermediate AFTER INSERT ON nm_motion_state_next_state_ids_motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('previous_state_id', 'motion_state', 'next_state_id', 'motion_state', 'workflow_id', 'next_state_ids');
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_workflow_id AFTER INSERT OR UPDATE OF workflow_id, meeting_id ON motion_state_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_workflow_id AFTER INSERT OR UPDATE OF workflow_id ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_workflow', 'workflow_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_workflow_t_state_ids AFTER INSERT ON motion_workflow_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_state', 'motion_workflow', 'workflow_id', 'meeting_id', TRUE);
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_submitter_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id, meeting_id ON motion_submitter_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_submitter_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id ON motion_submitter_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_submitter', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_motion_submitter_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_submitter', 'meeting_user', 'meeting_user_id', 'meeting_id', TRUE);
@@ -5190,7 +5582,7 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('motion_submitter', 'motion', 'motion
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_supporter_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id, meeting_id ON motion_supporter_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_supporter_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id ON motion_supporter_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_supporter', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_motion_supporter_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_supporter', 'meeting_user', 'meeting_user_id', 'meeting_id', TRUE);
@@ -5203,14 +5595,14 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('motion_supporter', 'motion', 'motion
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_workflow_t_first_state_id AFTER INSERT OR UPDATE OF first_state_id, meeting_id ON motion_workflow_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_workflow_t_first_state_id AFTER INSERT OR UPDATE OF first_state_id ON motion_workflow_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_workflow', 'motion_state', 'first_state_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_state_t_first_state_of_workflow_id AFTER INSERT ON motion_state_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_workflow', 'motion_state', 'first_state_id', 'meeting_id', TRUE);
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_working_group_speaker_t_meeti339019b AFTER INSERT OR UPDATE OF meeting_user_id, meeting_id ON motion_working_group_speaker_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_working_group_speaker_t_meeti339019b AFTER INSERT OR UPDATE OF meeting_user_id ON motion_working_group_speaker_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_working_group_speaker', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_motion_working_group_bf2dd11 AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('motion_working_group_speaker', 'meeting_user', 'meeting_user_id', 'meeting_id', TRUE);
@@ -5229,13 +5621,13 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_option_ids AFTER INSERT ON 
 FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'poll', 'poll_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_motion_id AFTER INSERT ON option_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_motion_id AFTER INSERT OR UPDATE OF content_object_id ON option_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'motion', 'content_object_id_motion_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_option_ids AFTER INSERT ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'motion', 'content_object_id_motion_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_poll_cand57125c5 AFTER INSERT ON option_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_poll_cand57125c5 AFTER INSERT OR UPDATE OF content_object_id ON option_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'poll_candidate_list', 'content_object_id_poll_candidate_list_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_candidate_list_t_option_id AFTER INSERT ON poll_candidate_list_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'poll_candidate_list', 'content_object_id_poll_candidate_list_id', 'meeting_id', TRUE);
@@ -5273,7 +5665,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_topic_t_poll_ids AFTER INSERT ON t
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_global_option_id AFTER INSERT ON poll_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_global_option_id AFTER INSERT OR UPDATE OF global_option_id ON poll_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'option', 'global_option_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_used_as_global_option_in_poll_id AFTER INSERT ON option_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'option', 'global_option_id', 'meeting_id', TRUE);
@@ -5287,19 +5679,19 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('poll_candidate', 'poll_candidate_lis
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projection_t_current_projector_id AFTER INSERT OR UPDATE OF current_projector_id, meeting_id ON projection_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projection_t_current_projector_id AFTER INSERT OR UPDATE OF current_projector_id ON projection_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('projection', 'projector', 'current_projector_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projector_t_current_projection_ids AFTER INSERT ON projector_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('projection', 'projector', 'current_projector_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projection_t_preview_projector_id AFTER INSERT OR UPDATE OF preview_projector_id, meeting_id ON projection_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projection_t_preview_projector_id AFTER INSERT OR UPDATE OF preview_projector_id ON projection_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('projection', 'projector', 'preview_projector_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projector_t_preview_projection_ids AFTER INSERT ON projector_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('projection', 'projector', 'preview_projector_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projection_t_history_projector_id AFTER INSERT OR UPDATE OF history_projector_id, meeting_id ON projection_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projection_t_history_projector_id AFTER INSERT OR UPDATE OF history_projector_id ON projection_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('projection', 'projector', 'history_projector_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projector_t_history_projection_ids AFTER INSERT ON projector_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('projection', 'projector', 'history_projector_id', 'meeting_id', TRUE);
@@ -5317,7 +5709,7 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('projection', 'motion', 'content_obje
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_projection_t_content_object_id_meeti1e00bfd AFTER INSERT ON projection_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('projection', 'meeting_mediafile', 'content_object_id_meeting_mediafile_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_projection_ids AFTER INSERT OR UPDATE OF meeting_id ON meeting_mediafile_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_mediafile_t_projection_ids AFTER INSERT ON meeting_mediafile_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('projection', 'meeting_mediafile', 'content_object_id_meeting_mediafile_id', 'meeting_id', TRUE);
 
 
@@ -5376,32 +5768,32 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_list_of_speakers_t_speaker_ids AFT
 FOR EACH ROW EXECUTE FUNCTION check_equals('speaker', 'list_of_speakers', 'list_of_speakers_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_speaker_t_structure_level_list_of_sp9ebc874 AFTER INSERT OR UPDATE OF structure_level_list_of_speakers_id, meeting_id ON speaker_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_speaker_t_structure_level_list_of_sp9ebc874 AFTER INSERT OR UPDATE OF structure_level_list_of_speakers_id ON speaker_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('speaker', 'structure_level_list_of_speakers', 'structure_level_list_of_speakers_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_list_of_speakers_t_s3419e66 AFTER INSERT OR UPDATE OF meeting_id ON structure_level_list_of_speakers_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_list_of_speakers_t_s3419e66 AFTER INSERT ON structure_level_list_of_speakers_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('speaker', 'structure_level_list_of_speakers', 'structure_level_list_of_speakers_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_speaker_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id, meeting_id ON speaker_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_speaker_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id ON speaker_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('speaker', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_speaker_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('speaker', 'meeting_user', 'meeting_user_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_speaker_t_point_of_order_category_id AFTER INSERT OR UPDATE OF point_of_order_category_id, meeting_id ON speaker_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_speaker_t_point_of_order_category_id AFTER INSERT OR UPDATE OF point_of_order_category_id ON speaker_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('speaker', 'point_of_order_category', 'point_of_order_category_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_point_of_order_category_t_speaker_ids AFTER INSERT ON point_of_order_category_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('speaker', 'point_of_order_category', 'point_of_order_category_id', 'meeting_id', TRUE);
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_list_of_speakers_t_s9bddf8d AFTER INSERT OR UPDATE OF structure_level_id, meeting_id ON structure_level_list_of_speakers_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_list_of_speakers_t_s9bddf8d AFTER INSERT OR UPDATE OF structure_level_id ON structure_level_list_of_speakers_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('structure_level_list_of_speakers', 'structure_level', 'structure_level_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_t_structure_level_lice7955c AFTER INSERT OR UPDATE OF meeting_id ON structure_level_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_t_structure_level_lice7955c AFTER INSERT ON structure_level_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('structure_level_list_of_speakers', 'structure_level', 'structure_level_id', 'meeting_id', TRUE);
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_list_of_speakers_t_lf3ea816 AFTER INSERT OR UPDATE OF list_of_speakers_id, meeting_id ON structure_level_list_of_speakers_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_structure_level_list_of_speakers_t_lf3ea816 AFTER INSERT OR UPDATE OF list_of_speakers_id ON structure_level_list_of_speakers_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('structure_level_list_of_speakers', 'list_of_speakers', 'list_of_speakers_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_list_of_speakers_t_structure_level_lb63ec40 AFTER INSERT ON list_of_speakers_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('structure_level_list_of_speakers', 'list_of_speakers', 'list_of_speakers_id', 'meeting_id', TRUE);
@@ -5412,7 +5804,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_tag_t_tagged_ids_agenda_item_t AFT
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_tag_tagged_ids_t', 'tag_id', 'tag', 'tagged_id_agenda_item_id', 'agenda_item', 'meeting_id', 'tagged_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_agenda_item_t_tag_ids AFTER INSERT ON agenda_item_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_tag_tagged_ids_t', 'tagged_id_agenda_item_id', 'agenda_item', 'tag_id', 'tag', 'meeting_id', 'tag_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_tag_t_tagged_ids_agenda_item_t_intermediate AFTER INSERT OR UPDATE OF tag_id, tagged_id_agenda_item_id ON gm_tag_tagged_ids_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_tag_t_tagged_ids_agenda_item_t_intermediate AFTER INSERT ON gm_tag_tagged_ids_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('tag_id', 'tag', 'tagged_id_agenda_item_id', 'agenda_item', 'meeting_id', 'tagged_ids');
 
 
@@ -5420,7 +5812,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_tag_t_tagged_ids_assignment_t AFTE
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_tag_tagged_ids_t', 'tag_id', 'tag', 'tagged_id_assignment_id', 'assignment', 'meeting_id', 'tagged_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_assignment_t_tag_ids AFTER INSERT ON assignment_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_tag_tagged_ids_t', 'tagged_id_assignment_id', 'assignment', 'tag_id', 'tag', 'meeting_id', 'tag_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_tag_t_tagged_ids_assignment_t_intermediate AFTER INSERT OR UPDATE OF tag_id, tagged_id_assignment_id ON gm_tag_tagged_ids_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_tag_t_tagged_ids_assignment_t_intermediate AFTER INSERT ON gm_tag_tagged_ids_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('tag_id', 'tag', 'tagged_id_assignment_id', 'assignment', 'meeting_id', 'tagged_ids');
 
 
@@ -5428,7 +5820,7 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_tag_t_tagged_ids_motion_t AFTER IN
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_tag_tagged_ids_t', 'tag_id', 'tag', 'tagged_id_motion_id', 'motion', 'meeting_id', 'tagged_ids');
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_tag_ids AFTER INSERT ON motion_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_multi('gm_tag_tagged_ids_t', 'tagged_id_motion_id', 'motion', 'tag_id', 'tag', 'meeting_id', 'tag_ids');
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_tag_t_tagged_ids_motion_t_intermediate AFTER INSERT OR UPDATE OF tag_id, tagged_id_motion_id ON gm_tag_tagged_ids_t INITIALLY DEFERRED
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_tag_t_tagged_ids_motion_t_intermediate AFTER INSERT ON gm_tag_tagged_ids_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('tag_id', 'tag', 'tagged_id_motion_id', 'motion', 'meeting_id', 'tagged_ids');
 
 
@@ -5897,4 +6289,4 @@ There are 2 errors/warnings
     projection/content: type:JSON is marked as a calculated field and not generated in schema
 */
 
-/*   Missing attribute handling for constant, on_delete, deferred */
+/*   Missing attribute handling for on_delete, constant_legacy, deferred */

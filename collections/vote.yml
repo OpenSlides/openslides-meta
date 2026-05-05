@@ -9,7 +9,7 @@ fields:
     type: decimal(6)
     required: true
     restriction_mode: A
-    constant: true
+    constant_legacy: true
   value:
     type: string
     required: true

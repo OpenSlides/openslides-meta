@@ -163,5 +163,6 @@ fields:
     reference: organization
     to: organization/theme_ids
     restriction_mode: A
+    constant: true
     required: true
 
