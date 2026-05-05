@@ -1609,7 +1609,7 @@ class Helper:
             new_value TEXT := hstore(NEW) -> constant_column;
         BEGIN
             IF old_value IS DISTINCT FROM new_value THEN
-                RAISE EXCEPTION 'Constant value constraint violated for %/%: % can not be updated once set.', collection, NEW.id, constant_column;
+                RAISE EXCEPTION 'Constant value constraint violated for %/%: % can not be updated.', collection, NEW.id, constant_column;
             END IF;
             RETURN NEW;
         END;
