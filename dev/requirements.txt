@@ -1,13 +1,19 @@
-autoflake==2.3.1
-black==25.12.0
+autoflake==2.3.3
+black==26.1.0
 flake8==7.3.0
-isort==7.0.0
+isort==8.0.0
+sqlfluff==4.0.4
 mypy==1.19.1
 pytest==9.0.2
 pyupgrade==3.21.2
 pyyaml==6.0.3
 simplejson==3.20.2
+debugpy==1.8.20
+requests==2.32.5
+psycopg[binary]==3.3.3
+python-sql==1.7.0
 
 # typing
 types-PyYAML==6.0.12.20250915
 types-simplejson==3.20.0.20250822
+types-requests==2.32.4.20260107
