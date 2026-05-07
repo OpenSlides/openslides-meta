@@ -41,6 +41,7 @@ class SchemaZoneTexts(TypedDict, total=False):
     create_trigger_1_1_relation_not_null: str
     create_trigger_1_n_relation_not_null: str
     create_trigger_n_m_relation_not_null: str
+    create_trigger_prevent_updates_code: str
     create_trigger_unique_ids_pair_code: str
     create_trigger_equal_fields_code: str
     create_trigger_notify: str
@@ -103,6 +104,7 @@ class GenerateCodeBlocks:
         str,
         str,
         str,
+        str,
         list[str],
     ]:
         """
@@ -122,6 +124,7 @@ class GenerateCodeBlocks:
           create_trigger_1_1_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_1_relation
           create_trigger_1_n_relation_not_null_code: Definitions of triggers calling check_not_null_for_1_n
           create_trigger_n_m_relation_not_null_code: Definitions of triggers calling check_not_null_for_n_m
+          create_trigger_prevent_updates_code: Definitions of triggers calling prevent_updates check
           create_trigger_unique_ids_pair_code: Definitions of triggers calling check_unique_ids_pair
           create_trigger_equal_fields_code: Definitions of triggers checking equal_fields
           create_trigger_notify_code: Definitions of triggers calling notify_modified_models
@@ -146,8 +149,10 @@ class GenerateCodeBlocks:
             "sequence_scope",
             # "on_delete", # must have other name then the key-value-store one
             "sql",
+            "log_triggers",
             "equal_fields",
             "unique",
+            "constant",
         }
         collection_meta_handled_attributes = {
             "unique_together",
@@ -161,6 +166,7 @@ class GenerateCodeBlocks:
         create_trigger_1_1_relation_not_null_code: str = ""
         create_trigger_1_n_relation_not_null_code: str = ""
         create_trigger_n_m_relation_not_null_code: str = ""
+        create_trigger_prevent_updates_code: str = ""
         create_trigger_unique_ids_pair_code: str = ""
         create_trigger_equal_fields_code: str = ""
         create_trigger_notify_code: str = ""
@@ -169,6 +175,14 @@ class GenerateCodeBlocks:
         missing_handled_collections_meta_attributes = set()
         im_table_code = ""
         errors: list[str] = []
+
+        for type_ in ["iu", "ud"]:
+            pre_code += (
+                Helper.LOG_CALCULATED_ID_ARRAY_TRIGGER_FUNCTION_TEMPLATE.substitute(
+                    cls.get_log_calculated_id_array_trigger_params(type_)
+                )
+            )
+        pre_code += Helper.FILE_TEMPLATE_CONSTANT_TRIGGERS
 
         for type_ in ["1_1", "1_n", "n_m"]:
             pre_code += Helper.NOT_NULL_TRIGGER_FUNCTION_TEMPLATE.substitute(
@@ -250,6 +264,8 @@ class GenerateCodeBlocks:
                 create_trigger_1_n_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_n_m_relation_not_null"]:
                 create_trigger_n_m_relation_not_null_code += code + "\n"
+            if code := schema_zone_texts["create_trigger_prevent_updates_code"]:
+                create_trigger_prevent_updates_code += code + "\n"
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
                 create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["create_trigger_equal_fields_code"]:
@@ -285,6 +301,7 @@ class GenerateCodeBlocks:
             create_trigger_1_1_relation_not_null_code,
             create_trigger_1_n_relation_not_null_code,
             create_trigger_n_m_relation_not_null_code,
+            create_trigger_prevent_updates_code,
             create_trigger_unique_ids_pair_code,
             create_trigger_equal_fields_code,
             create_trigger_notify_code,
@@ -427,6 +444,28 @@ class GenerateCodeBlocks:
             ),
         }
 
+    @staticmethod
+    def get_log_calculated_id_array_trigger_params(type_: str) -> dict[str, str]:
+        if type_ == "iu":
+            hstore_type = "new"
+            comment = "-- Value deletion on update is processed in after-trigger"
+        else:
+            hstore_type = "old"
+            comment = "-- Value adding on update is processed in before-trigger"
+        return {
+            "trigger_type": type_,
+            "changed_item_state": "added" if type_ == "iu" else "deleted",
+            "changed_item_state_phrase": (
+                "added to" if type_ == "iu" else "deleted from"
+            ),
+            "hstore_type": hstore_type,
+            "hstore": hstore_type.upper(),
+            "fetched_log_value_state": "old" if type_ == "iu" else "new",
+            "trigger_return_value": "NEW" if type_ == "iu" else "NULL",
+            "instance_state": "new" if type_ == "iu" else "deleted",
+            "comment": comment,
+        }
+
     @classmethod
     def get_method(
         cls, fname: str, fdata: dict[str, Any]
@@ -505,6 +544,10 @@ class GenerateCodeBlocks:
                     {"maxLength": 256, "field_name": fname, "table_name": table_name}
                 )
             subst["type"] = tmp
+        if fdata.get("constant"):
+            text["create_trigger_prevent_updates_code"] = (
+                cls.get_trigger_prevent_updates(table_name, fname)
+            )
         return text, subst
 
     @classmethod
@@ -678,6 +721,17 @@ class GenerateCodeBlocks:
                         )
             if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
+                text["create_trigger_notify"] = (
+                    "\n"
+                    + (
+                        Helper.get_log_calculated_id_array_trigger_definition(
+                            table_name,
+                            fname,
+                            fdata.get("log_triggers", {}),
+                        )
+                    )
+                    + "\n"
+                )
             else:
                 foreign_table_column = cast(str, foreign_table_field.column)
                 foreign_table_field_ref_id = cast(str, foreign_table_field.ref_column)
@@ -836,9 +890,12 @@ class GenerateCodeBlocks:
         cls, view_name: str, actual_field: str, depend_field: str
     ) -> str:
         table_name = HelperGetNames.get_table_name(view_name)
+        trigger_name = HelperGetNames.get_partitioned_sequence_trigger_name(
+            view_name, actual_field
+        )
         return dedent(f"""
             -- definition trigger generate partitioned sequence number for {table_name}.{actual_field} partitioned by {depend_field}
-            CREATE TRIGGER tr_generate_sequence_{view_name}_{actual_field} BEFORE INSERT ON {table_name}
+            CREATE TRIGGER {trigger_name} BEFORE INSERT ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION generate_sequence('{table_name}', '{actual_field}', '{depend_field}');
             """)
 
@@ -899,12 +956,18 @@ class GenerateCodeBlocks:
         intermediate_table_foreign_key = HelperGetNames.get_field_in_n_m_relation_list(
             foreign_table_field, own_table_field
         )
+        trigger_name_insert = HelperGetNames.get_not_null_rel_list_insert_trigger_name(
+            own_collection, own_column
+        )
+        trigger_name_delete = HelperGetNames.get_not_null_rel_list_delete_trigger_name(
+            own_collection, own_column
+        )
         return dedent(f"""
             -- definition trigger not null for {own_collection}.{own_column} against {foreign_collection}.{foreign_column} through {intermediate_table_name}
-            CREATE CONSTRAINT TRIGGER tr_i_{own_collection}_{own_column} AFTER INSERT ON {own_table} INITIALLY DEFERRED
+            CREATE CONSTRAINT TRIGGER {trigger_name_insert} AFTER INSERT ON {own_table} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}');
 
-            CREATE CONSTRAINT TRIGGER tr_d_{own_collection}_{own_column} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
+            CREATE CONSTRAINT TRIGGER {trigger_name_delete} AFTER DELETE ON {intermediate_table_name} INITIALLY DEFERRED
             FOR EACH ROW EXECUTE FUNCTION check_not_null_for_n_m('{intermediate_table_name}', '{own_table}', '{own_column}', '{intermediate_table_own_key}', '{intermediate_table_foreign_key}', '{foreign_collection}', '{foreign_column}');
 
             """)
@@ -917,11 +980,24 @@ class GenerateCodeBlocks:
         table_name: str,
     ) -> str:
         base_column_name = column[:-1]
+        trigger_name = HelperGetNames.get_unique_ids_trigger_name(view, column)
         return dedent(f"""
             -- definition trigger unique ids pair for {view}.{column}
-            CREATE TRIGGER restrict_{view}_{column} BEFORE INSERT OR UPDATE ON {table_name}
+            CREATE TRIGGER {trigger_name} BEFORE INSERT OR UPDATE ON {table_name}
             FOR EACH ROW EXECUTE FUNCTION check_unique_ids_pair('{base_column_name}');
 
+            """)
+
+    @staticmethod
+    def get_trigger_prevent_updates(collection_name: str, fname: str) -> str:
+        trigger_name = HelperGetNames.get_constant_field_trigger_name(
+            collection_name, fname
+        )
+        table_name = HelperGetNames.get_table_name(collection_name)
+        return dedent(f"""
+            -- definition trigger prevent_updates for {collection_name}.{fname}
+            CREATE TRIGGER {trigger_name} BEFORE UPDATE OF {fname} ON {table_name}
+            FOR EACH ROW EXECUTE FUNCTION prevent_updates('{collection_name}', '{fname}');
             """)
 
     @classmethod
@@ -954,32 +1030,32 @@ class GenerateCodeBlocks:
     @classmethod
     def get_equal_field_trigger_config(
         cls, table_field: TableFieldType, fields: list[TableFieldType | str]
-    ) -> tuple[str, bool]:
+    ) -> tuple[str, list[str]]:
         """
         Checks the configuration of the relation and returns:
         - The name of the table that should be used
         - If the field can be updated
         """
-        with_update = False
         collection = table_field.table
+        on_update_fields = []
         for field in fields:
             if isinstance(field, TableFieldType):
                 # Assume that these are always primary
                 field_def = field.field_def
-            elif collection == "user" and field == "meeting_id":
-                field_def = InternalHelper.get_models("meeting_user", "meeting_id")
+                field_name = field.column
             elif collection == "meeting" and field == "meeting_id":
                 field_def = None
             else:
                 field_def = InternalHelper.get_models(collection, field)
+                field_name = field
             if field_def and not field_def.get("constant"):
-                with_update = True
-        return HelperGetNames.get_table_name(table_field.table), with_update
+                on_update_fields.append(field_name)
+        return HelperGetNames.get_table_name(table_field.table), on_update_fields
 
     @classmethod
-    def get_event_string(cls, is_update: bool, fields: list[str]) -> str:
-        if is_update:
-            return f"INSERT OR UPDATE OF {', '.join(fields)}"
+    def get_event_string(cls, on_update_fields: list[str]) -> str:
+        if on_update_fields:
+            return f"INSERT OR UPDATE OF {', '.join(on_update_fields)}"
         else:
             return "INSERT"
 
@@ -994,14 +1070,12 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [own_table_field, equal_field]
             )
-            own_event_str = cls.get_event_string(
-                own_with_update, [own_table_field.column, equal_field]
-            )
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
             if (
                 "reference" in own_table_field.field_def
@@ -1014,31 +1088,17 @@ class GenerateCodeBlocks:
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column
             )
-            if foreign_table_field.table == "user" and equal_field == "meeting_id":
-                back_trigger_name = HelperGetNames.get_equal_field_back_trigger_name(
-                    equal_field, own_table, own_table_field.column
-                )
-                sql += dedent(f"""
-                    CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('{own_table_field.table}', '{own_table_field.column}', 'meeting_user_t');
-                    CREATE CONSTRAINT TRIGGER {back_trigger_name} AFTER DELETE ON meeting_user_t INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('{own_table_field.table}', '{own_table_field.column}');
+            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
+            foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+                equal_field, foreign_table, foreign_table_field.column
+            )
+            sql += dedent(f"""
+                CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
+                FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', FALSE);
+                CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
+                FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', TRUE);
 
-                """)
-            else:
-                foreign_event_str = cls.get_event_string(
-                    foreign_with_update, [equal_field]
-                )
-                foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
-                    equal_field, foreign_table, foreign_table_field.column
-                )
-                sql += dedent(f"""
-                    CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', FALSE);
-                    CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals('{own_table_field.table}', '{foreign_table_field.table}', '{own_table_field.column}', '{equal_field}', TRUE);
-
-                """)
+            """)
         return sql
 
     @classmethod
@@ -1053,17 +1113,15 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [equal_field]
             )
-            own_event_str = cls.get_event_string(own_with_update, [equal_field])
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
-            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
-            intermediate_event_str = cls.get_event_string(
-                True, [own_intermediate_field, foreign_intermediate_field]
-            )
+            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
+            intermediate_event_str = cls.get_event_string([])
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column
             )
@@ -1098,39 +1156,28 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [own_table_field, equal_field]
             )
-            own_event_str = cls.get_event_string(
-                own_with_update, [equal_field, specified_relation_field]
-            )
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, specified_relation_field
             )
-            if foreign_table_field.table == "user" and equal_field == "meeting_id":
-                back_trigger_name = HelperGetNames.get_equal_field_back_trigger_name(
-                    equal_field, own_table, specified_relation_field
-                )
-                sql += dedent(f"""
-                    CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_user('{own_table_field.table}', '{specified_relation_field}', 'meeting_user_t');
-                    CREATE CONSTRAINT TRIGGER {back_trigger_name} AFTER DELETE ON meeting_user_t INITIALLY DEFERRED
-                    FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete('{own_table_field.table}', '{specified_relation_field}');
-
-                """)
-            elif foreign_table_field.table == "meeting" and equal_field == "meeting_id":
+            if (
+                foreign_table_field.table == "meeting"
+                and equal_field == "meeting_id"
+                and "meeting_id" not in InternalHelper.MODELS["meeting"]["fields"]
+            ):
                 sql += dedent(f"""
                     CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
                     FOR EACH ROW EXECUTE FUNCTION check_equals_meeting_id_for_meeting('{own_table_field.table}', '{specified_relation_field}');
 
                 """)
             else:
-                foreign_event_str = cls.get_event_string(
-                    foreign_with_update, [equal_field]
-                )
+                foreign_event_str = cls.get_event_string(foreign_on_update_fields)
                 foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                     equal_field, foreign_table, foreign_table_field.column
                 )
@@ -1155,17 +1202,15 @@ class GenerateCodeBlocks:
         equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
-            own_table, own_with_update = cls.get_equal_field_trigger_config(
+            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
                 own_table_field, [equal_field]
             )
-            own_event_str = cls.get_event_string(own_with_update, [equal_field])
-            foreign_table, foreign_with_update = cls.get_equal_field_trigger_config(
-                foreign_table_field, [equal_field]
+            own_event_str = cls.get_event_string(own_on_update_fields)
+            foreign_table, foreign_on_update_fields = (
+                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
             )
-            foreign_event_str = cls.get_event_string(foreign_with_update, [equal_field])
-            intermediate_event_str = cls.get_event_string(
-                True, [own_intermediate_field, foreign_intermediate_field]
-            )
+            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
+            intermediate_event_str = cls.get_event_string([])
             own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
                 equal_field, own_table, own_table_field.column, foreign_table
             )
@@ -1372,6 +1417,24 @@ class Helper:
         $sequences_trigger$
         LANGUAGE plpgsql;
 
+        CREATE TABLE os_notify_log_t (
+            id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+            operation varchar(32),
+            fqid varchar(256) NOT NULL,
+            updated_fields varchar(63)[],
+            xact_id xid8,
+            timestamp timestamptz,
+            CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
+        );
+
+        CREATE TABLE version (
+            migration_index INTEGER PRIMARY KEY,
+            migration_state TEXT,
+            replace_tables JSONB
+        );
+
+        -- Log functions
+
         CREATE OR REPLACE PROCEDURE log_field_change(
             operation_var TEXT,
             fqid_var TEXT,
@@ -1423,39 +1486,6 @@ class Helper:
             RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $log_modified_trigger$ LANGUAGE plpgsql;
-
-        CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
-        BEGIN
-            PERFORM now() AT TIME ZONE tz;
-            RETURN TRUE;
-        EXCEPTION WHEN invalid_parameter_value THEN
-            RETURN FALSE;
-        END;
-        $$ language plpgsql STABLE;
-
-        CREATE FUNCTION check_unique_ids_pair()
-        RETURNS trigger
-        AS $unique_ids_pair_trigger$
-        -- usage with 1 parameter IN TRIGGER DEFINITION:
-        -- base_column_name: name of write fields before adding numeric suffixes
-        -- Guards against mirrored duplicates by skipping one of the pairs.
-        DECLARE
-            base_column_name text;
-            value_1 integer;
-            value_2 integer;
-        BEGIN
-            base_column_name := TG_ARGV[0];
-            value_1 := hstore(NEW) -> (base_column_name || '_1');
-            value_2 := hstore(NEW) -> (base_column_name || '_2');
-
-            IF (value_1 > value_2) THEN
-                RETURN NULL;
-            END IF;
-
-            RETURN NEW;
-        END;
-        $unique_ids_pair_trigger$
-        LANGUAGE plpgsql;
 
         CREATE FUNCTION notify_transaction_end() RETURNS trigger AS $notify_trigger$
         DECLARE
@@ -1524,28 +1554,66 @@ class Helper:
             RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
         END;
         $log_modified_related_trigger$ LANGUAGE plpgsql;
+    """)
+    FILE_TEMPLATE_CONSTANT_TRIGGERS = dedent("""
+        -- Validation triggers
 
-        CREATE TABLE os_notify_log_t (
-            id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-            operation varchar(32),
-            fqid varchar(256) NOT NULL,
-            updated_fields varchar(63)[],
-            xact_id xid8,
-            timestamp timestamptz,
-            CONSTRAINT unique_fqid_xact_id_operation UNIQUE (operation,fqid,xact_id)
-        );
+        CREATE OR REPLACE FUNCTION is_timezone( tz TEXT ) RETURNS BOOLEAN as $$
+        DECLARE
+            is_valid BOOLEAN;
+        BEGIN
+            IF tz IS NULL THEN
+                RETURN TRUE;
+            END IF;
 
-        CREATE TABLE version (
-            migration_index INTEGER PRIMARY KEY,
-            migration_state TEXT,
-            replace_tables JSONB
-        );
+            SELECT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name=tz) INTO is_valid;
+            RETURN is_valid;
+        END;
+        $$ language plpgsql STABLE;
+
+        CREATE FUNCTION check_unique_ids_pair()
+        RETURNS trigger
+        AS $unique_ids_pair_trigger$
+        -- usage with 1 parameter IN TRIGGER DEFINITION:
+        -- base_column_name: name of write fields before adding numeric suffixes
+        -- Guards against mirrored duplicates by skipping one of the pairs.
+        DECLARE
+            base_column_name text;
+            value_1 integer;
+            value_2 integer;
+        BEGIN
+            base_column_name := TG_ARGV[0];
+            value_1 := hstore(NEW) -> (base_column_name || '_1');
+            value_2 := hstore(NEW) -> (base_column_name || '_2');
+
+            IF (value_1 > value_2) THEN
+                RETURN NULL;
+            END IF;
+
+            RETURN NEW;
+        END;
+        $unique_ids_pair_trigger$
+        LANGUAGE plpgsql;
 
         CREATE OR REPLACE FUNCTION prevent_writes() RETURNS trigger AS $read_only_trigger$
         BEGIN
             RAISE EXCEPTION 'Table % is currently read-only.', TG_TABLE_NAME;
         END;
         $read_only_trigger$ LANGUAGE plpgsql;
+
+        CREATE OR REPLACE FUNCTION prevent_updates() RETURNS trigger AS $constant_field_trigger$
+        DECLARE
+            collection TEXT := TG_ARGV[0];
+            constant_column TEXT := TG_ARGV[1];
+            old_value TEXT := hstore(OLD) -> constant_column;
+            new_value TEXT := hstore(NEW) -> constant_column;
+        BEGIN
+            IF old_value IS DISTINCT FROM new_value THEN
+                RAISE EXCEPTION 'Constant value constraint violated for %/%: % can not be updated.', collection, NEW.id, constant_column;
+            END IF;
+            RETURN NEW;
+        END;
+        $constant_field_trigger$ LANGUAGE plpgsql;
 
         CREATE OR REPLACE FUNCTION raise_equality_exception_conditionally(check_column TEXT, ref_column TEXT, own_collection TEXT, own_id INTEGER, own_equal_val TEXT, foreign_collection TEXT, foreign_id INTEGER, foreign_equal_val TEXT)
         RETURNS void AS $equality_exception$
@@ -1784,112 +1852,6 @@ class Helper:
         END;
         $check_equals_intermediate_trigger$ LANGUAGE plpgsql;
 
-        -- expects in this order:
-        -- * own table name (i.e. name of table that isn't user),
-        -- * user relation field in said table for which the check was triggered
-        -- * the name of the meeting_user table (necessary for migrations)
-        -- checks if meeting_id of NEW is equal to meeting_id of connected user,
-        -- which is grandfathered in from whichever meeting_user connects that user to that meeting.
-        CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_user()
-        RETURNS trigger AS $check_equals_meeting_id_for_user_trigger$
-        DECLARE
-            ref_column TEXT;
-            user_id INTEGER;
-            user_equal_val TEXT;
-            own_id INTEGER;
-            own_equal_val TEXT;
-            own_collection TEXT;
-            muser_table_identifier TEXT;
-            i INTEGER := 0;
-        BEGIN
-
-            WHILE i < TG_NARGS LOOP
-                own_collection := TG_ARGV[i];
-                ref_column := TG_ARGV[i+1];
-                muser_table_identifier := TG_ARGV[i+2];
-                EXECUTE format(
-                    'SELECT ($1).id, ($1).meeting_id, ($1).%I',
-                    ref_column
-                ) INTO own_id, own_equal_val, user_id USING NEW;
-                EXECUTE format(
-                    'SELECT meeting_id
-                    FROM %I
-                    WHERE user_id = %L AND meeting_id = %L',
-                    muser_table_identifier,
-                    user_id,
-                    own_equal_val
-                ) INTO user_equal_val;
-
-                PERFORM raise_equality_exception_conditionally(
-                    'meeting_id',
-                    ref_column,
-                    own_collection,
-                    own_id,
-                    own_equal_val,
-                    'user',
-                    user_id,
-                    user_equal_val
-                );
-
-                i := i + 3;
-            END LOOP;
-
-            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
-        END;
-        $check_equals_meeting_id_for_user_trigger$ LANGUAGE plpgsql;
-
-        -- called on meeting_user delete.
-        -- expects in this order:
-        -- * own table name (i.e. name of table that isn't user),
-        -- * user relation field in said table for which the check was triggered
-        -- Checks if the other table has any row with the same meeting_id pointing to that user.
-        CREATE OR REPLACE FUNCTION check_equals_meeting_id_user_on_meeting_user_delete()
-        RETURNS trigger AS $check_equals_meeting_id_user_on_meeting_user_delete_trigger$
-        DECLARE
-            ref_column TEXT;
-            foreign_id INTEGER;
-            foreign_equal_val TEXT;
-            own_id INTEGER;
-            own_equal_val TEXT;
-            own_collection TEXT;
-            i INTEGER := 0;
-        BEGIN
-            WHILE i < TG_NARGS LOOP
-                own_collection := TG_ARGV[i];
-                ref_column := TG_ARGV[i+1];
-                EXECUTE format(
-                    'SELECT ($1).user_id, ($1).meeting_id'
-                ) INTO foreign_id, foreign_equal_val USING OLD;
-                FOR own_id, own_equal_val in EXECUTE format(
-                    'SELECT id, meeting_id
-                    FROM %I
-                    WHERE %I = %L AND meeting_id = %L',
-                    own_collection,
-                    ref_column,
-                    foreign_id,
-                    foreign_equal_val
-                ) LOOP
-                    IF own_id IS NOT NULL THEN
-                        PERFORM raise_equality_exception_conditionally(
-                            'meeting_id',
-                            ref_column,
-                            own_collection,
-                            own_id,
-                            own_equal_val,
-                            'user',
-                            foreign_id,
-                            NULL
-                        );
-                    END IF;
-                END LOOP;
-
-                i := i + 2;
-            END LOOP;
-
-            RETURN NULL;  -- returning NULL because AFTER TRIGGER return value is ignored
-        END;
-        $check_equals_meeting_id_user_on_meeting_user_delete_trigger$ LANGUAGE plpgsql;
-
         CREATE OR REPLACE FUNCTION check_equals_meeting_id_for_meeting()
         RETURNS trigger AS $check_equals_meeting_id_for_meeting$
         DECLARE
@@ -1929,6 +1891,66 @@ class Helper:
         $check_equals_meeting_id_for_meeting$ LANGUAGE plpgsql;
 
         """)
+    LOG_CALCULATED_ID_ARRAY_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
+            CREATE OR REPLACE FUNCTION log_${trigger_type}_modified_calculated_id_array_field()
+            RETURNS trigger AS $$log_modified_calculated_id_array_field_trigger$$
+            -- Expects in this order:
+            -- 0. log_collection – Target collection for the log entry
+            -- 1. log_collection_id_column – Column used to fetch the 'log_collection' id
+            --    (ignored if 'log_collection_id_sql' is provided => may be NULL)
+            -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
+            -- 3. log_field – Field to be logged
+            -- 4. ${changed_item_state}_item_column – Column used to fetch the value ${changed_item_state_phrase} 'log_field'
+            --    (ignored if '${changed_item_state}_item_sql' is provided => may be NULL)
+            -- 5. ${changed_item_state}_item_sql – Custom SQL to fetch the value ${changed_item_state_phrase} 'log_field'
+            DECLARE
+                log_collection TEXT := TG_ARGV[0];
+                log_collection_id_column TEXT := TG_ARGV[1];
+                log_collection_id_sql TEXT := TG_ARGV[2];
+                log_field TEXT := TG_ARGV[3];
+                ${changed_item_state}_item_column TEXT := TG_ARGV[4];
+                ${changed_item_state}_item_sql TEXT := TG_ARGV[5];
+
+                ${hstore_type}_hstore hstore := hstore(${hstore});
+                log_collection_id INTEGER;
+                ${changed_item_state}_item INTEGER;
+                ${fetched_log_value_state}_log_field_value INTEGER[];
+                fqid_var TEXT;
+            BEGIN
+                -- No related log_collection instance -> return
+                IF (log_collection_id_sql <> '') THEN
+                    EXECUTE log_collection_id_sql INTO log_collection_id USING ${hstore};
+                ELSE
+                    log_collection_id := ${hstore_type}_hstore -> log_collection_id_column;
+                END IF;
+
+                IF log_collection_id IS NULL THEN
+                    RETURN ${trigger_return_value};
+                END IF;
+
+                -- No value in column used for log_field -> return
+                ${comment}
+                IF (${changed_item_state}_item_sql <> '') THEN
+                    EXECUTE ${changed_item_state}_item_sql INTO ${changed_item_state}_item USING ${hstore};
+                ELSE
+                    ${changed_item_state}_item := ${hstore_type}_hstore -> ${changed_item_state}_item_column;
+                END IF;
+
+                IF ${changed_item_state}_item IS NULL THEN
+                    RETURN ${trigger_return_value};
+                END IF;
+
+                -- Add log entry only if log_field value actually changes
+                EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO ${fetched_log_value_state}_log_field_value;
+                IF ${fetched_log_value_state}_log_field_value IS NULL OR NOT (${changed_item_state}_item = ANY(${fetched_log_value_state}_log_field_value)) THEN
+                    fqid_var := log_collection || '/' || log_collection_id;
+                    CALL log_field_change('update', fqid_var, ARRAY[log_field]);
+                END IF;
+
+                RETURN ${trigger_return_value};
+            END;
+            $$log_modified_calculated_id_array_field_trigger$$ LANGUAGE plpgsql;
+        """))
     NOT_NULL_TRIGGER_FUNCTION_TEMPLATE = string.Template(dedent("""
             CREATE FUNCTION check_not_null_for_${trigger_type}() RETURNS trigger AS $$not_null_trigger$$
             ${docstring}
@@ -2279,6 +2301,75 @@ class Helper:
         own_table = HelperGetNames.get_table_name(table_name)
         return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}', '{updated_field}');\n"""
+
+    @staticmethod
+    def get_log_calculated_id_array_trigger_definition(
+        view_name: str,
+        log_field: str,
+        log_triggers: list[dict[str, str]],
+    ) -> str:
+        TRIGGER_TEMPLATE = string.Template(dedent("""\
+            CREATE TRIGGER ${trigger_name} ${trigger_operations} ON ${on_table}
+            FOR EACH ROW EXECUTE FUNCTION log_${trigger_type}_modified_calculated_id_array_field('${view_name}', '${log_collection_id_column}', '${log_collection_id_sql}', '${log_field}', '${log_value_column}', '${log_value_sql}');
+            """))
+        processed_tables: dict[str, int] = {}
+        parts: list[str] = []
+
+        subst_base = {
+            "view_name": view_name,
+            "log_field": log_field,
+        }
+
+        for log_trigger in log_triggers:
+            on_table = log_trigger["on_table"]
+            on_columns = log_trigger.get("on_columns")
+
+            if on_table not in processed_tables:
+                processed_tables[on_table] = 1
+                unique_index = None
+            else:
+                processed_tables[on_table] += 1
+                unique_index = processed_tables[on_table]
+
+            trigger_columns_iu = f" OR UPDATE OF {on_columns}" if on_columns else ""
+            trigger_columns_ud = f" UPDATE OF {on_columns} OR" if on_columns else ""
+            trigger_name_iu, trigger_name_ud = (
+                HelperGetNames.get_log_calculated_id_array_trigger_names(
+                    view_name, log_field, on_table, bool(on_columns), unique_index
+                )
+            )
+
+            subst_common = {
+                **subst_base,
+                **{
+                    attr: (log_trigger.get(attr) or "")
+                    for attr in [
+                        "log_collection_id_sql",
+                        "log_collection_id_column",
+                        "log_value_sql",
+                        "log_value_column",
+                    ]
+                },
+                "on_table": on_table,
+            }
+            subst_iu = {
+                **subst_common,
+                "trigger_type": "iu",
+                "trigger_name": trigger_name_iu,
+                "trigger_operations": f"BEFORE INSERT{trigger_columns_iu}",
+            }
+
+            subst_ud = {
+                **subst_common,
+                "trigger_type": "ud",
+                "trigger_name": trigger_name_ud,
+                "trigger_operations": f"AFTER{trigger_columns_ud} DELETE",
+            }
+
+            parts.append(TRIGGER_TEMPLATE.substitute(subst_iu))
+            parts.append(TRIGGER_TEMPLATE.substitute(subst_ud))
+
+        return "".join(parts)
 
     @staticmethod
     def get_nm_table_for_n_m_relation_lists(
@@ -2762,6 +2853,7 @@ def main() -> None:
         create_trigger_1_1_relation_not_null_code,
         create_trigger_1_n_relation_not_null_code,
         create_trigger_n_m_relation_not_null_code,
+        create_trigger_prevent_updates_code,
         create_trigger_unique_ids_pair_code,
         create_trigger_equal_fields_code,
         create_trigger_notify_code,
@@ -2797,6 +2889,8 @@ def main() -> None:
             "\n\n-- Create triggers checking foreign_ids not null for n:m relationships\n"
         )
         dest.write(create_trigger_n_m_relation_not_null_code)
+        dest.write("\n\n-- Create triggers for constant fields\n")
+        dest.write(create_trigger_prevent_updates_code)
         dest.write(
             "\n\n-- Create triggers preventing mirrored duplicates in fields referencing themselves\n"
         )
