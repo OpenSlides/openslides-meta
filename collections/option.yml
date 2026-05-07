@@ -1,6 +1,5 @@
 unique_together:
 - content_object_id, poll_id
-- text, poll_id
 
 fields:
   id:
@@ -36,10 +35,9 @@ fields:
   used_as_global_option_in_poll_id:
     type: relation
     to: poll/global_option_id
-    reference: poll
     equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_legacy: true
   vote_ids:
     type: relation-list
     to: vote/option_id
@@ -57,9 +55,8 @@ fields:
     - motion
     - user
     - poll_candidate_list
-    equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_legacy: true
   meeting_id:
     type: relation
     to: meeting/option_ids

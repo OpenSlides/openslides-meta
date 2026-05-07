@@ -1,4 +1,4 @@
-unique_together:
+unique_together_strict:
 - title, parent_id, owner_id
 
 fields:
@@ -12,6 +12,7 @@ fields:
     type: string
     description: Title and parent_id must be unique.
     restriction_mode: A
+    required: true
   is_directory:
     type: boolean
     restriction_mode: A

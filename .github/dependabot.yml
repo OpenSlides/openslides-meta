@@ -6,6 +6,31 @@ updates:
       interval: "daily"
     assignees:
       - "luisa-beerboom"
+    groups:
+      code-style-depedencies:
+        patterns:
+          - "autoflake"
+          - "black"
+          - "debugpy"
+          - "flake8"
+          - "isort"
+          - "mypy"
+          - "pyupgrade"
+      web-dependencies:
+        patterns:
+          - "requests"
+          - "types-requests"
+      database-dependencies:
+        patterns:
+          - "psycopg*"
+          - "python-sql"
+          - "sqlfluff"
+      general-dependencies:
+        patterns:
+          - "pyyaml"
+          - "simplejson"
+          - "types-PyYAML"
+          - "types-simplejson"
 
   - package-ecosystem: "github-actions"
     directory: "/"

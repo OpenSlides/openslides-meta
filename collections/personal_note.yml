@@ -32,6 +32,7 @@ fields:
       - motion
       field: personal_note_ids
     equal_fields: meeting_id
+    required: true
     restriction_mode: A
     constant: true
   meeting_id:

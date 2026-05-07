@@ -18,7 +18,7 @@ fields:
     reference: meeting_user
     to: meeting_user/chat_message_ids
     restriction_mode: A
-    constant: true
+    constant_legacy: true
   chat_group_id:
     type: relation
     reference: chat_group

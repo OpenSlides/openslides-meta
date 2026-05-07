@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 from collections import defaultdict
@@ -61,6 +62,7 @@ OPTIONAL_ATTRIBUTES = (
     "required",
     "read_only",
     "constant",
+    "constant_legacy",
     "unique",
     "sequence_scope",
 )
@@ -81,11 +83,10 @@ class Checker:
         meta_path = Path(DEFAULT_COLLECTION_META)
         collections_path = Path(collections_dir)
 
-        meta_text = ["_meta:\n"]
-        meta_text.extend(
-            f"  {line}"
-            for line in Path(meta_path).read_text().splitlines(keepends=True)
-        )
+        with open(meta_path, "rb") as f:
+            self.shared_enum_definitions = yaml.safe_load(f.read()).get(
+                "enum_definitions", {}
+            )
 
         if not collections_path.exists():
             raise CheckException(
@@ -104,12 +105,8 @@ class Checker:
 
         for yaml_file in yaml_files:
             try:
-                yaml_content = meta_text.copy() + [f"{yaml_file.stem}:\n"]
-                yaml_content.extend(
-                    f"  {line}"
-                    for line in Path(yaml_file).read_text().splitlines(keepends=True)
-                )
-                data = yaml.safe_load("".join(yaml_content))
+                with open(yaml_file, "rb") as f:
+                    data = yaml.safe_load(f.read())
 
                 if not isinstance(data, dict):
                     self.errors.append(
@@ -117,7 +114,7 @@ class Checker:
                     )
                     continue
 
-                for attr, value in data[yaml_file.stem].items():
+                for attr, value in data.items():
                     if attr == "fields":
                         self.models[yaml_file.stem] = value
                     else:
@@ -174,8 +171,8 @@ class Checker:
                     self.errors.append(error)
         for collection, data in self.meta_data.items():
             for attr, values in data.items():
-                if attr == "unique_together":
-                    self.check_unique_together(collection, values)
+                if attr in ["unique_together", "unique_together_strict"]:
+                    self.check_unique_together(collection, values, attr)
 
     def check_field(
         self,
@@ -236,13 +233,31 @@ class Checker:
         valid_attributes = list(OPTIONAL_ATTRIBUTES) + required_attributes
         if type in ["string[]", "text[]"]:
             valid_attributes.append("items")
-            if "items" in field and "enum" not in field["items"]:
-                self.errors.append(
-                    f"'items' is missing an inner 'enum' for {collectionfield}"
-                )
-                return
-            for value in field.get("items", {"enum": []})["enum"]:
-                self.validate_value_for_type("string", value, collectionfield)
+            if "items" in field:
+                if "enum" in field["items"]:
+                    if shared_enum := self.validate_enum(
+                        collectionfield, field["items"]["enum"]
+                    ):
+                        field["items"]["enum"] = shared_enum
+
+                    if "default" in field:
+                        if isinstance(field["items"]["enum"], list) and (
+                            invalid_values := [
+                                item
+                                for item in field["default"]
+                                if item not in field["items"]["enum"]
+                            ]
+                        ):
+                            self.errors.append(
+                                f"some default values for {collectionfield} are not "
+                                f"found in 'enum' for the field: {invalid_values}. "
+                                f"Allowed values are: {field['items']['enum']}."
+                            )
+
+                else:
+                    self.errors.append(
+                        f"'items' is missing an inner 'enum' for {collectionfield}"
+                    )
         if type == "JSON" and "default" in field:
             try:
                 json.loads(json.dumps(field["default"]))
@@ -251,26 +266,51 @@ class Checker:
                     f"Default value for {collectionfield}' is not valid json."
                 )
         if type in ("number", "float", "decimal(6)"):
-            valid_attributes.append("minimum")
-            if "minimum" in field:
-                self.validate_value_for_type(type, field["minimum"], collectionfield)
+            valid_attributes.extend(["minimum", "maximum"])
+            for attr in ["minimum", "maximum"]:
+                if attr in field:
+                    self.validate_value_for_type(type, field[attr], collectionfield)
+            if "minimum" in field and "maximum" in field:
+                if field["minimum"] > field["maximum"]:
+                    self.errors.append(
+                        f"Incorrect 'maximum' and 'minimum' values for {collectionfield}: 'maximum' ({field['maximum']}) must be bigger or equal to 'minimum' ({field['minimum']})."
+                    )
+            if "default" in field:
+                base_error_message = f"incorrect 'default' value for {collectionfield}: {field['default']}. Allowed"
+                for attr, comparison_func in (
+                    ("minimum", lambda a, b: a < b),
+                    ("maximum", lambda a, b: a > b),
+                ):
+                    if attr in field and comparison_func(field["default"], field[attr]):
+                        self.errors.append(
+                            f"{base_error_message} {attr} is {field[attr]}."
+                        )
         if type in ("string", "text"):
+            valid_attributes.append("enum")
+            if "enum" in field:
+                if shared_enum := self.validate_enum(collectionfield, field["enum"]):
+                    field["enum"] = shared_enum
             for attr in ("minLength", "maxLength"):
                 valid_attributes.append(attr)
                 if not isinstance(field.get("maxLength", 0), int):
                     self.errors.append(
                         f"'maxLength' for {collectionfield} is not a number."
                     )
+            if (
+                "default" in field
+                and "enum" in field
+                and isinstance(field["enum"], list)
+                and not field["default"] in field["enum"]
+            ):
+                self.errors.append(
+                    f"default value '{field['default']}' for {collectionfield} is not "
+                    f"found in 'enum' for the field. Allowed values are: {field['enum']}."
+                )
+
         if type in DATA_TYPES:
             valid_attributes.append("default")
             if "default" in field:
                 self.validate_value_for_type(type, field["default"], collectionfield)
-            valid_attributes.append("enum")
-            if "enum" in field:
-                if not isinstance(field["enum"], list):
-                    self.errors.append(f"'enum' for {collectionfield} is not a list.")
-                for value in field["enum"]:
-                    self.validate_value_for_type(type, value, collectionfield)
 
         if type in RELATION_TYPES:
             valid_attributes.append("on_delete")
@@ -285,6 +325,9 @@ class Checker:
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
             valid_attributes.extend(("reference", "deferred", "sql"))
+            if field.get("sql"):
+                valid_attributes.append("log_triggers")
+                self.check_log_triggers(collectionfield, field)
             if "default" in field and field_name == "organization_id":
                 # added as a workaround to allow defaulting to the ONE_ORGANIZATION
                 print(f"Default in {collection}/{field_name} temporarily allowed.")
@@ -299,10 +342,12 @@ class Checker:
         if not isinstance(field.get("description", ""), str):
             self.errors.append(f"Description of {collectionfield} must be a string.")
 
-    def check_unique_together(self, collection: str, constraints: Any) -> None:
+    def check_unique_together(
+        self, collection: str, constraints: Any, attr_name: str
+    ) -> None:
         if not isinstance(constraints, list):
             self.errors.append(
-                f"Collection '{collection}': attribute unique_together must be a list."
+                f"Collection '{collection}': attribute {attr_name} must be a list."
             )
             return
 
@@ -311,7 +356,7 @@ class Checker:
             field_names = [name.strip() for name in constraint.split(",")]
             if len(field_names) < 2:
                 self.errors.append(
-                    f"Invalid value '{constraint}' for unique_together constraint of '{collection}': at least 2 fields must be defined."
+                    f"Invalid value '{constraint}' for {attr_name} constraint of '{collection}': at least 2 fields must be defined."
                 )
             invalid_field_names = []
             for field_name in field_names:
@@ -320,11 +365,11 @@ class Checker:
                 else:
                     if collection_data[field_name].get("unique"):
                         self.errors.append(
-                            f"Field '{field_name}' can not be used in a unique_together constraint for collection '{collection}' because it has 'unique: true'."
+                            f"Field '{field_name}' can not be used in a {attr_name} constraint for collection '{collection}' because it has 'unique: true'."
                         )
             if invalid_field_names:
                 self.errors.append(
-                    f"Some fields from the unique_together constraint '{constraint}' don't exist in the collection '{collection}': {', '.join(invalid_field_names)}."
+                    f"Some fields from the constraint '{attr_name}' don't exist in the collection '{collection}': {', '.join(invalid_field_names)}."
                 )
 
     def validate_value_for_type(
@@ -383,12 +428,12 @@ class Checker:
         if isinstance(to, str):
             if not COLLECTIONFIELD_REGEX.match(to):
                 return f"'to' of {collectionfield} is not a collectionfield."
-            return self.check_reverse(collectionfield, to)
+            return self.check_reverse(collectionfield, field, to)
         elif isinstance(to, list):
             for cf in to:
                 if not COLLECTIONFIELD_REGEX.match(cf):
                     return f"The collectionfield in 'to' of {collectionfield} is not valid."
-                error = self.check_reverse(collectionfield, cf)
+                error = self.check_reverse(collectionfield, field, cf)
                 if error:
                     return error
         else:
@@ -403,14 +448,82 @@ class Checker:
                         f"The collection '{c}' in 'to' of {collectionfield} is not a valid collection."
                     )
                 error = self.check_reverse(
-                    collectionfield, f"{c}{KEYSEPARATOR}{to['field']}"
+                    collectionfield, field, f"{c}{KEYSEPARATOR}{to['field']}"
                 )
                 if error:
                     return error
         return None
 
+    def setify_equal_fields(self, field_def: dict[str, Any]) -> set[str]:
+        if isinstance(to_list := field_def.get("equal_fields"), list):
+            return set(to_list)
+        elif to_list is None:
+            return set()
+        else:
+            return {to_list}
+
+    def check_equal_fields(
+        self,
+        to_collection: str,
+        to_collectionfield: str,
+        to_field: dict[str, Any],
+        from_collection: str,
+        from_collectionfield: str,
+        from_field: dict[str, Any],
+    ) -> None:
+        for collection_field, field in {
+            to_collectionfield: to_field,
+            from_collectionfield: from_field,
+        }.items():
+            if equal_fields := field.get("equal_fields"):
+                if not (
+                    isinstance(equal_fields, str)
+                    or (
+                        isinstance(equal_fields, list)
+                        and all(isinstance(val, str) for val in equal_fields)
+                    )
+                ):
+                    self.errors.append(
+                        f"'equal_fields' of {collection_field} is not valid (must be string or list of strings)."
+                    )
+                    return
+        joined_eq_fields = self.setify_equal_fields(to_field).union(
+            self.setify_equal_fields(from_field)
+        )
+        if joined_eq_fields:
+            for collectionfield, (collection, field, other_field) in {
+                to_collectionfield: (to_collection, to_field, from_field),
+                from_collectionfield: (from_collection, from_field, to_field),
+            }.items():
+                if (
+                    not (
+                        other_field["type"] == "relation"
+                        or other_field["type"] == "generic-relation"
+                    )
+                    and collection == "user"
+                    and "meeting_id" in joined_eq_fields
+                ):
+                    self.errors.append(
+                        f"user/meeting_id handling not implemented for {collectionfield}"
+                    )
+                if (
+                    other_field["type"] != "generic-relation"
+                    and collection == "meeting"
+                    and "meeting_id" in joined_eq_fields
+                ):
+                    self.errors.append(
+                        f"meeting/meeting_id handling not implemented for {collectionfield}"
+                    )
+                if "sql" in field:
+                    self.errors.append(
+                        f"{collectionfield}: Cannot generate equal_fields triggers for sql fields"
+                    )
+
     def check_reverse(
-        self, from_collectionfield: str, to_collectionfield: str
+        self,
+        from_collectionfield: str,
+        from_field: dict[str, Any],
+        to_collectionfield: str,
     ) -> str | None:
         to_unified = []  # a list of target collectionfields (unififed with all
         # the different possibilities for the 'to' field) from the (expected)
@@ -418,6 +531,7 @@ class Checker:
         # list.
 
         to_collection, to_field_name = to_collectionfield.split(KEYSEPARATOR)
+        from_collection = from_collectionfield.split(KEYSEPARATOR)[0]
         if to_collection not in self.models:
             return f"The collection '{to_collection}' in 'to' of {from_collectionfield} is not a valid collection."
         if to_field_name not in self.models[to_collection]:
@@ -426,6 +540,23 @@ class Checker:
         to_field = self.models[to_collection][to_field_name]
         if to_field["type"] not in RELATION_TYPES:
             return f"{from_collectionfield} points to {to_collectionfield}, but {to_collectionfield} to is not a relation."
+        self.check_equal_fields(
+            from_collection,
+            from_collectionfield,
+            from_field,
+            to_collection,
+            to_collectionfield,
+            to_field,
+        )
+        if all(
+            [
+                "reference" in field and field["type"] == "relation"
+                for field in [to_field, from_field]
+            ]
+        ):
+            self.errors.append(
+                f"The relation fields {from_collectionfield} and {to_collectionfield} both have reference set."
+            )
 
         to = to_field["to"]
         if isinstance(to, str):
@@ -438,6 +569,98 @@ class Checker:
 
         if from_collectionfield not in to_unified:
             return f"{from_collectionfield} points to {to_collectionfield}, but {to_collectionfield} does not point back."
+        return None
+
+    def check_log_triggers(self, collectionfield: str, field: dict[str, str]) -> None:
+        if not (log_triggers := field.get("log_triggers")):
+            self.errors.append(
+                f"For {collectionfield} 'log_triggers' attribute must be defined because it has 'sql' attribute."
+            )
+            return
+        elif not isinstance(log_triggers, list):
+            self.errors.append(
+                f"Invalid value for 'log_triggers' of {collectionfield}: must be a list of dictionaries."
+            )
+            return
+
+        valid_attributes = [
+            "on_table",
+            "on_columns",
+            "log_collection_id_column",
+            "log_collection_id_sql",
+            "log_value_column",
+            "log_value_sql",
+        ]
+        for i in range(len(log_triggers)):
+            base_error_message = f"Error in item {i} of {collectionfield}.log_triggers"
+            log_trigger = log_triggers[i]
+            if not isinstance(log_trigger, dict):
+                self.errors.append(f"{base_error_message}: must be a dictionary.")
+                continue
+            if not (on_table := log_trigger.get("on_table")):
+                self.errors.append(
+                    f"{base_error_message}: missing a required attribute 'on_table'."
+                )
+            elif not on_table.endswith("_t"):
+                self.errors.append(
+                    f"{base_error_message}: '{on_table}' is not a valid value for 'on_table' (must end with '_t')."
+                )
+
+            for base_attr_name in ["log_collection_id", "log_value"]:
+                values_present = [
+                    bool(log_trigger.get(f"{base_attr_name}_{option}"))
+                    for option in ["column", "sql"]
+                ]
+                if not any(values_present):
+                    self.errors.append(
+                        f"{base_error_message}: either '{base_attr_name}_sql' or '{base_attr_name}_column' must be defined."
+                    )
+                elif all(values_present):
+                    print(
+                        f"For for item {i} of {collectionfield}.log_triggers value in '{base_attr_name}_column' will be ignored because '{base_attr_name}_sql' is defined."
+                    )
+
+            for attr in log_trigger.keys():
+                if attr not in valid_attributes:
+                    self.errors.append(
+                        f"{base_error_message}: attribute '{attr}' is invalid."
+                    )
+
+    def validate_enum(self, collectionfield: str, enum: Any) -> list[str] | None:
+        """
+        Checks that the given `enum` value is valid. If `enum` is a name of a valid
+        enum defined in the _meta, returns its value.
+        """
+        shared_enum: list[str] | None = None
+        enum_name: str | None = None
+
+        if (
+            isinstance(enum, str)
+            and (shared_enum := self.shared_enum_definitions.get(enum)) is not None
+        ):
+            enum_name = enum
+            enum = shared_enum
+
+        if not isinstance(enum, list):
+            self.errors.append(
+                f"incorrect 'enum' value for {collectionfield}: '{enum}'. Must be "
+                "a list of allowed values or name of the list defined in "
+                f"'{os.path.basename(DEFAULT_COLLECTION_META)}'."
+            )
+        elif invalid_values := [
+            str(item) for item in enum if not isinstance(item, str)
+        ]:
+            if enum_name:
+                self.errors.append(
+                    f"some values of 'enum' {enum_name} are not strings: {', '.join(invalid_values)}."
+                )
+            else:
+                self.errors.append(
+                    f"some values of 'enum' for {collectionfield} are not strings: {', '.join(invalid_values)}."
+                )
+        else:
+            return shared_enum
+
         return None
 
     def split_collectionfield(self, collectionfield: str) -> tuple[str, str]:

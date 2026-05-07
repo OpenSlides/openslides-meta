@@ -22,8 +22,8 @@ Each collection-file has the following format:
     - float: Numbers that are expected to be non-integer. Formatted as in rfc7159.
     - decimal(X): Decimal values represented as a string with X decimal places.
       At the moment we support only X == 6.
-    - timestamp: Datetime as a unix timestamp. Why a number? This enables queries
-      in the DB. And we do not need more precision than 1 second.
+    - timestamp: Datetime as a utc datetime object.
+    - timezone: Text field with the constraint that the content must be a valid timezone string as far as the postgres database is concerned. (i.e. the `name` values from postgres-inbuilt view `pg_timezone_names`)
     - <T>[]: This indicates and arbitrary array of the given type. At the moment
       we support only some types. You can add JSON Schema properties for items
       using the extra property `items`
@@ -60,7 +60,7 @@ Each collection-file has the following format:
           - CASCADE: also delete all models in this foreign key
 - JSON Schema Properties:
     - You can add JSON Schema properties to the fields like `enum`, `description`,
-      `items`, `maxLength` and `minimum`
+      `items`, `maxLength`, `minimum` and `maximum`.
 - Additional properties:
     - The property `read_only` describes a field that can not be changed by an action.
     - The property `default` describes the default value that is used for new objects.
@@ -69,6 +69,10 @@ Each collection-file has the following format:
       fields the value as to be an id of an existing object.
     - The property `equal_fields` describes fields that must have the same value in
       the instance and the related instance.
+    - The property `constant` describes fields values in which can not be
+      updated once set (protected by batabase constraint).
+    - The property `constant_legacy` describes fields that should be protected from being
+      changed inside of the regular external actions (logic should be defined in the services).
 - Restriction Mode:
   The field `restriction_mode` is required for every field. It puts the field into a
   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview
