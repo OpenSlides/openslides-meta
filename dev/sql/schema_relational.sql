@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '7b07501e5d5e31f55daaba5cac1c4449'
+-- MODELS_YML_CHECKSUM = 'c434889674c1c9ce37b600b55858df85'
 
 
 -- ENUM definitions
@@ -2081,7 +2081,8 @@ CREATE TABLE poll_config_selection_t (
     strike_out boolean
         CONSTRAINT default_poll_config_selection_strike_out DEFAULT False,
     onehundred_percent_base enum_selection_onehundred_percent_bases
-        CONSTRAINT required_poll_config_selection_onehundred_percent_base NOT NULL
+        CONSTRAINT required_poll_config_selection_onehundred_percent_base NOT NULL,
+    display_chart varchar(256)
 );
 
 
