@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'cb65b60a8800e449062a1dfb012ca4d0'
+-- MODELS_YML_CHECKSUM = 'd99c7cda0eee3355b9c5e848de67a826'
 
 
 -- ENUM definitions
@@ -2026,7 +2026,7 @@ CREATE TABLE poll_ballot_t (
         CONSTRAINT required_poll_ballot_poll_id NOT NULL,
     acting_meeting_user_id integer,
     represented_meeting_user_id integer,
-    CONSTRAINT unique_poll_ballot_meeting_id_name UNIQUE (meeting_id, name)
+    CONSTRAINT unique_poll_ballot_poll_id_represented_meeting_user_id UNIQUE (poll_id, represented_meeting_user_id)
 );
 
 

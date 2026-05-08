@@ -1,5 +1,5 @@
 unique_together:
-  - meeting_id, name
+  - poll_id, represented_meeting_user_id
 
 fields:
   id:
