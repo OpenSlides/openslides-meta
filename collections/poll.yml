@@ -55,6 +55,11 @@ fields:
     default: false
     description: If true, users can see the result.
     restriction_mode: A
+  anonymized:
+    type: boolean
+    default: false
+    description: Set to true, after finished was called with anonymize.
+    restriction_mode: A
   allow_invalid:
     type: boolean
     default: false

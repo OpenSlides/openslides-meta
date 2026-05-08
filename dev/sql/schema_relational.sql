@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'c0eb1b1b3ab766e9c263e8fc725f0c24'
+-- MODELS_YML_CHECKSUM = '090011590427f21a6d80a25907804751'
 
 
 -- ENUM definitions
@@ -1980,6 +1980,8 @@ CREATE TABLE poll_t (
     result text,
     published boolean
         CONSTRAINT default_poll_published DEFAULT False,
+    anonymized boolean
+        CONSTRAINT default_poll_anonymized DEFAULT False,
     allow_invalid boolean
         CONSTRAINT default_poll_allow_invalid DEFAULT False,
     allow_vote_split boolean
@@ -2004,6 +2006,7 @@ CREATE TABLE poll_t (
 
 comment on column poll_t.result is 'Calculated result. The format depends on the value in poll/method. Can be manually set when visibility is set to manually.';
 comment on column poll_t.published is 'If true, users can see the result.';
+comment on column poll_t.anonymized is 'Set to true, after finished was called with anonymize.';
 comment on column poll_t.allow_invalid is 'If true, the vote service does not validate. This is always the case for secret polls.';
 comment on column poll_t.allow_vote_split is 'If true, users can split there vote.';
 comment on column poll_t.sequential_number is 'The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.';
