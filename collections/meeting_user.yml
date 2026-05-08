@@ -1,5 +1,5 @@
 unique_together:
-- meeting_id, user_id
+  - meeting_id, user_id
 
 fields:
   id:
@@ -99,11 +99,11 @@ fields:
     restriction_mode: A
   acting_ballot_ids:
     type: relation-list
-    to: ballot/acting_meeting_user_id
+    to: poll_ballot/acting_meeting_user_id
     restriction_mode: A
   represented_ballot_ids:
     type: relation-list
-    to: ballot/represented_meeting_user_id
+    to: poll_ballot/represented_meeting_user_id
     restriction_mode: A
   chat_message_ids:
     type: relation-list
@@ -121,4 +121,3 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     to: structure_level/meeting_user_ids
-
