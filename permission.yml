@@ -11,7 +11,7 @@ agenda_item:
         can_see_internal:
             can_see:
     can_manage_polls: # Can create, start and stop topic polls
-        can_see_poll: # Can see unpublished poll results for topics
+        can_see_polls: # Can see unpublished poll results for topics
             can_see_internal:
                 can_see:
 assignment:
