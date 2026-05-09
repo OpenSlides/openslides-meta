@@ -10,12 +10,17 @@ agenda_item:
     can_manage:
         can_see_internal:
             can_see:
+    can_manage_polls: # Can create, start and stop topic polls
+        can_see_polls: # Can see unpublished poll results for topics
+            can_see_internal:
+                can_see:
 assignment:
     can_manage:
         can_nominate_other:
             can_see:
-    can_manage_polls:
-        can_see:
+    can_manage_polls: # Can create, start and stop assignment polls
+        can_see_polls:  # Can see unpublished poll results for assignments
+            can_see:
     can_nominate_self:
         can_see:
 chat:
@@ -48,15 +53,15 @@ motion:
             can_see:
         can_forward:
             can_see:
-    can_manage_polls:
-        can_see:
+    can_manage_polls: # Can create, start and stop motion polls
+        can_see_polls: # Can see unpublished poll results for motions
+            can_see:
     can_support:
         can_see:
     can_see_origin:
         can_see:
 poll:
-    can_manage:
-        can_see_progress:
+    can_see_progress: # Can see all progressbars (Topic, Assignemnt, Motion)
 projector:
     can_manage:
         can_see:

@@ -30,3 +30,6 @@ fields:
     required: true
     enum: selection_onehundred_percent_bases
     restriction_mode: A
+  display_chart:
+    type: string
+    restriction_mode: A

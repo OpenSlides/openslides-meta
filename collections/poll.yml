@@ -55,6 +55,11 @@ fields:
     default: false
     description: If true, users can see the result.
     restriction_mode: A
+  anonymized:
+    type: boolean
+    default: false
+    description: Set to true, after finished was called with anonymize.
+    restriction_mode: A
   allow_invalid:
     type: boolean
     default: false
@@ -64,6 +69,11 @@ fields:
     type: boolean
     default: false
     description: If true, users can split there vote.
+    restriction_mode: A
+  live_voting_enabled:
+    type: boolean
+    default: false
+    description: If true, on start, publish will be set to true.
     restriction_mode: A
   sequential_number:
     type: number
@@ -91,8 +101,8 @@ fields:
     constant: true
   ballot_ids:
     type: relation-list
-    to: ballot/poll_id
-    reference: ballot
+    to: poll_ballot/poll_id
+    reference: poll_ballot
     on_delete: CASCADE
     restriction_mode: A
   voted_ids:
