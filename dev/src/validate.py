@@ -12,6 +12,7 @@ from .helper_get_names import (
     DEFAULT_COLLECTION_META,
     DEFAULT_COLLECTIONS_DIR,
     KEYSEPARATOR,
+    PERMISSIONS_SOURCE,
 )
 
 MAX_FIELD_NAME_LENGTH = 63
@@ -173,6 +174,7 @@ class Checker:
             for attr, values in data.items():
                 if attr in ["unique_together", "unique_together_strict"]:
                     self.check_unique_together(collection, values, attr)
+        self.check_permissions()
 
     def check_field(
         self,
@@ -370,6 +372,38 @@ class Checker:
             if invalid_field_names:
                 self.errors.append(
                     f"Some fields from the constraint '{attr_name}' don't exist in the collection '{collection}': {', '.join(invalid_field_names)}."
+                )
+
+    def check_permissions(self) -> None:
+        permissions_path = Path(PERMISSIONS_SOURCE)
+        group_permissions = set(self.models["group"]["permissions"]["items"]["enum"])
+        all_permissions = set()
+
+        def flatten_permissions(
+            collection: str, permissions_dict: dict[str, Any]
+        ) -> None:
+            for key, value in permissions_dict.items():
+                all_permissions.add(f"{collection}.{key}")
+                if isinstance(value, dict):
+                    flatten_permissions(collection, value)
+                elif value is not None:
+                    self.errors.append(
+                        f"Permissions for '{collection}' contain invalid value: {value} (must be a dict)."
+                    )
+
+        with open(permissions_path, "rb") as f:
+            permissions = yaml.safe_load(f.read())
+            for collection, permissions_dict in permissions.items():
+                flatten_permissions(collection, permissions_dict)
+
+        if group_permissions != all_permissions:
+            if missing_permissions := str(all_permissions - group_permissions):
+                self.errors.append(
+                    f"Permissions missing in group/permissions: {missing_permissions}."
+                )
+            if additional_permissions := str(group_permissions - all_permissions):
+                self.errors.append(
+                    f"Permissions missing in {os.path.basename(PERMISSIONS_SOURCE)}: {additional_permissions}."
                 )
 
     def validate_value_for_type(

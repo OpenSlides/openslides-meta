@@ -13,6 +13,7 @@ KEYSEPARATOR = "/"
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 DEFAULT_COLLECTION_META = os.path.join(ROOT, "collection-meta.yml")
 DEFAULT_COLLECTIONS_DIR = os.path.join(ROOT, "collections")
+PERMISSIONS_SOURCE = os.path.join(ROOT, "permission.yml")
 
 
 def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
