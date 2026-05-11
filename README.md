@@ -12,6 +12,9 @@ collection, there is a file in the `collections` directory. The file
 
 Each collection-file has the following format:
 
+- Model level settings:
+    - `managed_by` can be set to the service the collection is managed by. Default to
+      `backend`. Available options are `backend` or `vote`.
 - Length of names:
     - field name: Their length is limited to 25 characters. There are still some
       fields with longer names, that has to be shortened
