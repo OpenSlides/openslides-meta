@@ -380,15 +380,11 @@ class Checker:
 
         with open(permissions_path, "rb") as f:
             permissions = yaml.safe_load(f.read())
-            all_permissions = set(
-                [
-                    permission
-                    for collection, permissions_dict in permissions.items()
-                    for permission in self.flatten_permissions(
-                        collection, permissions_dict
-                    )
-                ]
-            )
+            all_permissions = {
+                permission
+                for collection, permissions_dict in permissions.items()
+                for permission in self.flatten_permissions(collection, permissions_dict)
+            }
 
         if group_permissions != all_permissions:
             if missing_permissions := (all_permissions - group_permissions):
@@ -402,7 +398,7 @@ class Checker:
 
     def flatten_permissions(
         self, collection: str, permissions_dict: dict[str, Any]
-    ) -> set:
+    ) -> set[str]:
         permissions = set()
         for key, value in permissions_dict.items():
             permissions.add(f"{collection}.{key}")
