@@ -391,13 +391,13 @@ class Checker:
             )
 
         if group_permissions != all_permissions:
-            if missing_permissions := str(all_permissions - group_permissions):
+            if missing_permissions := (all_permissions - group_permissions):
                 self.errors.append(
-                    f"Permissions missing in group/permissions: {missing_permissions}."
+                    f"Permissions missing in group/permissions: {', '.join(list(missing_permissions))}."
                 )
-            if additional_permissions := str(group_permissions - all_permissions):
+            if additional_permissions := (group_permissions - all_permissions):
                 self.errors.append(
-                    f"Permissions missing in {os.path.basename(PERMISSIONS_SOURCE)}: {additional_permissions}."
+                    f"Permissions missing in {os.path.basename(PERMISSIONS_SOURCE)}: {', '.join(list(additional_permissions))}."
                 )
 
     def flatten_permissions(
