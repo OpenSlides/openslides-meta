@@ -377,24 +377,18 @@ class Checker:
     def check_permissions(self) -> None:
         permissions_path = Path(PERMISSIONS_SOURCE)
         group_permissions = set(self.models["group"]["permissions"]["items"]["enum"])
-        all_permissions = set()
-
-        def flatten_permissions(
-            collection: str, permissions_dict: dict[str, Any]
-        ) -> None:
-            for key, value in permissions_dict.items():
-                all_permissions.add(f"{collection}.{key}")
-                if isinstance(value, dict):
-                    flatten_permissions(collection, value)
-                elif value is not None:
-                    self.errors.append(
-                        f"Permissions for '{collection}' contain invalid value: {value} (must be a dict)."
-                    )
 
         with open(permissions_path, "rb") as f:
             permissions = yaml.safe_load(f.read())
-            for collection, permissions_dict in permissions.items():
-                flatten_permissions(collection, permissions_dict)
+            all_permissions = set(
+                [
+                    permission
+                    for collection, permissions_dict in permissions.items()
+                    for permission in self.flatten_permissions(
+                        collection, permissions_dict
+                    )
+                ]
+            )
 
         if group_permissions != all_permissions:
             if missing_permissions := str(all_permissions - group_permissions):
@@ -405,6 +399,20 @@ class Checker:
                 self.errors.append(
                     f"Permissions missing in {os.path.basename(PERMISSIONS_SOURCE)}: {additional_permissions}."
                 )
+
+    def flatten_permissions(
+        self, collection: str, permissions_dict: dict[str, Any]
+    ) -> set:
+        permissions = set()
+        for key, value in permissions_dict.items():
+            permissions.add(f"{collection}.{key}")
+            if isinstance(value, dict):
+                permissions.update(self.flatten_permissions(collection, value))
+            elif value is not None:
+                self.errors.append(
+                    f"Permissions for '{collection}' contain invalid value: {value} (must be a dict)."
+                )
+        return permissions
 
     def validate_value_for_type(
         self, type_str: str, value: Any, collectionfield: str
