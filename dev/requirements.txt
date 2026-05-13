@@ -9,7 +9,7 @@ pyupgrade==3.21.2
 pyyaml==6.0.3
 simplejson==4.1.1
 debugpy==1.8.20
-requests==2.33.1
+requests==2.34.0
 psycopg[binary]==3.3.4
 python-sql==1.8.1
 
