@@ -529,6 +529,7 @@ fields:
     restriction_mode: B
   motions_enable_restricted_editor_for_non_manager:
     type: boolean
+    default: true
     restriction_mode: B
 
   # Motion poll
