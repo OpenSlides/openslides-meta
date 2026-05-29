@@ -221,10 +221,15 @@ def check_model(collection, model_id):
             continue
 
         if field_name not in field_names_d2:
+            field_value_d1 = D1[collection][model_id][field_name]
             if '$' in field_name:
                 DIFF_OK += [f"field {collection}/{model_id}/{field_name} exists in D1 but not in D2 (template field)"]
+                DIFF_OK += [f"  D1: {field_value_d1}"]
+                DIFF_OK += [f"  D2: NOT SET"]
             else:
                 DIFF += [f"field {collection}/{model_id}/{field_name} exists in D1 but not in D2"]
+                DIFF += [f"  D1: {field_value_d1}"]
+                DIFF += [f"  D2: NOT SET"]
             log(5, f"+ visited field in D1: {collection}/{model_id}/{field_name} (does not exist in D2)")
             del D1[collection][model_id][field_name]
             continue
