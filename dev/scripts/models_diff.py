@@ -145,6 +145,7 @@ def check_field_default(collection, model_id, field_name):
 
     if is_equal:
         DIFF_OK += [f"{collection}/{model_id}/{field_name} of type {field_type} was set to a new default."]
+        DIFF_OK += [f"  D1: NOT SET"]
         DIFF_OK += [f"  D2: {field_value_d2}"]
     else:
         DIFF += [f"{collection}/{model_id}/{field_name} of type {field_type} differs from default."]
@@ -174,6 +175,10 @@ def check_field(collection, model_id, field_name):
     if not is_equal:
         if collection == 'action_worker' and field_name == 'name':
             DIFF_OK += [f"{collection}/{model_id}/{field_name} of type {field_type} differs (action_worker.name shortened)."]
+            DIFF_OK += [f"  D1: {field_value_d1}"]
+            DIFF_OK += [f"  D2: {field_value_d2}"]
+        elif field_type == 'decimal(6)' and field_value_d1 == '0.000000' and field_value_d2 == '0.000001':
+            DIFF_OK += [f"{collection}/{model_id}/{field_name} of type {field_type} differs (decimal raised to minimum)."]
             DIFF_OK += [f"  D1: {field_value_d1}"]
             DIFF_OK += [f"  D2: {field_value_d2}"]
         else:
