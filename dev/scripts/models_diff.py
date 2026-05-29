@@ -216,6 +216,11 @@ def check_model(collection, model_id):
         if 'time_zone' in remaining_field_names_d2:
             log(4, f"+ visited field in D2: {collection}/{model_id}/time_zone (new field)")
             del D2[collection][model_id]['time_zone']
+    if collection in ['meeting']:
+        if 'motions_enable_restricted_editor_for_non_manager' in remaining_field_names_d2:
+            print(f"+ visited field in D2: {collection}/{model_id}/motions_enable_restricted_editor_for_non_manager (new field)")
+            log(4, f"+ visited field in D2: {collection}/{model_id}/motions_enable_restricted_editor_for_non_manager (new field)")
+            del D2[collection][model_id]['motions_enable_restricted_editor_for_non_manager']
 
     log(4, f"checking remaining fields in D2 ...")
     # Fields not present in D1 may appear in D2
