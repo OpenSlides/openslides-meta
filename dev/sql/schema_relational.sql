@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '9567a0ca248b65bf831380e1118e430d'
+-- MODELS_YML_CHECKSUM = 'dc80ee60a84bb843a73d998690705dd1'
 
 
 -- ENUM definitions
@@ -2011,6 +2011,9 @@ CREATE TABLE user_t (
         CONSTRAINT unique_user_username UNIQUE,
     member_number varchar(256)
         CONSTRAINT unique_user_member_number UNIQUE,
+    keycloak_id varchar(256)
+        CONSTRAINT unique_user_keycloak_id UNIQUE
+        CONSTRAINT minlength_user_keycloak_id CHECK (char_length(keycloak_id) >= 1),
     saml_id varchar(256)
         CONSTRAINT unique_user_saml_id UNIQUE
         CONSTRAINT minlength_user_saml_id CHECK (char_length(saml_id) >= 1),
@@ -2044,6 +2047,7 @@ CREATE TABLE user_t (
 
 
 
+comment on column user_t.keycloak_id is 'unique-key from Keycloak for OIDC login';
 comment on column user_t.saml_id is 'unique-key from IdP for SAML login';
 comment on column user_t.organization_management_level is 'Hierarchical permission level for the whole organization.';
 
