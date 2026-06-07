@@ -58,6 +58,12 @@ fields:
     default: 1
     minimum: 1
     restriction_mode: A
+  max_yes_votes_amount:
+    type: number
+    default: 1
+    minimum: 1
+    restriction_mode: A
+    description: Maximum number of yes votes per voter.
   max_votes_per_option:
     type: number
     default: 1
