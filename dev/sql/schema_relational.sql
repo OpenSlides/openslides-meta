@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '472dd223307f11a19a864edd93b78230'
+-- MODELS_YML_CHECKSUM = '97d38adcd9c34b142defc13b81a5b71e'
 
 
 -- ENUM definitions
@@ -1995,6 +1995,9 @@ CREATE TABLE poll_t (
     max_votes_amount integer
         CONSTRAINT minimum_poll_max_votes_amount CHECK (max_votes_amount >= 1)
         CONSTRAINT default_poll_max_votes_amount DEFAULT 1,
+    max_yes_votes_amount integer
+        CONSTRAINT minimum_poll_max_yes_votes_amount CHECK (max_yes_votes_amount >= 1)
+        CONSTRAINT default_poll_max_yes_votes_amount DEFAULT 1,
     max_votes_per_option integer
         CONSTRAINT minimum_poll_max_votes_per_option CHECK (max_votes_per_option >= 1)
         CONSTRAINT default_poll_max_votes_per_option DEFAULT 1,
@@ -2033,6 +2036,7 @@ CREATE TABLE poll_t (
 
 
 
+comment on column poll_t.max_yes_votes_amount is 'Maximum number of yes votes per voter.';
 comment on column poll_t.live_voting_enabled is 'If true, the vote service sends the votes of the users to the autoupdate service.';
 comment on column poll_t.sequential_number is 'The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.';
 
