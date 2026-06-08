@@ -542,8 +542,9 @@ fields:
     type: number
     default: 8
     restriction_mode: B
-  motion_poll_default_type:
+  motion_poll_default_visibility:
     type: string
+    enum: poll_visibility
     default: secret
     restriction_mode: B
   motion_poll_default_allow_abstain:
@@ -691,12 +692,14 @@ fields:
     type: boolean
     default: true
     restriction_mode: B
-  assignment_poll_default_type:
+  assignment_poll_default_visibility:
     type: string
+    enum: poll_visibility
     default: secret
     restriction_mode: B
   assignment_poll_default_method:
     type: string
+    enum: poll_methods
     default: selection
     restriction_mode: B
   assignment_poll_default_onehundred_percent_base:
@@ -720,12 +723,14 @@ fields:
   poll_sort_poll_result_by_votes:
     type: boolean
     restriction_mode: B
-  poll_default_type:
+  poll_default_visibility:
     type: string
-    default: analog
+    enum: poll_visibility
+    default: manually
     restriction_mode: B
   poll_default_method:
     type: string
+    enum: poll_methods
     restriction_mode: B
   poll_default_onehundred_percent_base:
     type: string

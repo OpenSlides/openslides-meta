@@ -47,6 +47,17 @@ enum_definitions:
     - entitled
     - entitled_present
     - disabled
+  poll_visibility:
+    - manually
+    - named
+    - open
+    - secret
+  poll_methods:
+    - approval
+    - selection
+    - rating_score
+    - rating_approval
+    - stv_scottish
 id_field: &id_field
   type: number
   restriction_mode: A

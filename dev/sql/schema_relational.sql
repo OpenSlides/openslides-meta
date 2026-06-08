@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '0aaaf5eb39a57452f1622649418e3d8e'
+-- MODELS_YML_CHECKSUM = '464b22e1be2a9e028241b669fcb96bf1'
 
 
 -- ENUM definitions
@@ -19,6 +19,10 @@ CREATE TYPE enum_rating_approval_onehundred_percent_bases AS ENUM ('yes_no', 'va
 CREATE TYPE enum_rating_score_onehundred_percent_bases AS ENUM ('yes_no', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled');
 
 CREATE TYPE enum_selection_onehundred_percent_bases AS ENUM ('no_general', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled');
+
+CREATE TYPE enum_poll_visibility AS ENUM ('manually', 'named', 'open', 'secret');
+
+CREATE TYPE enum_poll_methods AS ENUM ('approval', 'selection', 'rating_score', 'rating_approval', 'stv_scottish');
 
 CREATE TYPE enum_action_worker_state AS ENUM ('running', 'end', 'aborted');
 
@@ -67,8 +71,6 @@ CREATE TYPE enum_motion_state_css_class AS ENUM ('grey', 'red', 'green', 'lightb
 CREATE TYPE enum_motion_state_restrictions AS ENUM ('motion.can_see_internal', 'motion.can_manage_metadata', 'motion.can_manage', 'is_submitter');
 
 CREATE TYPE enum_motion_state_merge_amendment_into_final AS ENUM ('do_not_merge', 'undefined', 'do_merge');
-
-CREATE TYPE enum_poll_visibility AS ENUM ('manually', 'named', 'open', 'secret');
 
 CREATE TYPE enum_poll_state AS ENUM ('created', 'started', 'finished');
 
@@ -1397,8 +1399,8 @@ CREATE TABLE meeting_t (
         CONSTRAINT default_meeting_motion_poll_ballot_paper_selection DEFAULT 'CUSTOM_NUMBER',
     motion_poll_ballot_paper_number integer
         CONSTRAINT default_meeting_motion_poll_ballot_paper_number DEFAULT 8,
-    motion_poll_default_type varchar(256)
-        CONSTRAINT default_meeting_motion_poll_default_type DEFAULT 'secret',
+    motion_poll_default_visibility enum_poll_visibility
+        CONSTRAINT default_meeting_motion_poll_default_visibility DEFAULT 'secret',
     motion_poll_default_allow_abstain boolean
         CONSTRAINT default_meeting_motion_poll_default_allow_abstain DEFAULT True,
     motion_poll_default_onehundred_percent_base enum_approval_onehundred_percent_bases
@@ -1457,18 +1459,18 @@ This email was generated automatically.',
         CONSTRAINT default_meeting_assignment_poll_enable_max_votes_per_option DEFAULT False,
     assignment_poll_sort_poll_result_by_votes boolean
         CONSTRAINT default_meeting_assignment_poll_sort_poll_result_by_votes DEFAULT True,
-    assignment_poll_default_type varchar(256)
-        CONSTRAINT default_meeting_assignment_poll_default_type DEFAULT 'secret',
-    assignment_poll_default_method varchar(256)
+    assignment_poll_default_visibility enum_poll_visibility
+        CONSTRAINT default_meeting_assignment_poll_default_visibility DEFAULT 'secret',
+    assignment_poll_default_method enum_poll_methods
         CONSTRAINT default_meeting_assignment_poll_default_method DEFAULT 'selection',
     assignment_poll_default_onehundred_percent_base enum_onehundred_percent_bases
         CONSTRAINT default_meeting_assignment_poll_default_onehundred_percent_base DEFAULT 'valid',
     poll_ballot_paper_selection enum_ballot_paper_selection,
     poll_ballot_paper_number integer,
     poll_sort_poll_result_by_votes boolean,
-    poll_default_type varchar(256)
-        CONSTRAINT default_meeting_poll_default_type DEFAULT 'analog',
-    poll_default_method varchar(256),
+    poll_default_visibility enum_poll_visibility
+        CONSTRAINT default_meeting_poll_default_visibility DEFAULT 'manually',
+    poll_default_method enum_poll_methods,
     poll_default_onehundred_percent_base enum_selection_onehundred_percent_bases
         CONSTRAINT default_meeting_poll_default_onehundred_percent_base DEFAULT 'valid',
     poll_default_live_voting_enabled boolean
