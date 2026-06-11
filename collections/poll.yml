@@ -127,3 +127,7 @@ fields:
     restriction_mode: A
     required: true
     constant: true
+  history_entry_ids:
+    type: relation-list
+    to: history_entry/model_id
+    restriction_mode: A
