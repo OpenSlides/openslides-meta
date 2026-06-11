@@ -1,3 +1,4 @@
+managed_by: vote
 fields:
   id:
     type: number
