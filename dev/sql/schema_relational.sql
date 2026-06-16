@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '464b22e1be2a9e028241b669fcb96bf1'
+-- MODELS_YML_CHECKSUM = '9d06b345626834607b596c879fab743e'
 
 
 -- ENUM definitions
@@ -60,9 +60,9 @@ CREATE TYPE enum_meeting_motions_number_type AS ENUM ('per_category', 'serially_
 
 CREATE TYPE enum_meeting_motions_amendments_text_mode AS ENUM ('freestyle', 'fulltext', 'paragraph');
 
-CREATE TYPE enum_meeting_motion_poll_projection_name_order_first AS ENUM ('first_name', 'last_name');
-
 CREATE TYPE enum_meeting_users_pdf_wlan_encryption AS ENUM ('', 'WEP', 'WPA', 'nopass');
+
+CREATE TYPE enum_meeting_poll_projection_name_order_first AS ENUM ('first_name', 'last_name');
 
 CREATE TYPE enum_motion_change_recommendation_type AS ENUM ('replacement', 'insertion', 'deletion', 'other');
 
@@ -1050,10 +1050,6 @@ CREATE TABLE group_t (
         CONSTRAINT required_group_name NOT NULL,
     permissions enum_group_permissions[],
     weight integer,
-    used_as_motion_poll_default_id integer,
-    used_as_assignment_poll_default_id integer,
-    used_as_topic_poll_default_id integer,
-    used_as_poll_default_id integer,
     meeting_id integer
         CONSTRAINT required_group_meeting_id NOT NULL,
     CONSTRAINT unique_group_meeting_id_external_id UNIQUE (meeting_id, external_id)
@@ -1395,22 +1391,6 @@ CREATE TABLE meeting_t (
     motions_enable_restricted_editor_for_manager boolean,
     motions_enable_restricted_editor_for_non_manager boolean
         CONSTRAINT default_meeting_motions_enable_restricted_editor_for_non493da85 DEFAULT True,
-    motion_poll_ballot_paper_selection enum_ballot_paper_selection
-        CONSTRAINT default_meeting_motion_poll_ballot_paper_selection DEFAULT 'CUSTOM_NUMBER',
-    motion_poll_ballot_paper_number integer
-        CONSTRAINT default_meeting_motion_poll_ballot_paper_number DEFAULT 8,
-    motion_poll_default_visibility enum_poll_visibility
-        CONSTRAINT default_meeting_motion_poll_default_visibility DEFAULT 'secret',
-    motion_poll_default_allow_abstain boolean
-        CONSTRAINT default_meeting_motion_poll_default_allow_abstain DEFAULT True,
-    motion_poll_default_onehundred_percent_base enum_approval_onehundred_percent_bases
-        CONSTRAINT default_meeting_motion_poll_default_onehundred_percent_base DEFAULT 'valid',
-    motion_poll_projection_name_order_first enum_meeting_motion_poll_projection_name_order_first
-        CONSTRAINT required_meeting_motion_poll_projection_name_order_first NOT NULL
-        CONSTRAINT default_meeting_motion_poll_projection_name_order_first DEFAULT 'last_name',
-    motion_poll_projection_max_columns integer
-        CONSTRAINT required_meeting_motion_poll_projection_max_columns NOT NULL
-        CONSTRAINT default_meeting_motion_poll_projection_max_columns DEFAULT 6,
     users_enable_presence_view boolean
         CONSTRAINT default_meeting_users_enable_presence_view DEFAULT False,
     users_enable_vote_weight boolean
@@ -1449,30 +1429,22 @@ This email was generated automatically.',
     assignments_export_title varchar(256)
         CONSTRAINT default_meeting_assignments_export_title DEFAULT 'Elections',
     assignments_export_preamble text,
-    assignment_poll_ballot_paper_selection enum_ballot_paper_selection
-        CONSTRAINT default_meeting_assignment_poll_ballot_paper_selection DEFAULT 'CUSTOM_NUMBER',
-    assignment_poll_ballot_paper_number integer
-        CONSTRAINT default_meeting_assignment_poll_ballot_paper_number DEFAULT 8,
     assignment_poll_add_candidates_to_list_of_speakers boolean
         CONSTRAINT default_meeting_assignment_poll_add_candidates_to_list_od04213d DEFAULT False,
-    assignment_poll_enable_max_votes_per_option boolean
-        CONSTRAINT default_meeting_assignment_poll_enable_max_votes_per_option DEFAULT False,
     assignment_poll_sort_poll_result_by_votes boolean
         CONSTRAINT default_meeting_assignment_poll_sort_poll_result_by_votes DEFAULT True,
-    assignment_poll_default_visibility enum_poll_visibility
-        CONSTRAINT default_meeting_assignment_poll_default_visibility DEFAULT 'secret',
     assignment_poll_default_method enum_poll_methods
         CONSTRAINT default_meeting_assignment_poll_default_method DEFAULT 'selection',
-    assignment_poll_default_onehundred_percent_base enum_onehundred_percent_bases
-        CONSTRAINT default_meeting_assignment_poll_default_onehundred_percent_base DEFAULT 'valid',
-    poll_ballot_paper_selection enum_ballot_paper_selection,
-    poll_ballot_paper_number integer,
-    poll_sort_poll_result_by_votes boolean,
-    poll_default_visibility enum_poll_visibility
-        CONSTRAINT default_meeting_poll_default_visibility DEFAULT 'manually',
-    poll_default_method enum_poll_methods,
-    poll_default_onehundred_percent_base enum_selection_onehundred_percent_bases
-        CONSTRAINT default_meeting_poll_default_onehundred_percent_base DEFAULT 'valid',
+    assignment_poll_config_id integer
+        CONSTRAINT unique_meeting_assignment_poll_config_id UNIQUE,
+    motion_poll_config_id integer
+        CONSTRAINT unique_meeting_motion_poll_config_id UNIQUE,
+    topic_poll_default_method enum_poll_methods
+        CONSTRAINT default_meeting_topic_poll_default_method DEFAULT 'selection',
+    topic_poll_config_id integer
+        CONSTRAINT unique_meeting_topic_poll_config_id UNIQUE,
+    poll_enable_max_votes_per_option boolean
+        CONSTRAINT default_meeting_poll_enable_max_votes_per_option DEFAULT False,
     poll_default_live_voting_enabled boolean
         CONSTRAINT default_meeting_poll_default_live_voting_enabled DEFAULT False,
     poll_default_allow_invalid boolean
@@ -1481,6 +1453,12 @@ This email was generated automatically.',
         CONSTRAINT default_meeting_poll_default_allow_vote_split DEFAULT False,
     poll_couple_countdown boolean
         CONSTRAINT default_meeting_poll_couple_countdown DEFAULT True,
+    poll_projection_name_order_first enum_meeting_poll_projection_name_order_first
+        CONSTRAINT required_meeting_poll_projection_name_order_first NOT NULL
+        CONSTRAINT default_meeting_poll_projection_name_order_first DEFAULT 'last_name',
+    poll_projection_max_columns integer
+        CONSTRAINT required_meeting_poll_projection_max_columns NOT NULL
+        CONSTRAINT default_meeting_poll_projection_max_columns DEFAULT 6,
     logo_projector_main_id integer
         CONSTRAINT unique_meeting_logo_projector_main_id UNIQUE,
     logo_projector_header_id integer
@@ -1538,8 +1516,8 @@ comment on column meeting_t.is_archived_in_organization_id is 'Backrelation and 
 comment on column meeting_t.list_of_speakers_default_structure_level_time is '0 disables structure level countdowns.';
 comment on column meeting_t.list_of_speakers_intervention_time is '0 disables intervention speakers.';
 comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default "poll.published" before finished option suggested to user. Is not used in the validations.';
-comment on column meeting_t.poll_default_allow_invalid is 'Defines defaut `poll.allow_invalid` option suggested to user.';
-comment on column meeting_t.poll_default_allow_vote_split is 'Defines defaut `poll.allow_vote_split` option suggested to user.';
+comment on column meeting_t.poll_default_allow_invalid is 'Defines default `poll.allow_invalid` option suggested to user.';
+comment on column meeting_t.poll_default_allow_vote_split is 'Defines default `poll.allow_vote_split` option suggested to user.';
 
 
 CREATE TABLE meeting_mediafile_t (
@@ -1556,6 +1534,35 @@ CREATE TABLE meeting_mediafile_t (
 
 
 comment on column meeting_mediafile_t.is_public is 'Calculated in actions. Used to discern whether the (meeting-)mediafile can be seen by everyone, because, in the case of inherited_access_group_ids == [], it would otherwise not be clear. inherited_access_group_ids == [] can have two causes: cancelling access groups (=> is_public := false) or no access groups at all (=> is_public := true)';
+
+
+CREATE TABLE meeting_poll_default_t (
+    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
+    ballot_paper_selection enum_ballot_paper_selection
+        CONSTRAINT default_meeting_poll_default_ballot_paper_selection DEFAULT 'CUSTOM_NUMBER',
+    ballot_paper_number integer
+        CONSTRAINT default_meeting_poll_default_ballot_paper_number DEFAULT 8,
+    sort_result_by_votes boolean
+        CONSTRAINT default_meeting_poll_default_sort_result_by_votes DEFAULT True,
+    visibility enum_poll_visibility,
+    allow_abstain boolean
+        CONSTRAINT default_meeting_poll_default_allow_abstain DEFAULT True,
+    allow_nota boolean
+        CONSTRAINT default_meeting_poll_default_allow_nota DEFAULT False,
+    strike_out boolean
+        CONSTRAINT default_meeting_poll_default_strike_out DEFAULT False,
+    onehundred_percent_base varchar(256)
+        CONSTRAINT default_meeting_poll_default_onehundred_percent_base DEFAULT 'valid',
+    display_chart varchar(256),
+    used_as_assignment_poll_config_ids integer
+        CONSTRAINT unique_meeting_poll_default_used_as_assignment_poll_config_ids UNIQUE,
+    used_as_motion_poll_config_ids integer
+        CONSTRAINT unique_meeting_poll_default_used_as_motion_poll_config_ids UNIQUE,
+    used_as_topic_poll_config_ids integer
+        CONSTRAINT unique_meeting_poll_default_used_as_topic_poll_config_ids UNIQUE
+);
+
+
 
 
 CREATE TABLE meeting_user_t (
@@ -2701,6 +2708,22 @@ CREATE TABLE nm_group_poll_ids_poll_t (
 CREATE INDEX idx_nm_group_poll_ids_poll_t_group_id ON nm_group_poll_ids_poll_t (group_id);
 CREATE INDEX idx_nm_group_poll_ids_poll_t_poll_id ON nm_group_poll_ids_poll_t (poll_id);
 
+CREATE TABLE nm_group_uampdi_meeting_t (
+    group_id integer
+        CONSTRAINT required_nm_group_uampdi_meeting_t_group_id NOT NULL
+        CONSTRAINT fk_nm_group_uampdi_meeting_t_group_id_group_t_id REFERENCES group_t (id)
+        ON DELETE CASCADE
+        INITIALLY DEFERRED,
+    meeting_id integer
+        CONSTRAINT required_nm_group_uampdi_meeting_t_meeting_id NOT NULL
+        CONSTRAINT fk_nm_group_uampdi_meeting_t_meeting_id_meeting_t_id REFERENCES meeting_t (id)
+        ON DELETE CASCADE
+        INITIALLY DEFERRED,
+    CONSTRAINT pk_nm_group_uampdi_meeting_t PRIMARY KEY (group_id, meeting_id)
+);
+CREATE INDEX idx_nm_group_uampdi_meeting_t_group_id ON nm_group_uampdi_meeting_t (group_id);
+CREATE INDEX idx_nm_group_uampdi_meeting_t_meeting_id ON nm_group_uampdi_meeting_t (meeting_id);
+
 CREATE TABLE nm_meeting_present_user_ids_user_t (
     meeting_id integer
         CONSTRAINT required_nm_meeting_present_user_ids_user_t_meeting_id NOT NULL
@@ -2748,6 +2771,22 @@ CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id ON gm_meeti
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_3c67b77 ON gm_meeting_mediafile_attachment_ids_t (attachment_id_motion_id);
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_8abf47a ON gm_meeting_mediafile_attachment_ids_t (attachment_id_topic_id);
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_66fb18e ON gm_meeting_mediafile_attachment_ids_t (attachment_id_assignment_id);
+
+CREATE TABLE nm_meeting_poll_default_group_ids_meeting_poll_default_t (
+    used_as_meeting_poll_default_id integer
+        CONSTRAINT required_nm_meeting_poll_default_group_ids_meeting_poll_f9f854a NOT NULL
+        CONSTRAINT fk_nm_meeting_poll_default_group_ids_meeting_poll_defaulc8bdc0a REFERENCES meeting_poll_default_t (id)
+        ON DELETE CASCADE
+        INITIALLY DEFERRED,
+    group_id integer
+        CONSTRAINT required_nm_meeting_poll_default_group_ids_meeting_poll_5ab2373 NOT NULL
+        CONSTRAINT fk_nm_meeting_poll_default_group_ids_meeting_poll_defaulc20b2a1 REFERENCES meeting_poll_default_t (id)
+        ON DELETE CASCADE
+        INITIALLY DEFERRED,
+    CONSTRAINT pk_nm_meeting_poll_default_group_ids_meeting_poll_default_t PRIMARY KEY (used_as_meeting_poll_default_id, group_id)
+);
+CREATE INDEX idx_nm_meeting_poll_default_group_ids_meeting_poll_defau17a86aa ON nm_meeting_poll_default_group_ids_meeting_poll_default_t (used_as_meeting_poll_default_id);
+CREATE INDEX idx_nm_meeting_poll_default_group_ids_meeting_poll_defaubdac7a4 ON nm_meeting_poll_default_group_ids_meeting_poll_default_t (group_id);
 
 CREATE TABLE nm_meeting_user_poll_voted_ids_poll_t (
     meeting_user_id integer
@@ -3020,7 +3059,8 @@ CREATE VIEW "group" AS SELECT *,
 (select array_agg(n.motion_comment_section_id ORDER BY n.motion_comment_section_id) from nm_group_write_comment_section_ids_motion_comment_section_t n where n.group_id = g.id) as write_comment_section_ids,
 (select array_agg(n.chat_group_id ORDER BY n.chat_group_id) from nm_chat_group_read_group_ids_group_t n where n.group_id = g.id) as read_chat_group_ids,
 (select array_agg(n.chat_group_id ORDER BY n.chat_group_id) from nm_chat_group_write_group_ids_group_t n where n.group_id = g.id) as write_chat_group_ids,
-(select array_agg(n.poll_id ORDER BY n.poll_id) from nm_group_poll_ids_poll_t n where n.group_id = g.id) as poll_ids
+(select array_agg(n.poll_id ORDER BY n.poll_id) from nm_group_poll_ids_poll_t n where n.group_id = g.id) as poll_ids,
+(select array_agg(n.meeting_id ORDER BY n.meeting_id) from nm_group_uampdi_meeting_t n where n.group_id = g.id) as used_as_meeting_poll_default_ids
 FROM group_t g;
 
 comment on column "group".meeting_mediafile_inherited_access_group_ids is 'Calculated field.';
@@ -3050,11 +3090,7 @@ FROM mediafile_t m;
 
 
 CREATE VIEW "meeting" AS SELECT *,
-(select array_agg(g.id ORDER BY g.id) from group_t g where g.used_as_motion_poll_default_id = m.id) as motion_poll_default_group_ids,
 (select array_agg(mu.id ORDER BY mu.id) from meeting_user_t mu where mu.meeting_id = m.id) as meeting_user_ids,
-(select array_agg(g.id ORDER BY g.id) from group_t g where g.used_as_assignment_poll_default_id = m.id) as assignment_poll_default_group_ids,
-(select array_agg(g.id ORDER BY g.id) from group_t g where g.used_as_poll_default_id = m.id) as poll_default_group_ids,
-(select array_agg(g.id ORDER BY g.id) from group_t g where g.used_as_topic_poll_default_id = m.id) as topic_poll_default_group_ids,
 (select array_agg(p.id ORDER BY p.id) from projector_t p where p.meeting_id = m.id) as projector_ids,
 (select array_agg(p.id ORDER BY p.id) from projection_t p where p.meeting_id = m.id) as all_projection_ids,
 (select array_agg(p.id ORDER BY p.id) from projector_message_t p where p.meeting_id = m.id) as projector_message_ids,
@@ -3143,6 +3179,11 @@ CREATE VIEW "meeting_mediafile" AS SELECT *,
 FROM meeting_mediafile_t m;
 
 comment on column "meeting_mediafile".inherited_access_group_ids is 'Calculated in actions. Shows what access group permissions are actually relevant. Calculated as the intersection of this meeting_mediafiles access_group_ids and the related mediafiles potential parent mediafiles inherited_access_group_ids. If the parent has no meeting_mediafile for this meeting, its inherited access group is assumed to be the meetings admin group. If there is no parent, the inherited_access_group_ids is equal to the access_group_ids. If the access_group_ids are empty, the interpretations is that every group has access rights, therefore the parent inherited_access_group_ids are used as-is.';
+
+CREATE VIEW "meeting_poll_default" AS SELECT *,
+(select array_agg(n.group_id ORDER BY n.group_id) from nm_meeting_poll_default_group_ids_meeting_poll_default_t n where n.used_as_meeting_poll_default_id = m.id) as group_ids
+FROM meeting_poll_default_t m;
+
 
 CREATE VIEW "meeting_user" AS SELECT *,
 (select array_agg(p.id ORDER BY p.id) from personal_note_t p where p.meeting_user_id = m.id) as personal_note_ids,
@@ -3457,14 +3498,6 @@ CREATE INDEX idx_committee_t_organization_id ON committee_t (organization_id);
 ALTER TABLE gender_t ADD CONSTRAINT fk_gender_t_organization_id_organization_t_id FOREIGN KEY(organization_id) REFERENCES organization_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_gender_t_organization_id ON gender_t (organization_id);
 
-ALTER TABLE group_t ADD CONSTRAINT fk_group_t_used_as_motion_poll_default_id_meeting_t_id FOREIGN KEY(used_as_motion_poll_default_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_group_t_used_as_motion_poll_default_id ON group_t (used_as_motion_poll_default_id);
-ALTER TABLE group_t ADD CONSTRAINT fk_group_t_used_as_assignment_poll_default_id_meeting_t_id FOREIGN KEY(used_as_assignment_poll_default_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_group_t_used_as_assignment_poll_default_id ON group_t (used_as_assignment_poll_default_id);
-ALTER TABLE group_t ADD CONSTRAINT fk_group_t_used_as_topic_poll_default_id_meeting_t_id FOREIGN KEY(used_as_topic_poll_default_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_group_t_used_as_topic_poll_default_id ON group_t (used_as_topic_poll_default_id);
-ALTER TABLE group_t ADD CONSTRAINT fk_group_t_used_as_poll_default_id_meeting_t_id FOREIGN KEY(used_as_poll_default_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_group_t_used_as_poll_default_id ON group_t (used_as_poll_default_id);
 ALTER TABLE group_t ADD CONSTRAINT fk_group_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_group_t_meeting_id ON group_t (meeting_id);
 
@@ -3514,6 +3547,12 @@ ALTER TABLE meeting_t ADD CONSTRAINT fk_meeting_t_motions_default_workflow_id_mo
 CREATE INDEX idx_meeting_t_motions_default_workflow_id ON meeting_t (motions_default_workflow_id);
 ALTER TABLE meeting_t ADD CONSTRAINT fk_meeting_t_motions_default_amendment_workflow_id_motio34ae2bf FOREIGN KEY(motions_default_amendment_workflow_id) REFERENCES motion_workflow_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_meeting_t_motions_default_amendment_workflow_id ON meeting_t (motions_default_amendment_workflow_id);
+ALTER TABLE meeting_t ADD CONSTRAINT fk_meeting_t_assignment_poll_config_id_meeting_poll_defa20bd2b8 FOREIGN KEY(assignment_poll_config_id) REFERENCES meeting_poll_default_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_meeting_t_assignment_poll_config_id ON meeting_t (assignment_poll_config_id);
+ALTER TABLE meeting_t ADD CONSTRAINT fk_meeting_t_motion_poll_config_id_meeting_poll_default_t_id FOREIGN KEY(motion_poll_config_id) REFERENCES meeting_poll_default_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_meeting_t_motion_poll_config_id ON meeting_t (motion_poll_config_id);
+ALTER TABLE meeting_t ADD CONSTRAINT fk_meeting_t_topic_poll_config_id_meeting_poll_default_t_id FOREIGN KEY(topic_poll_config_id) REFERENCES meeting_poll_default_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_meeting_t_topic_poll_config_id ON meeting_t (topic_poll_config_id);
 ALTER TABLE meeting_t ADD CONSTRAINT fk_meeting_t_logo_projector_main_id_meeting_mediafile_t_id FOREIGN KEY(logo_projector_main_id) REFERENCES meeting_mediafile_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_meeting_t_logo_projector_main_id ON meeting_t (logo_projector_main_id);
 ALTER TABLE meeting_t ADD CONSTRAINT fk_meeting_t_logo_projector_header_id_meeting_mediafile_t_id FOREIGN KEY(logo_projector_header_id) REFERENCES meeting_mediafile_t(id) INITIALLY DEFERRED;
@@ -3565,6 +3604,13 @@ ALTER TABLE meeting_mediafile_t ADD CONSTRAINT fk_meeting_mediafile_t_mediafile_
 CREATE INDEX idx_meeting_mediafile_t_mediafile_id ON meeting_mediafile_t (mediafile_id);
 ALTER TABLE meeting_mediafile_t ADD CONSTRAINT fk_meeting_mediafile_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_meeting_mediafile_t_meeting_id ON meeting_mediafile_t (meeting_id);
+
+ALTER TABLE meeting_poll_default_t ADD CONSTRAINT fk_meeting_poll_default_t_used_as_assignment_poll_configa3b07ac FOREIGN KEY(used_as_assignment_poll_config_ids) REFERENCES meeting_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_meeting_poll_default_t_used_as_assignment_poll_config_ids ON meeting_poll_default_t (used_as_assignment_poll_config_ids);
+ALTER TABLE meeting_poll_default_t ADD CONSTRAINT fk_meeting_poll_default_t_used_as_motion_poll_config_idsb24b9cf FOREIGN KEY(used_as_motion_poll_config_ids) REFERENCES meeting_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_meeting_poll_default_t_used_as_motion_poll_config_ids ON meeting_poll_default_t (used_as_motion_poll_config_ids);
+ALTER TABLE meeting_poll_default_t ADD CONSTRAINT fk_meeting_poll_default_t_used_as_topic_poll_config_ids_78494ac FOREIGN KEY(used_as_topic_poll_config_ids) REFERENCES meeting_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_meeting_poll_default_t_used_as_topic_poll_config_ids ON meeting_poll_default_t (used_as_topic_poll_config_ids);
 
 ALTER TABLE meeting_user_t ADD CONSTRAINT fk_meeting_user_t_user_id_user_t_id FOREIGN KEY(user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_meeting_user_t_user_id ON meeting_user_t (user_id);
@@ -4590,14 +4636,11 @@ CREATE TRIGGER tr_log_nm_group_poll_ids_poll_t AFTER INSERT OR UPDATE OR DELETE 
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('group','group_id','poll_ids','poll','poll_id','entitled_group_ids');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_group_poll_ids_poll_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
-CREATE TRIGGER tr_log_group_t_used_as_motion_poll_default_id AFTER INSERT OR UPDATE OF used_as_motion_poll_default_id OR DELETE ON group_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_motion_poll_default_id', 'motion_poll_default_group_ids');
-CREATE TRIGGER tr_log_group_t_used_as_assignment_poll_default_id AFTER INSERT OR UPDATE OF used_as_assignment_poll_default_id OR DELETE ON group_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_assignment_poll_default_id', 'assignment_poll_default_group_ids');
-CREATE TRIGGER tr_log_group_t_used_as_topic_poll_default_id AFTER INSERT OR UPDATE OF used_as_topic_poll_default_id OR DELETE ON group_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_topic_poll_default_id', 'topic_poll_default_group_ids');
-CREATE TRIGGER tr_log_group_t_used_as_poll_default_id AFTER INSERT OR UPDATE OF used_as_poll_default_id OR DELETE ON group_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_poll_default_id', 'poll_default_group_ids');
+
+CREATE TRIGGER tr_log_nm_group_uampdi_meeting_t AFTER INSERT OR UPDATE OR DELETE ON nm_group_uampdi_meeting_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('group','group_id','used_as_meeting_poll_default_ids','meeting','meeting_id','group_ids');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_group_uampdi_meeting_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 CREATE TRIGGER tr_log_group_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON group_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'group_ids');
 
@@ -4687,6 +4730,12 @@ CREATE TRIGGER tr_log_meeting_t_motions_default_workflow_id AFTER INSERT OR UPDA
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion_workflow', 'motions_default_workflow_id', 'default_workflow_meeting_id');
 CREATE TRIGGER tr_log_meeting_t_motions_default_amendment_workflow_id AFTER INSERT OR UPDATE OF motions_default_amendment_workflow_id OR DELETE ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion_workflow', 'motions_default_amendment_workflow_id', 'default_amendment_workflow_meeting_id');
+CREATE TRIGGER tr_log_meeting_t_assignment_poll_config_id AFTER INSERT OR UPDATE OF assignment_poll_config_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default', 'assignment_poll_config_id', 'used_as_assignment_poll_config_ids');
+CREATE TRIGGER tr_log_meeting_t_motion_poll_config_id AFTER INSERT OR UPDATE OF motion_poll_config_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default', 'motion_poll_config_id', 'used_as_motion_poll_config_ids');
+CREATE TRIGGER tr_log_meeting_t_topic_poll_config_id AFTER INSERT OR UPDATE OF topic_poll_config_id OR DELETE ON meeting_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default', 'topic_poll_config_id', 'used_as_topic_poll_config_ids');
 CREATE TRIGGER tr_log_meeting_t_logo_projector_main_id AFTER INSERT OR UPDATE OF logo_projector_main_id OR DELETE ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_mediafile', 'logo_projector_main_id', 'used_as_logo_projector_main_in_meeting_id');
 CREATE TRIGGER tr_log_meeting_t_logo_projector_header_id AFTER INSERT OR UPDATE OF logo_projector_header_id OR DELETE ON meeting_t
@@ -4765,6 +4814,23 @@ CREATE TRIGGER tr_log_attachment_id_assignment_id_gm_meeting_mediafile_2f214fd A
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_mediafile','meeting_mediafile_id','attachment_ids','assignment','attachment_id_assignment_id','attachment_meeting_mediafile_ids');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON gm_meeting_mediafile_attachment_ids_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+CREATE TRIGGER tr_log_meeting_poll_default AFTER INSERT OR UPDATE OR DELETE ON meeting_poll_default_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('meeting_poll_default');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON meeting_poll_default_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+
+CREATE TRIGGER tr_log_nm_meeting_poll_default_group_ids_meeting_poll_default_t AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_poll_default_group_ids_meeting_poll_default_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default','used_as_meeting_poll_default_id','group_ids','meeting_poll_default','group_id','used_as_meeting_poll_default_ids');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_poll_default_group_ids_meeting_poll_default_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+CREATE TRIGGER tr_log_meeting_poll_default_t_used_as_assignment_poll_coc3da104 AFTER INSERT OR UPDATE OF used_as_assignment_poll_config_ids OR DELETE ON meeting_poll_default_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_assignment_poll_config_ids', 'assignment_poll_config_id');
+CREATE TRIGGER tr_log_meeting_poll_default_t_used_as_motion_poll_config_ids AFTER INSERT OR UPDATE OF used_as_motion_poll_config_ids OR DELETE ON meeting_poll_default_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_motion_poll_config_ids', 'motion_poll_config_id');
+CREATE TRIGGER tr_log_meeting_poll_default_t_used_as_topic_poll_config_ids AFTER INSERT OR UPDATE OF used_as_topic_poll_config_ids OR DELETE ON meeting_poll_default_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_topic_poll_config_ids', 'topic_poll_config_id');
 
 CREATE TRIGGER tr_log_meeting_user AFTER INSERT OR UPDATE OR DELETE ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('meeting_user');
@@ -5907,10 +5973,7 @@ SQL nt:nt => group/write_comment_section_ids:-> motion_comment_section/write_gro
 SQL nt:nt => group/read_chat_group_ids:-> chat_group/read_group_ids
 SQL nt:nt => group/write_chat_group_ids:-> chat_group/write_group_ids
 SQL nt:nt => group/poll_ids:-> poll/entitled_group_ids
-FIELD 1r:nt => group/used_as_motion_poll_default_id:-> meeting/motion_poll_default_group_ids
-FIELD 1r:nt => group/used_as_assignment_poll_default_id:-> meeting/assignment_poll_default_group_ids
-FIELD 1r:nt => group/used_as_topic_poll_default_id:-> meeting/topic_poll_default_group_ids
-FIELD 1r:nt => group/used_as_poll_default_id:-> meeting/poll_default_group_ids
+SQL nr:nr => group/used_as_meeting_poll_default_ids:-> meeting/group_ids
 FIELD 1rR:nt => group/meeting_id:-> meeting/group_ids
 
 FIELD 1Gr:nt,nt,nt => history_entry/model_id:-> user/history_entry_ids,motion/history_entry_ids,assignment/history_entry_ids
@@ -5937,11 +6000,10 @@ FIELD 1r:nt => meeting/is_archived_in_organization_id:-> organization/archived_m
 FIELD 1r:nt => meeting/template_for_organization_id:-> organization/template_meeting_ids
 FIELD 1rR:1t => meeting/motions_default_workflow_id:-> motion_workflow/default_workflow_meeting_id
 FIELD 1rR:1t => meeting/motions_default_amendment_workflow_id:-> motion_workflow/default_amendment_workflow_meeting_id
-SQL nt:1r => meeting/motion_poll_default_group_ids:-> group/used_as_motion_poll_default_id
 SQL nt:1rR => meeting/meeting_user_ids:-> meeting_user/meeting_id
-SQL nt:1r => meeting/assignment_poll_default_group_ids:-> group/used_as_assignment_poll_default_id
-SQL nt:1r => meeting/poll_default_group_ids:-> group/used_as_poll_default_id
-SQL nt:1r => meeting/topic_poll_default_group_ids:-> group/used_as_topic_poll_default_id
+FIELD 1r:1r => meeting/assignment_poll_config_id:-> meeting_poll_default/used_as_assignment_poll_config_ids
+FIELD 1r:1r => meeting/motion_poll_config_id:-> meeting_poll_default/used_as_motion_poll_config_ids
+FIELD 1r:1r => meeting/topic_poll_config_id:-> meeting_poll_default/used_as_topic_poll_config_ids
 SQL nt:1rR => meeting/projector_ids:-> projector/meeting_id
 SQL nt:1rR => meeting/all_projection_ids:-> projection/meeting_id
 SQL nt:1rR => meeting/projector_message_ids:-> projector_message/meeting_id
@@ -6043,6 +6105,11 @@ SQL 1t:1r => meeting_mediafile/used_as_font_monospace_in_meeting_id:-> meeting/f
 SQL 1t:1r => meeting_mediafile/used_as_font_chyron_speaker_name_in_meeting_id:-> meeting/font_chyron_speaker_name_id
 SQL 1t:1r => meeting_mediafile/used_as_font_projector_h1_in_meeting_id:-> meeting/font_projector_h1_id
 SQL 1t:1r => meeting_mediafile/used_as_font_projector_h2_in_meeting_id:-> meeting/font_projector_h2_id
+
+SQL nr:nr => meeting_poll_default/group_ids:-> meeting_poll_default/used_as_meeting_poll_default_ids
+FIELD 1r:1r => meeting_poll_default/used_as_assignment_poll_config_ids:-> meeting/assignment_poll_config_id
+FIELD 1r:1r => meeting_poll_default/used_as_motion_poll_config_ids:-> meeting/motion_poll_config_id
+FIELD 1r:1r => meeting_poll_default/used_as_topic_poll_config_ids:-> meeting/topic_poll_config_id
 
 FIELD 1rR:nt => meeting_user/user_id:-> user/meeting_user_ids
 FIELD 1rR:nt => meeting_user/meeting_id:-> meeting/meeting_user_ids
