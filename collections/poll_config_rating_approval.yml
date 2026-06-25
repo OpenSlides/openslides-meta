@@ -18,6 +18,10 @@ fields:
     type: number
     default: 0
     restriction_mode: A
+  max_yes_amount:
+    type: number
+    required: false
+    restriction_mode: A
   allow_abstain:
     type: boolean
     default: true
