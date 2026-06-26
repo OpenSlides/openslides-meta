@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '68bbd44274cf90745c2c6acc8e6c0341'
+-- MODELS_YML_CHECKSUM = 'aac6590209203ec019d48b3c2d6a8878'
 
 
 -- ENUM definitions
@@ -2702,21 +2702,21 @@ CREATE TABLE nm_group_poll_ids_poll_t (
 CREATE INDEX idx_nm_group_poll_ids_poll_t_group_id ON nm_group_poll_ids_poll_t (group_id);
 CREATE INDEX idx_nm_group_poll_ids_poll_t_poll_id ON nm_group_poll_ids_poll_t (poll_id);
 
-CREATE TABLE nm_group_uampdi_meeting_t (
+CREATE TABLE nm_group_uimpdi_meeting_poll_default_t (
     group_id integer
-        CONSTRAINT required_nm_group_uampdi_meeting_t_group_id NOT NULL
-        CONSTRAINT fk_nm_group_uampdi_meeting_t_group_id_group_t_id REFERENCES group_t (id)
+        CONSTRAINT required_nm_group_uimpdi_meeting_poll_default_t_group_id NOT NULL
+        CONSTRAINT fk_nm_group_uimpdi_meeting_poll_default_t_group_id_group_t_id REFERENCES group_t (id)
         ON DELETE CASCADE
         INITIALLY DEFERRED,
-    meeting_id integer
-        CONSTRAINT required_nm_group_uampdi_meeting_t_meeting_id NOT NULL
-        CONSTRAINT fk_nm_group_uampdi_meeting_t_meeting_id_meeting_t_id REFERENCES meeting_t (id)
+    meeting_poll_default_id integer
+        CONSTRAINT required_nm_group_uimpdi_meeting_poll_default_t_meeting_3e3a74c NOT NULL
+        CONSTRAINT fk_nm_group_uimpdi_meeting_poll_default_t_meeting_poll_de89d9d1 REFERENCES meeting_poll_default_t (id)
         ON DELETE CASCADE
         INITIALLY DEFERRED,
-    CONSTRAINT pk_nm_group_uampdi_meeting_t PRIMARY KEY (group_id, meeting_id)
+    CONSTRAINT pk_nm_group_uimpdi_meeting_poll_default_t PRIMARY KEY (group_id, meeting_poll_default_id)
 );
-CREATE INDEX idx_nm_group_uampdi_meeting_t_group_id ON nm_group_uampdi_meeting_t (group_id);
-CREATE INDEX idx_nm_group_uampdi_meeting_t_meeting_id ON nm_group_uampdi_meeting_t (meeting_id);
+CREATE INDEX idx_nm_group_uimpdi_meeting_poll_default_t_group_id ON nm_group_uimpdi_meeting_poll_default_t (group_id);
+CREATE INDEX idx_nm_group_uimpdi_meeting_poll_default_t_meeting_poll_d4adef5 ON nm_group_uimpdi_meeting_poll_default_t (meeting_poll_default_id);
 
 CREATE TABLE nm_meeting_present_user_ids_user_t (
     meeting_id integer
@@ -2765,22 +2765,6 @@ CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id ON gm_meeti
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_3c67b77 ON gm_meeting_mediafile_attachment_ids_t (attachment_id_motion_id);
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_8abf47a ON gm_meeting_mediafile_attachment_ids_t (attachment_id_topic_id);
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_66fb18e ON gm_meeting_mediafile_attachment_ids_t (attachment_id_assignment_id);
-
-CREATE TABLE nm_meeting_poll_default_group_ids_meeting_poll_default_t (
-    used_as_meeting_poll_default_id integer
-        CONSTRAINT required_nm_meeting_poll_default_group_ids_meeting_poll_f9f854a NOT NULL
-        CONSTRAINT fk_nm_meeting_poll_default_group_ids_meeting_poll_defaulc8bdc0a REFERENCES meeting_poll_default_t (id)
-        ON DELETE CASCADE
-        INITIALLY DEFERRED,
-    group_id integer
-        CONSTRAINT required_nm_meeting_poll_default_group_ids_meeting_poll_5ab2373 NOT NULL
-        CONSTRAINT fk_nm_meeting_poll_default_group_ids_meeting_poll_defaulc20b2a1 REFERENCES meeting_poll_default_t (id)
-        ON DELETE CASCADE
-        INITIALLY DEFERRED,
-    CONSTRAINT pk_nm_meeting_poll_default_group_ids_meeting_poll_default_t PRIMARY KEY (used_as_meeting_poll_default_id, group_id)
-);
-CREATE INDEX idx_nm_meeting_poll_default_group_ids_meeting_poll_defau17a86aa ON nm_meeting_poll_default_group_ids_meeting_poll_default_t (used_as_meeting_poll_default_id);
-CREATE INDEX idx_nm_meeting_poll_default_group_ids_meeting_poll_defaubdac7a4 ON nm_meeting_poll_default_group_ids_meeting_poll_default_t (group_id);
 
 CREATE TABLE nm_meeting_user_poll_voted_ids_poll_t (
     meeting_user_id integer
@@ -3054,7 +3038,7 @@ CREATE VIEW "group" AS SELECT *,
 (select array_agg(n.chat_group_id ORDER BY n.chat_group_id) from nm_chat_group_read_group_ids_group_t n where n.group_id = g.id) as read_chat_group_ids,
 (select array_agg(n.chat_group_id ORDER BY n.chat_group_id) from nm_chat_group_write_group_ids_group_t n where n.group_id = g.id) as write_chat_group_ids,
 (select array_agg(n.poll_id ORDER BY n.poll_id) from nm_group_poll_ids_poll_t n where n.group_id = g.id) as poll_ids,
-(select array_agg(n.meeting_id ORDER BY n.meeting_id) from nm_group_uampdi_meeting_t n where n.group_id = g.id) as used_as_meeting_poll_default_ids
+(select array_agg(n.meeting_poll_default_id ORDER BY n.meeting_poll_default_id) from nm_group_uimpdi_meeting_poll_default_t n where n.group_id = g.id) as used_in_meeting_poll_default_ids
 FROM group_t g;
 
 comment on column "group".meeting_mediafile_inherited_access_group_ids is 'Calculated field.';
@@ -3175,7 +3159,7 @@ FROM meeting_mediafile_t m;
 comment on column "meeting_mediafile".inherited_access_group_ids is 'Calculated in actions. Shows what access group permissions are actually relevant. Calculated as the intersection of this meeting_mediafiles access_group_ids and the related mediafiles potential parent mediafiles inherited_access_group_ids. If the parent has no meeting_mediafile for this meeting, its inherited access group is assumed to be the meetings admin group. If there is no parent, the inherited_access_group_ids is equal to the access_group_ids. If the access_group_ids are empty, the interpretations is that every group has access rights, therefore the parent inherited_access_group_ids are used as-is.';
 
 CREATE VIEW "meeting_poll_default" AS SELECT *,
-(select array_agg(n.group_id ORDER BY n.group_id) from nm_meeting_poll_default_group_ids_meeting_poll_default_t n where n.used_as_meeting_poll_default_id = m.id) as group_ids,
+(select array_agg(n.group_id ORDER BY n.group_id) from nm_group_uimpdi_meeting_poll_default_t n where n.meeting_poll_default_id = m.id) as group_ids,
 (select m1.id from meeting_t m1 where m1.assignment_poll_config_id = m.id) as used_as_assignment_poll_config_in_meeting_id,
 (select m1.id from meeting_t m1 where m1.motion_poll_config_id = m.id) as used_as_motion_poll_config_in_meeting_id,
 (select m1.id from meeting_t m1 where m1.topic_poll_config_id = m.id) as used_as_topic_poll_config_in_meeting_id
@@ -4627,9 +4611,9 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('group','group_id','po
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_group_poll_ids_poll_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
-CREATE TRIGGER tr_log_nm_group_uampdi_meeting_t AFTER INSERT OR UPDATE OR DELETE ON nm_group_uampdi_meeting_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('group','group_id','used_as_meeting_poll_default_ids','meeting','meeting_id','group_ids');
-CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_group_uampdi_meeting_t
+CREATE TRIGGER tr_log_nm_group_uimpdi_meeting_poll_default_t AFTER INSERT OR UPDATE OR DELETE ON nm_group_uimpdi_meeting_poll_default_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('group','group_id','used_in_meeting_poll_default_ids','meeting_poll_default','meeting_poll_default_id','group_ids');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_group_uimpdi_meeting_poll_default_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 CREATE TRIGGER tr_log_group_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON group_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'group_ids');
@@ -4808,12 +4792,6 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 CREATE TRIGGER tr_log_meeting_poll_default AFTER INSERT OR UPDATE OR DELETE ON meeting_poll_default_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('meeting_poll_default');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON meeting_poll_default_t
-DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
-
-
-CREATE TRIGGER tr_log_nm_meeting_poll_default_group_ids_meeting_poll_default_t AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_poll_default_group_ids_meeting_poll_default_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default','used_as_meeting_poll_default_id','group_ids','meeting_poll_default','group_id','used_as_meeting_poll_default_ids');
-CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_poll_default_group_ids_meeting_poll_default_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
 CREATE TRIGGER tr_log_meeting_user AFTER INSERT OR UPDATE OR DELETE ON meeting_user_t
@@ -5957,7 +5935,7 @@ SQL nt:nt => group/write_comment_section_ids:-> motion_comment_section/write_gro
 SQL nt:nt => group/read_chat_group_ids:-> chat_group/read_group_ids
 SQL nt:nt => group/write_chat_group_ids:-> chat_group/write_group_ids
 SQL nt:nt => group/poll_ids:-> poll/entitled_group_ids
-SQL nr:nr => group/used_as_meeting_poll_default_ids:-> meeting/group_ids
+SQL nt:nt => group/used_in_meeting_poll_default_ids:-> meeting_poll_default/group_ids
 FIELD 1rR:nt => group/meeting_id:-> meeting/group_ids
 
 FIELD 1Gr:nt,nt,nt => history_entry/model_id:-> user/history_entry_ids,motion/history_entry_ids,assignment/history_entry_ids
@@ -6090,7 +6068,7 @@ SQL 1t:1r => meeting_mediafile/used_as_font_chyron_speaker_name_in_meeting_id:->
 SQL 1t:1r => meeting_mediafile/used_as_font_projector_h1_in_meeting_id:-> meeting/font_projector_h1_id
 SQL 1t:1r => meeting_mediafile/used_as_font_projector_h2_in_meeting_id:-> meeting/font_projector_h2_id
 
-SQL nr:nr => meeting_poll_default/group_ids:-> meeting_poll_default/used_as_meeting_poll_default_ids
+SQL nt:nt => meeting_poll_default/group_ids:-> group/used_in_meeting_poll_default_ids
 SQL 1t:1r => meeting_poll_default/used_as_assignment_poll_config_in_meeting_id:-> meeting/assignment_poll_config_id
 SQL 1t:1r => meeting_poll_default/used_as_motion_poll_config_in_meeting_id:-> meeting/motion_poll_config_id
 SQL 1t:1r => meeting_poll_default/used_as_topic_poll_config_in_meeting_id:-> meeting/topic_poll_config_id

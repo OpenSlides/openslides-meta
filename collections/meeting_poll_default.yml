@@ -42,8 +42,7 @@ fields:
     restriction_mode: A
   group_ids:
     type: relation-list
-    to: group/used_as_meeting_poll_default_ids
-    reference: meeting_poll_default
+    to: group/used_in_meeting_poll_default_ids
     restriction_mode: A
   display_chart:
     type: string
