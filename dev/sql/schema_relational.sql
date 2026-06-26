@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '9d06b345626834607b596c879fab743e'
+-- MODELS_YML_CHECKSUM = '68bbd44274cf90745c2c6acc8e6c0341'
 
 
 -- ENUM definitions
@@ -1553,13 +1553,7 @@ CREATE TABLE meeting_poll_default_t (
         CONSTRAINT default_meeting_poll_default_strike_out DEFAULT False,
     onehundred_percent_base varchar(256)
         CONSTRAINT default_meeting_poll_default_onehundred_percent_base DEFAULT 'valid',
-    display_chart varchar(256),
-    used_as_assignment_poll_config_ids integer
-        CONSTRAINT unique_meeting_poll_default_used_as_assignment_poll_config_ids UNIQUE,
-    used_as_motion_poll_config_ids integer
-        CONSTRAINT unique_meeting_poll_default_used_as_motion_poll_config_ids UNIQUE,
-    used_as_topic_poll_config_ids integer
-        CONSTRAINT unique_meeting_poll_default_used_as_topic_poll_config_ids UNIQUE
+    display_chart varchar(256)
 );
 
 
@@ -3181,7 +3175,10 @@ FROM meeting_mediafile_t m;
 comment on column "meeting_mediafile".inherited_access_group_ids is 'Calculated in actions. Shows what access group permissions are actually relevant. Calculated as the intersection of this meeting_mediafiles access_group_ids and the related mediafiles potential parent mediafiles inherited_access_group_ids. If the parent has no meeting_mediafile for this meeting, its inherited access group is assumed to be the meetings admin group. If there is no parent, the inherited_access_group_ids is equal to the access_group_ids. If the access_group_ids are empty, the interpretations is that every group has access rights, therefore the parent inherited_access_group_ids are used as-is.';
 
 CREATE VIEW "meeting_poll_default" AS SELECT *,
-(select array_agg(n.group_id ORDER BY n.group_id) from nm_meeting_poll_default_group_ids_meeting_poll_default_t n where n.used_as_meeting_poll_default_id = m.id) as group_ids
+(select array_agg(n.group_id ORDER BY n.group_id) from nm_meeting_poll_default_group_ids_meeting_poll_default_t n where n.used_as_meeting_poll_default_id = m.id) as group_ids,
+(select m1.id from meeting_t m1 where m1.assignment_poll_config_id = m.id) as used_as_assignment_poll_config_in_meeting_id,
+(select m1.id from meeting_t m1 where m1.motion_poll_config_id = m.id) as used_as_motion_poll_config_in_meeting_id,
+(select m1.id from meeting_t m1 where m1.topic_poll_config_id = m.id) as used_as_topic_poll_config_in_meeting_id
 FROM meeting_poll_default_t m;
 
 
@@ -3604,13 +3601,6 @@ ALTER TABLE meeting_mediafile_t ADD CONSTRAINT fk_meeting_mediafile_t_mediafile_
 CREATE INDEX idx_meeting_mediafile_t_mediafile_id ON meeting_mediafile_t (mediafile_id);
 ALTER TABLE meeting_mediafile_t ADD CONSTRAINT fk_meeting_mediafile_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_meeting_mediafile_t_meeting_id ON meeting_mediafile_t (meeting_id);
-
-ALTER TABLE meeting_poll_default_t ADD CONSTRAINT fk_meeting_poll_default_t_used_as_assignment_poll_configa3b07ac FOREIGN KEY(used_as_assignment_poll_config_ids) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_meeting_poll_default_t_used_as_assignment_poll_config_ids ON meeting_poll_default_t (used_as_assignment_poll_config_ids);
-ALTER TABLE meeting_poll_default_t ADD CONSTRAINT fk_meeting_poll_default_t_used_as_motion_poll_config_idsb24b9cf FOREIGN KEY(used_as_motion_poll_config_ids) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_meeting_poll_default_t_used_as_motion_poll_config_ids ON meeting_poll_default_t (used_as_motion_poll_config_ids);
-ALTER TABLE meeting_poll_default_t ADD CONSTRAINT fk_meeting_poll_default_t_used_as_topic_poll_config_ids_78494ac FOREIGN KEY(used_as_topic_poll_config_ids) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_meeting_poll_default_t_used_as_topic_poll_config_ids ON meeting_poll_default_t (used_as_topic_poll_config_ids);
 
 ALTER TABLE meeting_user_t ADD CONSTRAINT fk_meeting_user_t_user_id_user_t_id FOREIGN KEY(user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_meeting_user_t_user_id ON meeting_user_t (user_id);
@@ -4731,11 +4721,11 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion_workflow', 'mo
 CREATE TRIGGER tr_log_meeting_t_motions_default_amendment_workflow_id AFTER INSERT OR UPDATE OF motions_default_amendment_workflow_id OR DELETE ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion_workflow', 'motions_default_amendment_workflow_id', 'default_amendment_workflow_meeting_id');
 CREATE TRIGGER tr_log_meeting_t_assignment_poll_config_id AFTER INSERT OR UPDATE OF assignment_poll_config_id OR DELETE ON meeting_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default', 'assignment_poll_config_id', 'used_as_assignment_poll_config_ids');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default', 'assignment_poll_config_id', 'used_as_assignment_poll_config_in_meeting_id');
 CREATE TRIGGER tr_log_meeting_t_motion_poll_config_id AFTER INSERT OR UPDATE OF motion_poll_config_id OR DELETE ON meeting_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default', 'motion_poll_config_id', 'used_as_motion_poll_config_ids');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default', 'motion_poll_config_id', 'used_as_motion_poll_config_in_meeting_id');
 CREATE TRIGGER tr_log_meeting_t_topic_poll_config_id AFTER INSERT OR UPDATE OF topic_poll_config_id OR DELETE ON meeting_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default', 'topic_poll_config_id', 'used_as_topic_poll_config_ids');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default', 'topic_poll_config_id', 'used_as_topic_poll_config_in_meeting_id');
 CREATE TRIGGER tr_log_meeting_t_logo_projector_main_id AFTER INSERT OR UPDATE OF logo_projector_main_id OR DELETE ON meeting_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_mediafile', 'logo_projector_main_id', 'used_as_logo_projector_main_in_meeting_id');
 CREATE TRIGGER tr_log_meeting_t_logo_projector_header_id AFTER INSERT OR UPDATE OF logo_projector_header_id OR DELETE ON meeting_t
@@ -4825,12 +4815,6 @@ CREATE TRIGGER tr_log_nm_meeting_poll_default_group_ids_meeting_poll_default_t A
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_poll_default','used_as_meeting_poll_default_id','group_ids','meeting_poll_default','group_id','used_as_meeting_poll_default_ids');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_poll_default_group_ids_meeting_poll_default_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
-CREATE TRIGGER tr_log_meeting_poll_default_t_used_as_assignment_poll_coc3da104 AFTER INSERT OR UPDATE OF used_as_assignment_poll_config_ids OR DELETE ON meeting_poll_default_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_assignment_poll_config_ids', 'assignment_poll_config_id');
-CREATE TRIGGER tr_log_meeting_poll_default_t_used_as_motion_poll_config_ids AFTER INSERT OR UPDATE OF used_as_motion_poll_config_ids OR DELETE ON meeting_poll_default_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_motion_poll_config_ids', 'motion_poll_config_id');
-CREATE TRIGGER tr_log_meeting_poll_default_t_used_as_topic_poll_config_ids AFTER INSERT OR UPDATE OF used_as_topic_poll_config_ids OR DELETE ON meeting_poll_default_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_topic_poll_config_ids', 'topic_poll_config_id');
 
 CREATE TRIGGER tr_log_meeting_user AFTER INSERT OR UPDATE OR DELETE ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('meeting_user');
@@ -6001,9 +5985,9 @@ FIELD 1r:nt => meeting/template_for_organization_id:-> organization/template_mee
 FIELD 1rR:1t => meeting/motions_default_workflow_id:-> motion_workflow/default_workflow_meeting_id
 FIELD 1rR:1t => meeting/motions_default_amendment_workflow_id:-> motion_workflow/default_amendment_workflow_meeting_id
 SQL nt:1rR => meeting/meeting_user_ids:-> meeting_user/meeting_id
-FIELD 1r:1r => meeting/assignment_poll_config_id:-> meeting_poll_default/used_as_assignment_poll_config_ids
-FIELD 1r:1r => meeting/motion_poll_config_id:-> meeting_poll_default/used_as_motion_poll_config_ids
-FIELD 1r:1r => meeting/topic_poll_config_id:-> meeting_poll_default/used_as_topic_poll_config_ids
+FIELD 1r:1t => meeting/assignment_poll_config_id:-> meeting_poll_default/used_as_assignment_poll_config_in_meeting_id
+FIELD 1r:1t => meeting/motion_poll_config_id:-> meeting_poll_default/used_as_motion_poll_config_in_meeting_id
+FIELD 1r:1t => meeting/topic_poll_config_id:-> meeting_poll_default/used_as_topic_poll_config_in_meeting_id
 SQL nt:1rR => meeting/projector_ids:-> projector/meeting_id
 SQL nt:1rR => meeting/all_projection_ids:-> projection/meeting_id
 SQL nt:1rR => meeting/projector_message_ids:-> projector_message/meeting_id
@@ -6107,9 +6091,9 @@ SQL 1t:1r => meeting_mediafile/used_as_font_projector_h1_in_meeting_id:-> meetin
 SQL 1t:1r => meeting_mediafile/used_as_font_projector_h2_in_meeting_id:-> meeting/font_projector_h2_id
 
 SQL nr:nr => meeting_poll_default/group_ids:-> meeting_poll_default/used_as_meeting_poll_default_ids
-FIELD 1r:1r => meeting_poll_default/used_as_assignment_poll_config_ids:-> meeting/assignment_poll_config_id
-FIELD 1r:1r => meeting_poll_default/used_as_motion_poll_config_ids:-> meeting/motion_poll_config_id
-FIELD 1r:1r => meeting_poll_default/used_as_topic_poll_config_ids:-> meeting/topic_poll_config_id
+SQL 1t:1r => meeting_poll_default/used_as_assignment_poll_config_in_meeting_id:-> meeting/assignment_poll_config_id
+SQL 1t:1r => meeting_poll_default/used_as_motion_poll_config_in_meeting_id:-> meeting/motion_poll_config_id
+SQL 1t:1r => meeting_poll_default/used_as_topic_poll_config_in_meeting_id:-> meeting/topic_poll_config_id
 
 FIELD 1rR:nt => meeting_user/user_id:-> user/meeting_user_ids
 FIELD 1rR:nt => meeting_user/meeting_id:-> meeting/meeting_user_ids

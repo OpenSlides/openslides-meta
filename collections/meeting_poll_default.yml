@@ -49,21 +49,18 @@ fields:
     type: string
     restriction_mode: A
 
-  used_as_assignment_poll_config_ids:
+  used_as_assignment_poll_config_in_meeting_id:
     type: relation
     to: meeting/assignment_poll_config_id
-    reference: meeting
     restriction_mode: A
     constant: true
-  used_as_motion_poll_config_ids:
+  used_as_motion_poll_config_in_meeting_id:
     type: relation
     to: meeting/motion_poll_config_id
-    reference: meeting
     restriction_mode: A
     constant: true
-  used_as_topic_poll_config_ids:
+  used_as_topic_poll_config_in_meeting_id:
     type: relation
     to: meeting/topic_poll_config_id
-    reference: meeting
     restriction_mode: A
     constant: true
