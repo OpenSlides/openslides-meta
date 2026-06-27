@@ -700,7 +700,9 @@ class InternalHelper:
         primary: bool | str | None
         error = ""
 
-        if own_card in foreign_card_replacement_list:
+        if own_card in foreign_card_replacement_list and (
+            "r" not in foreign_card or own_card[0] != foreign_card[0]
+        ):
             foreign_card = ""
 
         state, primary = decision_list.get((own_card, foreign_card), (None, None))
