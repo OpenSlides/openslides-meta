@@ -324,9 +324,11 @@ class Checker:
                     f"invalid value for 'on_delete' for {collectionfield}"
                 )
             valid_attributes.append("equal_fields")
+            if type != "generic-relation-list":
+                valid_attributes.append("reference")
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
-            valid_attributes.extend(("reference", "deferred", "sql"))
+            valid_attributes.extend(("deferred", "sql"))
             if field.get("sql"):
                 valid_attributes.append("log_triggers")
                 self.check_log_triggers(collectionfield, field)
@@ -586,15 +588,10 @@ class Checker:
             to_collectionfield,
             to_field,
         )
-        if all(
-            [
-                "reference" in field and field["type"] == "relation"
-                for field in [to_field, from_field]
-            ]
+        if reference_error := self.check_reference(
+            from_collectionfield, from_field, to_collectionfield, to_field
         ):
-            self.errors.append(
-                f"The relation fields {from_collectionfield} and {to_collectionfield} both have reference set."
-            )
+            self.errors.append(reference_error)
 
         to = to_field["to"]
         if isinstance(to, str):
@@ -704,6 +701,53 @@ class Checker:
     def split_collectionfield(self, collectionfield: str) -> tuple[str, str]:
         parts = collectionfield.split(KEYSEPARATOR)
         return parts[0], parts[1]
+
+    def check_reference(
+        self,
+        from_collectionfield: str,
+        from_field: dict[str, Any],
+        to_collectionfield: str,
+        to_field: dict[str, Any],
+    ) -> str | None:
+        reference_in_fields = ["reference" in field for field in [to_field, from_field]]
+        if (
+            from_field["type"] == to_field["type"]
+            and from_field["type"] in ["relation", "relation-list"]
+            and all(reference_in_fields)
+        ):
+            return f"The relation fields {from_collectionfield} and {to_collectionfield} both have 'reference' set."
+
+        if from_field["type"] == to_field["type"] == "relation" and not any(
+            reference_in_fields
+        ):
+            return f"One of the relation fields {from_collectionfield} and {to_collectionfield} must have 'reference' set."
+
+        allowed, required = self.get_reference_allowed_required(from_field, to_field)
+        if not allowed and from_field.get("reference"):
+            return f"Relational collectionfield {from_collectionfield} can not have 'reference' attribute."
+
+        if required and not from_field.get("reference"):
+            return f"Relational collectionfield {from_collectionfield} must have 'reference' attribute."
+
+        return None
+
+    def get_reference_allowed_required(
+        self, from_field: dict[str, Any], to_field: dict[str, Any]
+    ) -> tuple[bool, bool]:
+        if from_field["type"] == to_field["type"] == "relation":
+            return (True, False)
+        if from_field["type"] == "relation-list" and to_field["type"] in [
+            "relation",
+            "generic-relation",
+        ]:
+            return (True, False)
+        if (from_field["type"], to_field["type"]) in (
+            ("generic-relation", "relation-list"),
+            ("generic-relation", "relation"),
+            ("relation", "relation-list"),
+        ):
+            return (True, True)
+        return (False, False)
 
 
 def main() -> int:
