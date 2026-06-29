@@ -43,6 +43,7 @@ fields:
   group_ids:
     type: relation-list
     to: group/used_in_meeting_poll_default_ids
+    equal_fields: meeting_id
     restriction_mode: A
   display_chart:
     type: string
@@ -63,3 +64,11 @@ fields:
     to: meeting/topic_poll_config_id
     restriction_mode: A
     constant: true
+
+  meeting_id:
+    type: relation
+    required: true
+    reference: meeting
+    to: meeting/poll_default_ids
+    constant: true
+    restriction_mode: A

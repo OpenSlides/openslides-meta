@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '1f67e852f72ebc5f439b763a3a4b0d2a'
+-- MODELS_YML_CHECKSUM = '3b473e991f3c572162e70b9334e9459c'
 
 
 -- ENUM definitions
@@ -1555,7 +1555,9 @@ CREATE TABLE meeting_poll_default_t (
         CONSTRAINT default_meeting_poll_default_strike_out DEFAULT False,
     onehundred_percent_base varchar(256)
         CONSTRAINT default_meeting_poll_default_onehundred_percent_base DEFAULT 'valid',
-    display_chart varchar(256)
+    display_chart varchar(256),
+    meeting_id integer
+        CONSTRAINT required_meeting_poll_default_meeting_id NOT NULL
 );
 
 
@@ -3100,6 +3102,7 @@ CREATE VIEW "meeting" AS SELECT *,
 (select array_agg(mc.id ORDER BY mc.id) from motion_change_recommendation_t mc where mc.meeting_id = m.id) as motion_change_recommendation_ids,
 (select array_agg(ms.id ORDER BY ms.id) from motion_state_t ms where ms.meeting_id = m.id) as motion_state_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_t p where p.meeting_id = m.id) as poll_ids,
+(select array_agg(mp.id ORDER BY mp.id) from meeting_poll_default_t mp where mp.meeting_id = m.id) as poll_default_ids,
 (select array_agg(a.id ORDER BY a.id) from assignment_t a where a.meeting_id = m.id) as assignment_ids,
 (select array_agg(a.id ORDER BY a.id) from assignment_candidate_t a where a.meeting_id = m.id) as assignment_candidate_ids,
 (select array_agg(p.id ORDER BY p.id) from personal_note_t p where p.meeting_id = m.id) as personal_note_ids,
@@ -3591,6 +3594,9 @@ ALTER TABLE meeting_mediafile_t ADD CONSTRAINT fk_meeting_mediafile_t_mediafile_
 CREATE INDEX idx_meeting_mediafile_t_mediafile_id ON meeting_mediafile_t (mediafile_id);
 ALTER TABLE meeting_mediafile_t ADD CONSTRAINT fk_meeting_mediafile_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_meeting_mediafile_t_meeting_id ON meeting_mediafile_t (meeting_id);
+
+ALTER TABLE meeting_poll_default_t ADD CONSTRAINT fk_meeting_poll_default_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_meeting_poll_default_t_meeting_id ON meeting_poll_default_t (meeting_id);
 
 ALTER TABLE meeting_user_t ADD CONSTRAINT fk_meeting_user_t_user_id_user_t_id FOREIGN KEY(user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_meeting_user_t_user_id ON meeting_user_t (user_id);
@@ -4207,6 +4213,11 @@ CREATE TRIGGER tr_constant_meeting_mediafile_meeting_id BEFORE UPDATE OF meeting
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting_mediafile', 'meeting_id');
 
 
+-- definition trigger prevent_updates for meeting_poll_default.meeting_id
+CREATE TRIGGER tr_constant_meeting_poll_default_meeting_id BEFORE UPDATE OF meeting_id ON meeting_poll_default_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting_poll_default', 'meeting_id');
+
+
 -- definition trigger prevent_updates for meeting_user.user_id
 CREATE TRIGGER tr_constant_meeting_user_user_id BEFORE UPDATE OF user_id ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('meeting_user', 'user_id');
@@ -4802,6 +4813,9 @@ CREATE TRIGGER tr_log_meeting_poll_default AFTER INSERT OR UPDATE OR DELETE ON m
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('meeting_poll_default');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON meeting_poll_default_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+CREATE TRIGGER tr_log_meeting_poll_default_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON meeting_poll_default_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'poll_default_ids');
 
 CREATE TRIGGER tr_log_meeting_user AFTER INSERT OR UPDATE OR DELETE ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('meeting_user');
@@ -5436,6 +5450,14 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_poll_ids_intermediate AFTE
 FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('group_id', 'group', 'poll_id', 'poll', 'meeting_id', 'poll_ids');
 
 
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_used_in_meeting_poll_default_ids AFTER INSERT ON group_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_uimpdi_meeting_poll_default_t', 'group_id', 'group', 'meeting_poll_default_id', 'meeting_poll_default', 'meeting_id', 'used_in_meeting_poll_default_ids');
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_poll_default_t_group_ids AFTER INSERT ON meeting_poll_default_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals_multi('nm_group_uimpdi_meeting_poll_default_t', 'meeting_poll_default_id', 'meeting_poll_default', 'group_id', 'group', 'meeting_id', 'group_ids');
+CREATE CONSTRAINT TRIGGER equal_meeting_id_on_group_t_used_in_meeting_poll_defaultc54c442 AFTER INSERT ON nm_group_uimpdi_meeting_poll_default_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('group_id', 'group', 'meeting_poll_default_id', 'meeting_poll_default', 'meeting_id', 'used_in_meeting_poll_default_ids');
+
+
 
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_list_of_speakers_t_content_object_id15e708c AFTER INSERT ON list_of_speakers_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('list_of_speakers', 'motion', 'content_object_id_motion_id', 'meeting_id', FALSE);
@@ -6003,6 +6025,7 @@ SQL nt:1rR => meeting/motion_working_group_speaker_ids:-> motion_working_group_s
 SQL nt:1rR => meeting/motion_change_recommendation_ids:-> motion_change_recommendation/meeting_id
 SQL nt:1rR => meeting/motion_state_ids:-> motion_state/meeting_id
 SQL nr:1rR => meeting/poll_ids:-> poll/meeting_id
+SQL nt:1rR => meeting/poll_default_ids:-> meeting_poll_default/meeting_id
 SQL nt:1rR => meeting/assignment_ids:-> assignment/meeting_id
 SQL nt:1rR => meeting/assignment_candidate_ids:-> assignment_candidate/meeting_id
 SQL nt:1rR => meeting/personal_note_ids:-> personal_note/meeting_id
@@ -6081,6 +6104,7 @@ SQL nt:nt => meeting_poll_default/group_ids:-> group/used_in_meeting_poll_defaul
 SQL 1t:1r => meeting_poll_default/used_as_assignment_poll_config_in_meeting_id:-> meeting/assignment_poll_config_id
 SQL 1t:1r => meeting_poll_default/used_as_motion_poll_config_in_meeting_id:-> meeting/motion_poll_config_id
 SQL 1t:1r => meeting_poll_default/used_as_topic_poll_config_in_meeting_id:-> meeting/topic_poll_config_id
+FIELD 1rR:nt => meeting_poll_default/meeting_id:-> meeting/poll_default_ids
 
 FIELD 1rR:nt => meeting_user/user_id:-> user/meeting_user_ids
 FIELD 1rR:nt => meeting_user/meeting_id:-> meeting/meeting_user_ids
