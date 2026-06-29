@@ -8,7 +8,7 @@ fields:
   ballot_paper_selection:
     type: string
     enum: ballot_paper_selection
-    default: CUSTOM_NUMBER
+    default: custom_number
     restriction_mode: A
   ballot_paper_number:
     type: number
