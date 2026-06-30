@@ -633,10 +633,6 @@ fields:
     type: boolean
     default: false
     restriction_mode: B
-  assignment_poll_sort_poll_result_by_votes:
-    type: boolean
-    default: true
-    restriction_mode: B
   assignment_poll_default_method:
     type: string
     enum: poll_methods

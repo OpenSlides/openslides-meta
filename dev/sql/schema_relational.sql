@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '29a273128b9475031af922f496a4fcee'
+-- MODELS_YML_CHECKSUM = '61da5c022eabc55e95a00b629844ac03'
 
 
 -- ENUM definitions
@@ -1433,8 +1433,6 @@ This email was generated automatically.',
     assignments_export_preamble text,
     assignment_poll_add_candidates_to_list_of_speakers boolean
         CONSTRAINT default_meeting_assignment_poll_add_candidates_to_list_od04213d DEFAULT False,
-    assignment_poll_sort_poll_result_by_votes boolean
-        CONSTRAINT default_meeting_assignment_poll_sort_poll_result_by_votes DEFAULT True,
     assignment_poll_default_method enum_poll_methods
         CONSTRAINT default_meeting_assignment_poll_default_method DEFAULT 'selection',
     assignment_poll_config_id integer
