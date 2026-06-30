@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '472dd223307f11a19a864edd93b78230'
+-- MODELS_YML_CHECKSUM = '65103beb4910ed9e78b253bf2639b69c'
 
 
 -- ENUM definitions
@@ -10,9 +10,15 @@ CREATE TYPE enum_languages AS ENUM ('en', 'de', 'it', 'es', 'ru', 'cs', 'fr');
 
 CREATE TYPE enum_ballot_paper_selection AS ENUM ('NUMBER_OF_DELEGATES', 'NUMBER_OF_ALL_PARTICIPANTS', 'CUSTOM_NUMBER');
 
-CREATE TYPE enum_poll_backends AS ENUM ('long', 'fast');
+CREATE TYPE enum_onehundred_percent_bases AS ENUM ('no_general', 'yes_no', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled');
 
-CREATE TYPE enum_onehundred_percent_bases AS ENUM ('Y', 'YN', 'YNA', 'N', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled');
+CREATE TYPE enum_approval_onehundred_percent_bases AS ENUM ('yes_no', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled');
+
+CREATE TYPE enum_rating_approval_onehundred_percent_bases AS ENUM ('yes_no', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled');
+
+CREATE TYPE enum_rating_score_onehundred_percent_bases AS ENUM ('yes_no', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled');
+
+CREATE TYPE enum_selection_onehundred_percent_bases AS ENUM ('no_general', 'valid', 'cast', 'entitled', 'entitled_present', 'disabled');
 
 CREATE TYPE enum_action_worker_state AS ENUM ('running', 'end', 'aborted');
 
@@ -20,7 +26,7 @@ CREATE TYPE enum_agenda_item_type AS ENUM ('common', 'internal', 'hidden');
 
 CREATE TYPE enum_assignment_phase AS ENUM ('search', 'voting', 'finished');
 
-CREATE TYPE enum_group_permissions AS ENUM ('agenda_item.can_manage', 'agenda_item.can_see', 'agenda_item.can_see_internal', 'assignment.can_manage', 'assignment.can_manage_polls', 'assignment.can_nominate_other', 'assignment.can_nominate_self', 'assignment.can_see', 'chat.can_manage', 'list_of_speakers.can_be_speaker', 'list_of_speakers.can_manage', 'list_of_speakers.can_see', 'list_of_speakers.can_manage_moderator_notes', 'list_of_speakers.can_see_moderator_notes', 'mediafile.can_manage', 'mediafile.can_see', 'meeting.can_manage_logos_and_fonts', 'meeting.can_manage_settings', 'meeting.can_see_autopilot', 'meeting.can_see_frontpage', 'meeting.can_see_history', 'meeting.can_see_livestream', 'motion.can_create', 'motion.can_create_amendments', 'motion.can_forward', 'motion.can_manage', 'motion.can_manage_metadata', 'motion.can_manage_polls', 'motion.can_see', 'motion.can_see_internal', 'motion.can_see_origin', 'motion.can_support', 'poll.can_manage', 'poll.can_see_progress', 'projector.can_manage', 'projector.can_see', 'tag.can_manage', 'user.can_manage', 'user.can_manage_presence', 'user.can_see_sensitive_data', 'user.can_see', 'user.can_update', 'user.can_edit_own_delegation');
+CREATE TYPE enum_group_permissions AS ENUM ('agenda_item.can_manage', 'agenda_item.can_manage_polls', 'agenda_item.can_see_polls', 'agenda_item.can_see', 'agenda_item.can_see_internal', 'assignment.can_manage', 'assignment.can_manage_polls', 'assignment.can_nominate_other', 'assignment.can_nominate_self', 'assignment.can_see_polls', 'assignment.can_see', 'chat.can_manage', 'list_of_speakers.can_be_speaker', 'list_of_speakers.can_manage', 'list_of_speakers.can_see', 'list_of_speakers.can_manage_moderator_notes', 'list_of_speakers.can_see_moderator_notes', 'mediafile.can_manage', 'mediafile.can_see', 'meeting.can_manage_logos_and_fonts', 'meeting.can_manage_settings', 'meeting.can_see_autopilot', 'meeting.can_see_frontpage', 'meeting.can_see_history', 'meeting.can_see_livestream', 'motion.can_create', 'motion.can_create_amendments', 'motion.can_forward', 'motion.can_manage', 'motion.can_manage_metadata', 'motion.can_manage_polls', 'motion.can_see_polls', 'motion.can_see', 'motion.can_see_internal', 'motion.can_see_origin', 'motion.can_support', 'poll.can_see_progress', 'projector.can_manage', 'projector.can_see', 'tag.can_manage', 'user.can_manage', 'user.can_manage_presence', 'user.can_see_sensitive_data', 'user.can_see', 'user.can_update', 'user.can_edit_own_delegation');
 
 CREATE TYPE enum_import_preview_name AS ENUM ('account', 'participant', 'topic', 'committee', 'motion');
 
@@ -62,11 +68,9 @@ CREATE TYPE enum_motion_state_restrictions AS ENUM ('motion.can_see_internal', '
 
 CREATE TYPE enum_motion_state_merge_amendment_into_final AS ENUM ('do_not_merge', 'undefined', 'do_merge');
 
-CREATE TYPE enum_poll_type AS ENUM ('analog', 'named', 'pseudoanonymous', 'cryptographic');
+CREATE TYPE enum_poll_visibility AS ENUM ('manually', 'named', 'open', 'secret');
 
-CREATE TYPE enum_poll_pollmethod AS ENUM ('Y', 'YN', 'YNA', 'N');
-
-CREATE TYPE enum_poll_state AS ENUM ('created', 'started', 'finished', 'published');
+CREATE TYPE enum_poll_state AS ENUM ('created', 'started', 'finished');
 
 CREATE TYPE enum_speaker_speech_state AS ENUM ('contribution', 'pro', 'contra', 'intervention', 'interposed_question');
 
@@ -1061,13 +1065,15 @@ CREATE TABLE history_entry_t (
     entries text[],
     original_model_id varchar(256),
     model_id varchar(100),
-    model_id_user_id integer
-        CONSTRAINT generated_always_as_history_entry_model_id_user_id GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'user' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    model_id_motion_id integer
-        CONSTRAINT generated_always_as_history_entry_model_id_motion_id GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'motion' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     model_id_assignment_id integer
         CONSTRAINT generated_always_as_history_entry_model_id_assignment_id GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'assignment' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    CONSTRAINT valid_history_entry_model_id_part1 CHECK (split_part(model_id, '/', 1) IN ('user','motion','assignment')),
+    model_id_motion_id integer
+        CONSTRAINT generated_always_as_history_entry_model_id_motion_id GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'motion' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    model_id_poll_id integer
+        CONSTRAINT generated_always_as_history_entry_model_id_poll_id GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'poll' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    model_id_user_id integer
+        CONSTRAINT generated_always_as_history_entry_model_id_user_id GENERATED ALWAYS AS (CASE WHEN split_part(model_id, '/', 1) = 'user' THEN cast(split_part(model_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    CONSTRAINT valid_history_entry_model_id_part1 CHECK (split_part(model_id, '/', 1) IN ('assignment','motion','poll','user')),
     position_id integer
         CONSTRAINT required_history_entry_position_id NOT NULL,
     meeting_id integer
@@ -1394,13 +1400,11 @@ CREATE TABLE meeting_t (
     motion_poll_ballot_paper_number integer
         CONSTRAINT default_meeting_motion_poll_ballot_paper_number DEFAULT 8,
     motion_poll_default_type varchar(256)
-        CONSTRAINT default_meeting_motion_poll_default_type DEFAULT 'pseudoanonymous',
-    motion_poll_default_method varchar(256)
-        CONSTRAINT default_meeting_motion_poll_default_method DEFAULT 'YNA',
-    motion_poll_default_onehundred_percent_base enum_onehundred_percent_bases
-        CONSTRAINT default_meeting_motion_poll_default_onehundred_percent_base DEFAULT 'YNA',
-    motion_poll_default_backend enum_poll_backends
-        CONSTRAINT default_meeting_motion_poll_default_backend DEFAULT 'fast',
+        CONSTRAINT default_meeting_motion_poll_default_type DEFAULT 'secret',
+    motion_poll_default_allow_abstain boolean
+        CONSTRAINT default_meeting_motion_poll_default_allow_abstain DEFAULT True,
+    motion_poll_default_onehundred_percent_base enum_approval_onehundred_percent_bases
+        CONSTRAINT default_meeting_motion_poll_default_onehundred_percent_base DEFAULT 'valid',
     motion_poll_projection_name_order_first enum_meeting_motion_poll_projection_name_order_first
         CONSTRAINT required_meeting_motion_poll_projection_name_order_first NOT NULL
         CONSTRAINT default_meeting_motion_poll_projection_name_order_first DEFAULT 'last_name',
@@ -1456,25 +1460,25 @@ This email was generated automatically.',
     assignment_poll_sort_poll_result_by_votes boolean
         CONSTRAINT default_meeting_assignment_poll_sort_poll_result_by_votes DEFAULT True,
     assignment_poll_default_type varchar(256)
-        CONSTRAINT default_meeting_assignment_poll_default_type DEFAULT 'pseudoanonymous',
+        CONSTRAINT default_meeting_assignment_poll_default_type DEFAULT 'secret',
     assignment_poll_default_method varchar(256)
-        CONSTRAINT default_meeting_assignment_poll_default_method DEFAULT 'Y',
+        CONSTRAINT default_meeting_assignment_poll_default_method DEFAULT 'selection',
     assignment_poll_default_onehundred_percent_base enum_onehundred_percent_bases
         CONSTRAINT default_meeting_assignment_poll_default_onehundred_percent_base DEFAULT 'valid',
-    assignment_poll_default_backend enum_poll_backends
-        CONSTRAINT default_meeting_assignment_poll_default_backend DEFAULT 'fast',
     poll_ballot_paper_selection enum_ballot_paper_selection,
     poll_ballot_paper_number integer,
     poll_sort_poll_result_by_votes boolean,
     poll_default_type varchar(256)
         CONSTRAINT default_meeting_poll_default_type DEFAULT 'analog',
     poll_default_method varchar(256),
-    poll_default_onehundred_percent_base enum_onehundred_percent_bases
-        CONSTRAINT default_meeting_poll_default_onehundred_percent_base DEFAULT 'YNA',
-    poll_default_backend enum_poll_backends
-        CONSTRAINT default_meeting_poll_default_backend DEFAULT 'fast',
+    poll_default_onehundred_percent_base enum_selection_onehundred_percent_bases
+        CONSTRAINT default_meeting_poll_default_onehundred_percent_base DEFAULT 'valid',
     poll_default_live_voting_enabled boolean
         CONSTRAINT default_meeting_poll_default_live_voting_enabled DEFAULT False,
+    poll_default_allow_invalid boolean
+        CONSTRAINT default_meeting_poll_default_allow_invalid DEFAULT False,
+    poll_default_allow_vote_split boolean
+        CONSTRAINT default_meeting_poll_default_allow_vote_split DEFAULT False,
     poll_couple_countdown boolean
         CONSTRAINT default_meeting_poll_couple_countdown DEFAULT True,
     logo_projector_main_id integer
@@ -1533,7 +1537,9 @@ comment on column meeting_t.is_active_in_organization_id is 'Backrelation and bo
 comment on column meeting_t.is_archived_in_organization_id is 'Backrelation and boolean flag at once';
 comment on column meeting_t.list_of_speakers_default_structure_level_time is '0 disables structure level countdowns.';
 comment on column meeting_t.list_of_speakers_intervention_time is '0 disables intervention speakers.';
-comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default "poll.live_voting_enabled" option suggested to user. Is not used in the validations.';
+comment on column meeting_t.poll_default_live_voting_enabled is 'Defines default "poll.published" before finished option suggested to user. Is not used in the validations.';
+comment on column meeting_t.poll_default_allow_invalid is 'Defines defaut `poll.allow_invalid` option suggested to user.';
+comment on column meeting_t.poll_default_allow_vote_split is 'Defines defaut `poll.allow_vote_split` option suggested to user.';
 
 
 CREATE TABLE meeting_mediafile_t (
@@ -1840,32 +1846,6 @@ CREATE TABLE motion_working_group_speaker_t (
 
 
 
-CREATE TABLE option_t (
-    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
-    weight integer
-        CONSTRAINT default_option_weight DEFAULT 10000,
-    text text,
-    yes decimal(16,6),
-    no decimal(16,6),
-    abstain decimal(16,6),
-    poll_id integer,
-    content_object_id varchar(100),
-    content_object_id_motion_id integer
-        CONSTRAINT generated_always_as_option_content_object_id_motion_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'motion' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_user_id integer
-        CONSTRAINT generated_always_as_option_content_object_id_user_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'user' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    content_object_id_poll_candidate_list_id integer
-        CONSTRAINT unique_option_content_object_id_poll_candidate_list_id UNIQUE
-        CONSTRAINT generated_always_as_option_content_object_id_poll_candidd7449d9 GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'poll_candidate_list' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
-    CONSTRAINT valid_option_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','user','poll_candidate_list')),
-    meeting_id integer
-        CONSTRAINT required_option_meeting_id NOT NULL,
-    CONSTRAINT unique_option_content_object_id_poll_id UNIQUE (content_object_id, poll_id)
-);
-
-
-
-
 CREATE TABLE organization_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
     name varchar(256),
@@ -1978,39 +1958,37 @@ CREATE TABLE poll_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
     title varchar(256)
         CONSTRAINT required_poll_title NOT NULL,
-    description varchar(256),
-    type enum_poll_type
-        CONSTRAINT required_poll_type NOT NULL,
-    backend enum_poll_backends
-        CONSTRAINT required_poll_backend NOT NULL
-        CONSTRAINT default_poll_backend DEFAULT 'fast',
-    is_pseudoanonymized boolean,
-    pollmethod enum_poll_pollmethod
-        CONSTRAINT required_poll_pollmethod NOT NULL,
+    config_id varchar(100)
+        CONSTRAINT required_poll_config_id NOT NULL,
+    config_id_poll_config_approval_id integer
+        CONSTRAINT unique_poll_config_id_poll_config_approval_id UNIQUE
+        CONSTRAINT generated_always_as_poll_config_id_poll_config_approval_id GENERATED ALWAYS AS (CASE WHEN split_part(config_id, '/', 1) = 'poll_config_approval' THEN cast(split_part(config_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    config_id_poll_config_selection_id integer
+        CONSTRAINT unique_poll_config_id_poll_config_selection_id UNIQUE
+        CONSTRAINT generated_always_as_poll_config_id_poll_config_selection_id GENERATED ALWAYS AS (CASE WHEN split_part(config_id, '/', 1) = 'poll_config_selection' THEN cast(split_part(config_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    config_id_poll_config_rating_score_id integer
+        CONSTRAINT unique_poll_config_id_poll_config_rating_score_id UNIQUE
+        CONSTRAINT generated_always_as_poll_config_id_poll_config_rating_score_id GENERATED ALWAYS AS (CASE WHEN split_part(config_id, '/', 1) = 'poll_config_rating_score' THEN cast(split_part(config_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    config_id_poll_config_rating_approval_id integer
+        CONSTRAINT unique_poll_config_id_poll_config_rating_approval_id UNIQUE
+        CONSTRAINT generated_always_as_poll_config_id_poll_config_rating_ap5cb0e6b GENERATED ALWAYS AS (CASE WHEN split_part(config_id, '/', 1) = 'poll_config_rating_approval' THEN cast(split_part(config_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    config_id_poll_config_stv_scottish_id integer
+        CONSTRAINT unique_poll_config_id_poll_config_stv_scottish_id UNIQUE
+        CONSTRAINT generated_always_as_poll_config_id_poll_config_stv_scottish_id GENERATED ALWAYS AS (CASE WHEN split_part(config_id, '/', 1) = 'poll_config_stv_scottish' THEN cast(split_part(config_id, '/', 2) AS INTEGER) ELSE null END) STORED,
+    CONSTRAINT valid_poll_config_id_part1 CHECK (split_part(config_id, '/', 1) IN ('poll_config_approval','poll_config_selection','poll_config_rating_score','poll_config_rating_approval','poll_config_stv_scottish')),
+    visibility enum_poll_visibility
+        CONSTRAINT required_poll_visibility NOT NULL,
     state enum_poll_state
         CONSTRAINT default_poll_state DEFAULT 'created',
-    min_votes_amount integer
-        CONSTRAINT minimum_poll_min_votes_amount CHECK (min_votes_amount >= 1)
-        CONSTRAINT default_poll_min_votes_amount DEFAULT 1,
-    max_votes_amount integer
-        CONSTRAINT minimum_poll_max_votes_amount CHECK (max_votes_amount >= 1)
-        CONSTRAINT default_poll_max_votes_amount DEFAULT 1,
-    max_votes_per_option integer
-        CONSTRAINT minimum_poll_max_votes_per_option CHECK (max_votes_per_option >= 1)
-        CONSTRAINT default_poll_max_votes_per_option DEFAULT 1,
-    global_yes boolean
-        CONSTRAINT default_poll_global_yes DEFAULT False,
-    global_no boolean
-        CONSTRAINT default_poll_global_no DEFAULT False,
-    global_abstain boolean
-        CONSTRAINT default_poll_global_abstain DEFAULT False,
-    onehundred_percent_base enum_onehundred_percent_bases
-        CONSTRAINT required_poll_onehundred_percent_base NOT NULL
-        CONSTRAINT default_poll_onehundred_percent_base DEFAULT 'disabled',
-    votesvalid decimal(16,6),
-    votesinvalid decimal(16,6),
-    votescast decimal(16,6),
-    entitled_users_at_stop jsonb,
+    result text,
+    published boolean
+        CONSTRAINT default_poll_published DEFAULT False,
+    anonymized boolean
+        CONSTRAINT default_poll_anonymized DEFAULT False,
+    allow_invalid boolean
+        CONSTRAINT default_poll_allow_invalid DEFAULT False,
+    allow_vote_split boolean
+        CONSTRAINT default_poll_allow_vote_split DEFAULT False,
     live_voting_enabled boolean
         CONSTRAINT default_poll_live_voting_enabled DEFAULT False,
     sequential_number integer
@@ -2025,42 +2003,119 @@ CREATE TABLE poll_t (
     content_object_id_topic_id integer
         CONSTRAINT generated_always_as_poll_content_object_id_topic_id GENERATED ALWAYS AS (CASE WHEN split_part(content_object_id, '/', 1) = 'topic' THEN cast(split_part(content_object_id, '/', 2) AS INTEGER) ELSE null END) STORED,
     CONSTRAINT valid_poll_content_object_id_part1 CHECK (split_part(content_object_id, '/', 1) IN ('motion','assignment','topic')),
-    global_option_id integer
-        CONSTRAINT unique_poll_global_option_id UNIQUE,
     meeting_id integer
         CONSTRAINT required_poll_meeting_id NOT NULL
 );
 
 
 
-comment on column poll_t.live_voting_enabled is 'If true, the vote service sends the votes of the users to the autoupdate service.';
+comment on column poll_t.result is 'Calculated result. The format depends on the value in poll/method. Can be manually set when visibility is set to manually.';
+comment on column poll_t.published is 'If true, users can see the result.';
+comment on column poll_t.anonymized is 'Set to true, after finished was called with anonymize.';
+comment on column poll_t.allow_invalid is 'If true, the vote service does not validate. This is always the case for secret polls.';
+comment on column poll_t.allow_vote_split is 'If true, users can split there vote.';
+comment on column poll_t.live_voting_enabled is 'If true, on start, publish will be set to true.';
 comment on column poll_t.sequential_number is 'The (positive) serial number of this model in its meeting. This number is auto-generated and read-only.';
 
-/*
- Fields without SQL definition for table poll
 
-    poll/live_votes: type:JSON is marked as a calculated field and not generated in schema
-
-*/
-
-CREATE TABLE poll_candidate_t (
+CREATE TABLE poll_ballot_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
-    poll_candidate_list_id integer
-        CONSTRAINT required_poll_candidate_poll_candidate_list_id NOT NULL,
-    user_id integer,
-    weight integer
-        CONSTRAINT required_poll_candidate_weight NOT NULL,
-    meeting_id integer
-        CONSTRAINT required_poll_candidate_meeting_id NOT NULL
+    weight decimal(16,6)
+        CONSTRAINT default_poll_ballot_weight DEFAULT '1.000000',
+    split boolean
+        CONSTRAINT default_poll_ballot_split DEFAULT False,
+    value text,
+    poll_id integer
+        CONSTRAINT required_poll_ballot_poll_id NOT NULL,
+    acting_meeting_user_id integer,
+    represented_meeting_user_id integer,
+    CONSTRAINT unique_poll_ballot_poll_id_represented_meeting_user_id UNIQUE (poll_id, represented_meeting_user_id)
 );
 
 
 
 
-CREATE TABLE poll_candidate_list_t (
+CREATE TABLE poll_config_approval_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
-    meeting_id integer
-        CONSTRAINT required_poll_candidate_list_meeting_id NOT NULL
+    allow_abstain boolean
+        CONSTRAINT default_poll_config_approval_allow_abstain DEFAULT True,
+    onehundred_percent_base enum_approval_onehundred_percent_bases
+        CONSTRAINT required_poll_config_approval_onehundred_percent_base NOT NULL
+);
+
+
+
+
+CREATE TABLE poll_config_rating_approval_t (
+    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
+    max_options_amount integer
+        CONSTRAINT default_poll_config_rating_approval_max_options_amount DEFAULT 0,
+    min_options_amount integer
+        CONSTRAINT default_poll_config_rating_approval_min_options_amount DEFAULT 0,
+    max_yes_amount integer,
+    allow_abstain boolean
+        CONSTRAINT default_poll_config_rating_approval_allow_abstain DEFAULT True,
+    onehundred_percent_base enum_rating_approval_onehundred_percent_bases
+        CONSTRAINT required_poll_config_rating_approval_onehundred_percent_base NOT NULL
+);
+
+
+
+
+CREATE TABLE poll_config_rating_score_t (
+    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
+    max_options_amount integer
+        CONSTRAINT default_poll_config_rating_score_max_options_amount DEFAULT 0,
+    min_options_amount integer
+        CONSTRAINT default_poll_config_rating_score_min_options_amount DEFAULT 0,
+    max_votes_per_option integer
+        CONSTRAINT default_poll_config_rating_score_max_votes_per_option DEFAULT 0,
+    max_vote_sum integer
+        CONSTRAINT default_poll_config_rating_score_max_vote_sum DEFAULT 0,
+    min_vote_sum integer
+        CONSTRAINT default_poll_config_rating_score_min_vote_sum DEFAULT 0,
+    onehundred_percent_base enum_rating_score_onehundred_percent_bases
+        CONSTRAINT required_poll_config_rating_score_onehundred_percent_base NOT NULL
+);
+
+
+
+
+CREATE TABLE poll_config_selection_t (
+    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
+    max_options_amount integer
+        CONSTRAINT default_poll_config_selection_max_options_amount DEFAULT 0,
+    min_options_amount integer
+        CONSTRAINT default_poll_config_selection_min_options_amount DEFAULT 0,
+    allow_nota boolean
+        CONSTRAINT default_poll_config_selection_allow_nota DEFAULT False,
+    strike_out boolean
+        CONSTRAINT default_poll_config_selection_strike_out DEFAULT False,
+    onehundred_percent_base enum_selection_onehundred_percent_bases
+        CONSTRAINT required_poll_config_selection_onehundred_percent_base NOT NULL,
+    display_chart varchar(256)
+);
+
+
+
+
+CREATE TABLE poll_config_stv_scottish_t (
+    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
+    posts integer
+        CONSTRAINT minimum_poll_config_stv_scottish_posts CHECK (posts >= 1)
+        CONSTRAINT default_poll_config_stv_scottish_posts DEFAULT 1
+);
+
+
+
+
+CREATE TABLE poll_option_t (
+    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
+    poll_id integer
+        CONSTRAINT required_poll_option_poll_id NOT NULL,
+    weight integer,
+    text varchar(256),
+    meeting_user_id integer
 );
 
 
@@ -2107,12 +2162,6 @@ CREATE TABLE projection_t (
 
 
 
-/*
- Fields without SQL definition for table projection
-
-    projection/content: type:JSON is marked as a calculated field and not generated in schema
-
-*/
 
 CREATE TABLE projector_t (
     id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
@@ -2474,25 +2523,6 @@ comment on column user_t.saml_id is 'unique-key from IdP for SAML login';
 comment on column user_t.organization_management_level is 'Hierarchical permission level for the whole organization.';
 
 
-CREATE TABLE vote_t (
-    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY NOT NULL,
-    weight decimal(16,6)
-        CONSTRAINT required_vote_weight NOT NULL,
-    value varchar(256)
-        CONSTRAINT required_vote_value NOT NULL,
-    user_token varchar(256)
-        CONSTRAINT required_vote_user_token NOT NULL,
-    option_id integer
-        CONSTRAINT required_vote_option_id NOT NULL,
-    user_id integer,
-    delegated_user_id integer,
-    meeting_id integer
-        CONSTRAINT required_vote_meeting_id NOT NULL
-);
-
-
-
-
 
 -- Intermediate table definitions
 
@@ -2720,6 +2750,22 @@ CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_3c67b77 ON 
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_8abf47a ON gm_meeting_mediafile_attachment_ids_t (attachment_id_topic_id);
 CREATE INDEX idx_gm_meeting_mediafile_attachment_ids_t_attachment_id_66fb18e ON gm_meeting_mediafile_attachment_ids_t (attachment_id_assignment_id);
 
+CREATE TABLE nm_meeting_user_poll_voted_ids_poll_t (
+    meeting_user_id integer
+        CONSTRAINT required_nm_meeting_user_poll_voted_ids_poll_t_meeting_user_id NOT NULL
+        CONSTRAINT fk_nm_meeting_user_poll_voted_ids_poll_t_meeting_user_id44ef71d REFERENCES meeting_user_t (id)
+        ON DELETE CASCADE
+        INITIALLY DEFERRED,
+    poll_id integer
+        CONSTRAINT required_nm_meeting_user_poll_voted_ids_poll_t_poll_id NOT NULL
+        CONSTRAINT fk_nm_meeting_user_poll_voted_ids_poll_t_poll_id_poll_t_id REFERENCES poll_t (id)
+        ON DELETE CASCADE
+        INITIALLY DEFERRED,
+    CONSTRAINT pk_nm_meeting_user_poll_voted_ids_poll_t PRIMARY KEY (meeting_user_id, poll_id)
+);
+CREATE INDEX idx_nm_meeting_user_poll_voted_ids_poll_t_meeting_user_id ON nm_meeting_user_poll_voted_ids_poll_t (meeting_user_id);
+CREATE INDEX idx_nm_meeting_user_poll_voted_ids_poll_t_poll_id ON nm_meeting_user_poll_voted_ids_poll_t (poll_id);
+
 CREATE TABLE nm_meeting_user_structure_level_ids_structure_level_t (
     meeting_user_id integer
         CONSTRAINT required_nm_meeting_user_structure_level_ids_structure_l456f3b7 NOT NULL
@@ -2849,22 +2895,6 @@ CREATE INDEX idx_gm_organization_tag_tagged_ids_t_organization_tag_id ON gm_orga
 CREATE INDEX idx_gm_organization_tag_tagged_ids_t_tagged_id ON gm_organization_tag_tagged_ids_t (tagged_id);
 CREATE INDEX idx_gm_organization_tag_tagged_ids_t_tagged_id_committee_id ON gm_organization_tag_tagged_ids_t (tagged_id_committee_id);
 CREATE INDEX idx_gm_organization_tag_tagged_ids_t_tagged_id_meeting_id ON gm_organization_tag_tagged_ids_t (tagged_id_meeting_id);
-
-CREATE TABLE nm_poll_voted_ids_user_t (
-    poll_id integer
-        CONSTRAINT required_nm_poll_voted_ids_user_t_poll_id NOT NULL
-        CONSTRAINT fk_nm_poll_voted_ids_user_t_poll_id_poll_t_id REFERENCES poll_t (id)
-        ON DELETE CASCADE
-        INITIALLY DEFERRED,
-    user_id integer
-        CONSTRAINT required_nm_poll_voted_ids_user_t_user_id NOT NULL
-        CONSTRAINT fk_nm_poll_voted_ids_user_t_user_id_user_t_id REFERENCES user_t (id)
-        ON DELETE CASCADE
-        INITIALLY DEFERRED,
-    CONSTRAINT pk_nm_poll_voted_ids_user_t PRIMARY KEY (poll_id, user_id)
-);
-CREATE INDEX idx_nm_poll_voted_ids_user_t_poll_id ON nm_poll_voted_ids_user_t (poll_id);
-CREATE INDEX idx_nm_poll_voted_ids_user_t_user_id ON nm_poll_voted_ids_user_t (user_id);
 
 CREATE TABLE gm_tag_tagged_ids_t (
     tag_id integer
@@ -3022,8 +3052,6 @@ FROM mediafile_t m;
 
 CREATE VIEW "meeting" AS SELECT *,
 (select array_agg(g.id ORDER BY g.id) from group_t g where g.used_as_motion_poll_default_id = m.id) as motion_poll_default_group_ids,
-(select array_agg(p.id ORDER BY p.id) from poll_candidate_list_t p where p.meeting_id = m.id) as poll_candidate_list_ids,
-(select array_agg(p.id ORDER BY p.id) from poll_candidate_t p where p.meeting_id = m.id) as poll_candidate_ids,
 (select array_agg(mu.id ORDER BY mu.id) from meeting_user_t mu where mu.meeting_id = m.id) as meeting_user_ids,
 (select array_agg(g.id ORDER BY g.id) from group_t g where g.used_as_assignment_poll_default_id = m.id) as assignment_poll_default_group_ids,
 (select array_agg(g.id ORDER BY g.id) from group_t g where g.used_as_poll_default_id = m.id) as poll_default_group_ids,
@@ -3056,8 +3084,6 @@ CREATE VIEW "meeting" AS SELECT *,
 (select array_agg(mc.id ORDER BY mc.id) from motion_change_recommendation_t mc where mc.meeting_id = m.id) as motion_change_recommendation_ids,
 (select array_agg(ms.id ORDER BY ms.id) from motion_state_t ms where ms.meeting_id = m.id) as motion_state_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_t p where p.meeting_id = m.id) as poll_ids,
-(select array_agg(o.id ORDER BY o.id) from option_t o where o.meeting_id = m.id) as option_ids,
-(select array_agg(v.id ORDER BY v.id) from vote_t v where v.meeting_id = m.id) as vote_ids,
 (select array_agg(a.id ORDER BY a.id) from assignment_t a where a.meeting_id = m.id) as assignment_ids,
 (select array_agg(a.id ORDER BY a.id) from assignment_candidate_t a where a.meeting_id = m.id) as assignment_candidate_ids,
 (select array_agg(p.id ORDER BY p.id) from personal_note_t p where p.meeting_id = m.id) as personal_note_ids,
@@ -3128,6 +3154,10 @@ CREATE VIEW "meeting_user" AS SELECT *,
 (select array_agg(ms.id ORDER BY ms.id) from motion_submitter_t ms where ms.meeting_user_id = m.id) as motion_submitter_ids,
 (select array_agg(a.id ORDER BY a.id) from assignment_candidate_t a where a.meeting_user_id = m.id) as assignment_candidate_ids,
 (select array_agg(mu.id ORDER BY mu.id) from meeting_user_t mu where mu.vote_delegated_to_id = m.id) as vote_delegations_from_ids,
+(select array_agg(n.poll_id ORDER BY n.poll_id) from nm_meeting_user_poll_voted_ids_poll_t n where n.meeting_user_id = m.id) as poll_voted_ids,
+(select array_agg(p.id ORDER BY p.id) from poll_option_t p where p.meeting_user_id = m.id) as poll_option_ids,
+(select array_agg(p.id ORDER BY p.id) from poll_ballot_t p where p.acting_meeting_user_id = m.id) as acting_ballot_ids,
+(select array_agg(p.id ORDER BY p.id) from poll_ballot_t p where p.represented_meeting_user_id = m.id) as represented_ballot_ids,
 (select array_agg(c.id ORDER BY c.id) from chat_message_t c where c.meeting_user_id = m.id) as chat_message_ids,
 (select array_agg(n.group_id ORDER BY n.group_id) from nm_group_meeting_user_ids_meeting_user_t n where n.meeting_user_id = m.id) as group_ids,
 (select array_agg(n.structure_level_id ORDER BY n.structure_level_id) from nm_meeting_user_structure_level_ids_structure_level_t n where n.meeting_user_id = m.id) as structure_level_ids
@@ -3150,7 +3180,6 @@ CREATE VIEW "motion" AS SELECT *,
 (select array_agg(me.id ORDER BY me.id) from motion_editor_t me where me.motion_id = m.id) as editor_ids,
 (select array_agg(mw.id ORDER BY mw.id) from motion_working_group_speaker_t mw where mw.motion_id = m.id) as working_group_speaker_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_t p where p.content_object_id_motion_id = m.id) as poll_ids,
-(select array_agg(o.id ORDER BY o.id) from option_t o where o.content_object_id_motion_id = m.id) as option_ids,
 (select array_agg(mc.id ORDER BY mc.id) from motion_change_recommendation_t mc where mc.motion_id = m.id) as change_recommendation_ids,
 (select array_agg(mc.id ORDER BY mc.id) from motion_comment_t mc where mc.motion_id = m.id) as comment_ids,
 (select a.id from agenda_item_t a where a.content_object_id_motion_id = m.id) as agenda_item_id,
@@ -3219,12 +3248,6 @@ FROM motion_workflow_t m;
 CREATE VIEW "motion_working_group_speaker" AS SELECT * FROM motion_working_group_speaker_t m;
 
 
-CREATE VIEW "option" AS SELECT *,
-(select p.id from poll_t p where p.global_option_id = o.id) as used_as_global_option_in_poll_id,
-(select array_agg(v.id ORDER BY v.id) from vote_t v where v.option_id = o.id) as vote_ids
-FROM option_t o;
-
-
 CREATE VIEW "organization" AS SELECT *,
 (select array_agg(g.id ORDER BY g.id) from gender_t g where g.organization_id = o.id) as gender_ids,
 (select array_agg(c.id ORDER BY c.id) from committee_t c where c.organization_id = o.id) as committee_ids,
@@ -3253,20 +3276,44 @@ FROM point_of_order_category_t p;
 
 
 CREATE VIEW "poll" AS SELECT *,
-(select array_agg(o.id ORDER BY o.id) from option_t o where o.poll_id = p.id) as option_ids,
-(select array_agg(n.user_id ORDER BY n.user_id) from nm_poll_voted_ids_user_t n where n.poll_id = p.id) as voted_ids,
+(select array_agg(po.id ORDER BY po.id) from poll_option_t po where po.poll_id = p.id) as option_ids,
+(select array_agg(pb.id ORDER BY pb.id) from poll_ballot_t pb where pb.poll_id = p.id) as ballot_ids,
+(select array_agg(n.meeting_user_id ORDER BY n.meeting_user_id) from nm_meeting_user_poll_voted_ids_poll_t n where n.poll_id = p.id) as voted_ids,
 (select array_agg(n.group_id ORDER BY n.group_id) from nm_group_poll_ids_poll_t n where n.poll_id = p.id) as entitled_group_ids,
-(select array_agg(pt.id ORDER BY pt.id) from projection_t pt where pt.content_object_id_poll_id = p.id) as projection_ids
+(select array_agg(pt.id ORDER BY pt.id) from projection_t pt where pt.content_object_id_poll_id = p.id) as projection_ids,
+(select array_agg(h.id ORDER BY h.id) from history_entry_t h where h.model_id_poll_id = p.id) as history_entry_ids
 FROM poll_t p;
 
 
-CREATE VIEW "poll_candidate" AS SELECT * FROM poll_candidate_t p;
+CREATE VIEW "poll_ballot" AS SELECT * FROM poll_ballot_t p;
 
 
-CREATE VIEW "poll_candidate_list" AS SELECT *,
-(select array_agg(pc.id ORDER BY pc.id) from poll_candidate_t pc where pc.poll_candidate_list_id = p.id) as poll_candidate_ids,
-(select o.id from option_t o where o.content_object_id_poll_candidate_list_id = p.id) as option_id
-FROM poll_candidate_list_t p;
+CREATE VIEW "poll_config_approval" AS SELECT *,
+(select p1.id from poll_t p1 where p1.config_id_poll_config_approval_id = p.id) as poll_id
+FROM poll_config_approval_t p;
+
+
+CREATE VIEW "poll_config_rating_approval" AS SELECT *,
+(select p1.id from poll_t p1 where p1.config_id_poll_config_rating_approval_id = p.id) as poll_id
+FROM poll_config_rating_approval_t p;
+
+
+CREATE VIEW "poll_config_rating_score" AS SELECT *,
+(select p1.id from poll_t p1 where p1.config_id_poll_config_rating_score_id = p.id) as poll_id
+FROM poll_config_rating_score_t p;
+
+
+CREATE VIEW "poll_config_selection" AS SELECT *,
+(select p1.id from poll_t p1 where p1.config_id_poll_config_selection_id = p.id) as poll_id
+FROM poll_config_selection_t p;
+
+
+CREATE VIEW "poll_config_stv_scottish" AS SELECT *,
+(select p1.id from poll_t p1 where p1.config_id_poll_config_stv_scottish_id = p.id) as poll_id
+FROM poll_config_stv_scottish_t p;
+
+
+CREATE VIEW "poll_option" AS SELECT * FROM poll_option_t p;
 
 
 CREATE VIEW "projection" AS SELECT * FROM projection_t p;
@@ -3354,11 +3401,6 @@ CREATE VIEW "user" AS SELECT *,
 ,
 (select array_agg(n.committee_id ORDER BY n.committee_id) from nm_committee_manager_ids_user_t n where n.user_id = u.id) as committee_management_ids,
 (select array_agg(m.id ORDER BY m.id) from meeting_user_t m where m.user_id = u.id) as meeting_user_ids,
-(select array_agg(n.poll_id ORDER BY n.poll_id) from nm_poll_voted_ids_user_t n where n.user_id = u.id) as poll_voted_ids,
-(select array_agg(o.id ORDER BY o.id) from option_t o where o.content_object_id_user_id = u.id) as option_ids,
-(select array_agg(v.id ORDER BY v.id) from vote_t v where v.user_id = u.id) as vote_ids,
-(select array_agg(v.id ORDER BY v.id) from vote_t v where v.delegated_user_id = u.id) as delegated_vote_ids,
-(select array_agg(p.id ORDER BY p.id) from poll_candidate_t p where p.user_id = u.id) as poll_candidate_ids,
 (select array_agg(h.id ORDER BY h.id) from history_position_t h where h.user_id = u.id) as history_position_ids,
 (select array_agg(h.id ORDER BY h.id) from history_entry_t h where h.model_id_user_id = u.id) as history_entry_ids,
 (
@@ -3371,9 +3413,6 @@ FROM user_t u;
 
 comment on column "user".committee_ids is 'Calculated field: Returns committee_ids, where the user is manager or member in a meeting';
 comment on column "user".meeting_ids is 'Calculated. All ids from meetings calculated via meeting_user.';
-
-CREATE VIEW "vote" AS SELECT * FROM vote_t v;
-
 
 
 -- Alter table relations
@@ -3431,12 +3470,14 @@ CREATE INDEX idx_group_t_used_as_poll_default_id ON group_t (used_as_poll_defaul
 ALTER TABLE group_t ADD CONSTRAINT fk_group_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_group_t_meeting_id ON group_t (meeting_id);
 
-ALTER TABLE history_entry_t ADD CONSTRAINT fk_history_entry_t_model_id_user_id_user_t_id FOREIGN KEY(model_id_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_history_entry_t_model_id_user_id ON history_entry_t (model_id_user_id);
-ALTER TABLE history_entry_t ADD CONSTRAINT fk_history_entry_t_model_id_motion_id_motion_t_id FOREIGN KEY(model_id_motion_id) REFERENCES motion_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_history_entry_t_model_id_motion_id ON history_entry_t (model_id_motion_id);
 ALTER TABLE history_entry_t ADD CONSTRAINT fk_history_entry_t_model_id_assignment_id_assignment_t_id FOREIGN KEY(model_id_assignment_id) REFERENCES assignment_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_history_entry_t_model_id_assignment_id ON history_entry_t (model_id_assignment_id);
+ALTER TABLE history_entry_t ADD CONSTRAINT fk_history_entry_t_model_id_motion_id_motion_t_id FOREIGN KEY(model_id_motion_id) REFERENCES motion_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_history_entry_t_model_id_motion_id ON history_entry_t (model_id_motion_id);
+ALTER TABLE history_entry_t ADD CONSTRAINT fk_history_entry_t_model_id_poll_id_poll_t_id FOREIGN KEY(model_id_poll_id) REFERENCES poll_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_history_entry_t_model_id_poll_id ON history_entry_t (model_id_poll_id);
+ALTER TABLE history_entry_t ADD CONSTRAINT fk_history_entry_t_model_id_user_id_user_t_id FOREIGN KEY(model_id_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_history_entry_t_model_id_user_id ON history_entry_t (model_id_user_id);
 ALTER TABLE history_entry_t ADD CONSTRAINT fk_history_entry_t_position_id_history_position_t_id FOREIGN KEY(position_id) REFERENCES history_position_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_history_entry_t_position_id ON history_entry_t (position_id);
 ALTER TABLE history_entry_t ADD CONSTRAINT fk_history_entry_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
@@ -3618,17 +3659,6 @@ CREATE INDEX idx_motion_working_group_speaker_t_motion_id ON motion_working_grou
 ALTER TABLE motion_working_group_speaker_t ADD CONSTRAINT fk_motion_working_group_speaker_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_motion_working_group_speaker_t_meeting_id ON motion_working_group_speaker_t (meeting_id);
 
-ALTER TABLE option_t ADD CONSTRAINT fk_option_t_poll_id_poll_t_id FOREIGN KEY(poll_id) REFERENCES poll_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_option_t_poll_id ON option_t (poll_id);
-ALTER TABLE option_t ADD CONSTRAINT fk_option_t_content_object_id_motion_id_motion_t_id FOREIGN KEY(content_object_id_motion_id) REFERENCES motion_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_option_t_content_object_id_motion_id ON option_t (content_object_id_motion_id);
-ALTER TABLE option_t ADD CONSTRAINT fk_option_t_content_object_id_user_id_user_t_id FOREIGN KEY(content_object_id_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_option_t_content_object_id_user_id ON option_t (content_object_id_user_id);
-ALTER TABLE option_t ADD CONSTRAINT fk_option_t_content_object_id_poll_candidate_list_id_pold428251 FOREIGN KEY(content_object_id_poll_candidate_list_id) REFERENCES poll_candidate_list_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_option_t_content_object_id_poll_candidate_list_id ON option_t (content_object_id_poll_candidate_list_id);
-ALTER TABLE option_t ADD CONSTRAINT fk_option_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_option_t_meeting_id ON option_t (meeting_id);
-
 ALTER TABLE organization_t ADD CONSTRAINT fk_organization_t_theme_id_theme_t_id FOREIGN KEY(theme_id) REFERENCES theme_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_organization_t_theme_id ON organization_t (theme_id);
 
@@ -3645,26 +3675,36 @@ CREATE INDEX idx_personal_note_t_meeting_id ON personal_note_t (meeting_id);
 ALTER TABLE point_of_order_category_t ADD CONSTRAINT fk_point_of_order_category_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_point_of_order_category_t_meeting_id ON point_of_order_category_t (meeting_id);
 
+ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_config_id_poll_config_approval_id_poll_config_f74c82e FOREIGN KEY(config_id_poll_config_approval_id) REFERENCES poll_config_approval_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_t_config_id_poll_config_approval_id ON poll_t (config_id_poll_config_approval_id);
+ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_config_id_poll_config_selection_id_poll_config65f401f FOREIGN KEY(config_id_poll_config_selection_id) REFERENCES poll_config_selection_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_t_config_id_poll_config_selection_id ON poll_t (config_id_poll_config_selection_id);
+ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_config_id_poll_config_rating_score_id_poll_conff3b6f0 FOREIGN KEY(config_id_poll_config_rating_score_id) REFERENCES poll_config_rating_score_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_t_config_id_poll_config_rating_score_id ON poll_t (config_id_poll_config_rating_score_id);
+ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_config_id_poll_config_rating_approval_id_poll_6ff58a7 FOREIGN KEY(config_id_poll_config_rating_approval_id) REFERENCES poll_config_rating_approval_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_t_config_id_poll_config_rating_approval_id ON poll_t (config_id_poll_config_rating_approval_id);
+ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_config_id_poll_config_stv_scottish_id_poll_con0ff7fb4 FOREIGN KEY(config_id_poll_config_stv_scottish_id) REFERENCES poll_config_stv_scottish_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_t_config_id_poll_config_stv_scottish_id ON poll_t (config_id_poll_config_stv_scottish_id);
 ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_content_object_id_motion_id_motion_t_id FOREIGN KEY(content_object_id_motion_id) REFERENCES motion_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_poll_t_content_object_id_motion_id ON poll_t (content_object_id_motion_id);
 ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_content_object_id_assignment_id_assignment_t_id FOREIGN KEY(content_object_id_assignment_id) REFERENCES assignment_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_poll_t_content_object_id_assignment_id ON poll_t (content_object_id_assignment_id);
 ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_content_object_id_topic_id_topic_t_id FOREIGN KEY(content_object_id_topic_id) REFERENCES topic_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_poll_t_content_object_id_topic_id ON poll_t (content_object_id_topic_id);
-ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_global_option_id_option_t_id FOREIGN KEY(global_option_id) REFERENCES option_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_poll_t_global_option_id ON poll_t (global_option_id);
 ALTER TABLE poll_t ADD CONSTRAINT fk_poll_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_poll_t_meeting_id ON poll_t (meeting_id);
 
-ALTER TABLE poll_candidate_t ADD CONSTRAINT fk_poll_candidate_t_poll_candidate_list_id_poll_candidat7fec070 FOREIGN KEY(poll_candidate_list_id) REFERENCES poll_candidate_list_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_poll_candidate_t_poll_candidate_list_id ON poll_candidate_t (poll_candidate_list_id);
-ALTER TABLE poll_candidate_t ADD CONSTRAINT fk_poll_candidate_t_user_id_user_t_id FOREIGN KEY(user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_poll_candidate_t_user_id ON poll_candidate_t (user_id);
-ALTER TABLE poll_candidate_t ADD CONSTRAINT fk_poll_candidate_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_poll_candidate_t_meeting_id ON poll_candidate_t (meeting_id);
+ALTER TABLE poll_ballot_t ADD CONSTRAINT fk_poll_ballot_t_poll_id_poll_t_id FOREIGN KEY(poll_id) REFERENCES poll_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_ballot_t_poll_id ON poll_ballot_t (poll_id);
+ALTER TABLE poll_ballot_t ADD CONSTRAINT fk_poll_ballot_t_acting_meeting_user_id_meeting_user_t_id FOREIGN KEY(acting_meeting_user_id) REFERENCES meeting_user_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_ballot_t_acting_meeting_user_id ON poll_ballot_t (acting_meeting_user_id);
+ALTER TABLE poll_ballot_t ADD CONSTRAINT fk_poll_ballot_t_represented_meeting_user_id_meeting_user_t_id FOREIGN KEY(represented_meeting_user_id) REFERENCES meeting_user_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_ballot_t_represented_meeting_user_id ON poll_ballot_t (represented_meeting_user_id);
 
-ALTER TABLE poll_candidate_list_t ADD CONSTRAINT fk_poll_candidate_list_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_poll_candidate_list_t_meeting_id ON poll_candidate_list_t (meeting_id);
+ALTER TABLE poll_option_t ADD CONSTRAINT fk_poll_option_t_poll_id_poll_t_id FOREIGN KEY(poll_id) REFERENCES poll_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_option_t_poll_id ON poll_option_t (poll_id);
+ALTER TABLE poll_option_t ADD CONSTRAINT fk_poll_option_t_meeting_user_id_meeting_user_t_id FOREIGN KEY(meeting_user_id) REFERENCES meeting_user_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_poll_option_t_meeting_user_id ON poll_option_t (meeting_user_id);
 
 ALTER TABLE projection_t ADD CONSTRAINT fk_projection_t_current_projector_id_projector_t_id FOREIGN KEY(current_projector_id) REFERENCES projector_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_projection_t_current_projector_id ON projection_t (current_projector_id);
@@ -3771,15 +3811,6 @@ CREATE INDEX idx_user_t_home_committee_id ON user_t (home_committee_id);
 ALTER TABLE user_t ADD CONSTRAINT fk_user_t_organization_id_organization_t_id FOREIGN KEY(organization_id) REFERENCES organization_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_user_t_organization_id ON user_t (organization_id);
 
-ALTER TABLE vote_t ADD CONSTRAINT fk_vote_t_option_id_option_t_id FOREIGN KEY(option_id) REFERENCES option_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_vote_t_option_id ON vote_t (option_id);
-ALTER TABLE vote_t ADD CONSTRAINT fk_vote_t_user_id_user_t_id FOREIGN KEY(user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_vote_t_user_id ON vote_t (user_id);
-ALTER TABLE vote_t ADD CONSTRAINT fk_vote_t_delegated_user_id_user_t_id FOREIGN KEY(delegated_user_id) REFERENCES user_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_vote_t_delegated_user_id ON vote_t (delegated_user_id);
-ALTER TABLE vote_t ADD CONSTRAINT fk_vote_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_vote_t_meeting_id ON vote_t (meeting_id);
-
 
 
 -- Create triggers generating partitioned sequences
@@ -3861,12 +3892,44 @@ CREATE CONSTRAINT TRIGGER tr_ud_not_null_motion_block_list_of_speakers_id AFTER 
 FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('motion_block', 'list_of_speakers_id', 'list_of_speakers', 'content_object_id_motion_block_id');
 
 
--- definition trigger not null for poll_candidate_list.option_id against option.content_object_id_poll_candidate_list_id
-CREATE CONSTRAINT TRIGGER tr_i_not_null_poll_candidate_list_option_id AFTER INSERT ON poll_candidate_list_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_candidate_list', 'option_id');
+-- definition trigger not null for poll_config_approval.poll_id against poll.config_id_poll_config_approval_id
+CREATE CONSTRAINT TRIGGER tr_i_not_null_poll_config_approval_poll_id AFTER INSERT ON poll_config_approval_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_approval', 'poll_id');
 
-CREATE CONSTRAINT TRIGGER tr_ud_not_null_poll_candidate_list_option_id AFTER UPDATE OF content_object_id_poll_candidate_list_id OR DELETE ON option_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_candidate_list', 'option_id', 'option', 'content_object_id_poll_candidate_list_id');
+CREATE CONSTRAINT TRIGGER tr_ud_not_null_poll_config_approval_poll_id AFTER UPDATE OF config_id_poll_config_approval_id OR DELETE ON poll_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_approval', 'poll_id', 'poll', 'config_id_poll_config_approval_id');
+
+
+-- definition trigger not null for poll_config_rating_approval.poll_id against poll.config_id_poll_config_rating_approval_id
+CREATE CONSTRAINT TRIGGER tr_i_not_null_poll_config_rating_approval_poll_id AFTER INSERT ON poll_config_rating_approval_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_rating_approval', 'poll_id');
+
+CREATE CONSTRAINT TRIGGER tr_ud_not_null_poll_config_rating_approval_poll_id AFTER UPDATE OF config_id_poll_config_rating_approval_id OR DELETE ON poll_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_rating_approval', 'poll_id', 'poll', 'config_id_poll_config_rating_approval_id');
+
+
+-- definition trigger not null for poll_config_rating_score.poll_id against poll.config_id_poll_config_rating_score_id
+CREATE CONSTRAINT TRIGGER tr_i_not_null_poll_config_rating_score_poll_id AFTER INSERT ON poll_config_rating_score_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_rating_score', 'poll_id');
+
+CREATE CONSTRAINT TRIGGER tr_ud_not_null_poll_config_rating_score_poll_id AFTER UPDATE OF config_id_poll_config_rating_score_id OR DELETE ON poll_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_rating_score', 'poll_id', 'poll', 'config_id_poll_config_rating_score_id');
+
+
+-- definition trigger not null for poll_config_selection.poll_id against poll.config_id_poll_config_selection_id
+CREATE CONSTRAINT TRIGGER tr_i_not_null_poll_config_selection_poll_id AFTER INSERT ON poll_config_selection_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_selection', 'poll_id');
+
+CREATE CONSTRAINT TRIGGER tr_ud_not_null_poll_config_selection_poll_id AFTER UPDATE OF config_id_poll_config_selection_id OR DELETE ON poll_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_selection', 'poll_id', 'poll', 'config_id_poll_config_selection_id');
+
+
+-- definition trigger not null for poll_config_stv_scottish.poll_id against poll.config_id_poll_config_stv_scottish_id
+CREATE CONSTRAINT TRIGGER tr_i_not_null_poll_config_stv_scottish_poll_id AFTER INSERT ON poll_config_stv_scottish_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_stv_scottish', 'poll_id');
+
+CREATE CONSTRAINT TRIGGER tr_ud_not_null_poll_config_stv_scottish_poll_id AFTER UPDATE OF config_id_poll_config_stv_scottish_id OR DELETE ON poll_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_1('poll_config_stv_scottish', 'poll_id', 'poll', 'config_id_poll_config_stv_scottish_id');
 
 
 -- definition trigger not null for topic.agenda_item_id against agenda_item.content_object_id_topic_id
@@ -4239,15 +4302,6 @@ CREATE TRIGGER tr_constant_motion_working_group_speaker_meeting_id BEFORE UPDATE
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('motion_working_group_speaker', 'meeting_id');
 
 
--- definition trigger prevent_updates for option.poll_id
-CREATE TRIGGER tr_constant_option_poll_id BEFORE UPDATE OF poll_id ON option_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('option', 'poll_id');
-
--- definition trigger prevent_updates for option.meeting_id
-CREATE TRIGGER tr_constant_option_meeting_id BEFORE UPDATE OF meeting_id ON option_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('option', 'meeting_id');
-
-
 -- definition trigger prevent_updates for organization_tag.organization_id
 CREATE TRIGGER tr_constant_organization_tag_organization_id BEFORE UPDATE OF organization_id ON organization_tag_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('organization_tag', 'organization_id');
@@ -4284,18 +4338,17 @@ CREATE TRIGGER tr_constant_poll_meeting_id BEFORE UPDATE OF meeting_id ON poll_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'meeting_id');
 
 
--- definition trigger prevent_updates for poll_candidate.poll_candidate_list_id
-CREATE TRIGGER tr_constant_poll_candidate_poll_candidate_list_id BEFORE UPDATE OF poll_candidate_list_id ON poll_candidate_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_candidate', 'poll_candidate_list_id');
+-- definition trigger prevent_updates for poll_ballot.weight
+CREATE TRIGGER tr_constant_poll_ballot_weight BEFORE UPDATE OF weight ON poll_ballot_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_ballot', 'weight');
 
--- definition trigger prevent_updates for poll_candidate.meeting_id
-CREATE TRIGGER tr_constant_poll_candidate_meeting_id BEFORE UPDATE OF meeting_id ON poll_candidate_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_candidate', 'meeting_id');
+-- definition trigger prevent_updates for poll_ballot.value
+CREATE TRIGGER tr_constant_poll_ballot_value BEFORE UPDATE OF value ON poll_ballot_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_ballot', 'value');
 
-
--- definition trigger prevent_updates for poll_candidate_list.meeting_id
-CREATE TRIGGER tr_constant_poll_candidate_list_meeting_id BEFORE UPDATE OF meeting_id ON poll_candidate_list_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_candidate_list', 'meeting_id');
+-- definition trigger prevent_updates for poll_ballot.poll_id
+CREATE TRIGGER tr_constant_poll_ballot_poll_id BEFORE UPDATE OF poll_id ON poll_ballot_t
+FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_ballot', 'poll_id');
 
 
 -- definition trigger prevent_updates for projection.content_object_id
@@ -4367,23 +4420,6 @@ FOR EACH ROW EXECUTE FUNCTION prevent_updates('topic', 'meeting_id');
 -- definition trigger prevent_updates for user.organization_id
 CREATE TRIGGER tr_constant_user_organization_id BEFORE UPDATE OF organization_id ON user_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('user', 'organization_id');
-
-
--- definition trigger prevent_updates for vote.value
-CREATE TRIGGER tr_constant_vote_value BEFORE UPDATE OF value ON vote_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'value');
-
--- definition trigger prevent_updates for vote.user_token
-CREATE TRIGGER tr_constant_vote_user_token BEFORE UPDATE OF user_token ON vote_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'user_token');
-
--- definition trigger prevent_updates for vote.option_id
-CREATE TRIGGER tr_constant_vote_option_id BEFORE UPDATE OF option_id ON vote_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'option_id');
-
--- definition trigger prevent_updates for vote.meeting_id
-CREATE TRIGGER tr_constant_vote_meeting_id BEFORE UPDATE OF meeting_id ON vote_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('vote', 'meeting_id');
 
 
 
@@ -4575,14 +4611,17 @@ CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELET
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
 
-CREATE TRIGGER tr_log_user_model_id_user_id AFTER INSERT OR UPDATE OF model_id_user_id OR DELETE ON history_entry_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user','model_id_user_id','history_entry_ids');
+CREATE TRIGGER tr_log_assignment_model_id_assignment_id AFTER INSERT OR UPDATE OF model_id_assignment_id OR DELETE ON history_entry_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('assignment','model_id_assignment_id','history_entry_ids');
 
 CREATE TRIGGER tr_log_motion_model_id_motion_id AFTER INSERT OR UPDATE OF model_id_motion_id OR DELETE ON history_entry_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion','model_id_motion_id','history_entry_ids');
 
-CREATE TRIGGER tr_log_assignment_model_id_assignment_id AFTER INSERT OR UPDATE OF model_id_assignment_id OR DELETE ON history_entry_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('assignment','model_id_assignment_id','history_entry_ids');
+CREATE TRIGGER tr_log_poll_model_id_poll_id AFTER INSERT OR UPDATE OF model_id_poll_id OR DELETE ON history_entry_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll','model_id_poll_id','history_entry_ids');
+
+CREATE TRIGGER tr_log_user_model_id_user_id AFTER INSERT OR UPDATE OF model_id_user_id OR DELETE ON history_entry_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user','model_id_user_id','history_entry_ids');
 CREATE TRIGGER tr_log_history_entry_t_position_id AFTER INSERT OR UPDATE OF position_id OR DELETE ON history_entry_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('history_position', 'position_id', 'entry_ids');
 CREATE TRIGGER tr_log_history_entry_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON history_entry_t
@@ -4745,6 +4784,11 @@ CREATE TRIGGER tr_log_meeting_user_t_meeting_id AFTER INSERT OR UPDATE OF meetin
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'meeting_user_ids');
 CREATE TRIGGER tr_log_meeting_user_t_vote_delegated_to_id AFTER INSERT OR UPDATE OF vote_delegated_to_id OR DELETE ON meeting_user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user', 'vote_delegated_to_id', 'vote_delegations_from_ids');
+
+CREATE TRIGGER tr_log_nm_meeting_user_poll_voted_ids_poll_t AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_user_poll_voted_ids_poll_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user','meeting_user_id','poll_voted_ids','poll','poll_id','voted_ids');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_user_poll_voted_ids_poll_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
 CREATE TRIGGER tr_log_nm_meeting_user_structure_level_ids_structure_level_t AFTER INSERT OR UPDATE OR DELETE ON nm_meeting_user_structure_level_ids_structure_level_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user','meeting_user_id','structure_level_ids','structure_level','structure_level_id','meeting_user_ids');
@@ -4918,25 +4962,6 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion', 'motion_id',
 CREATE TRIGGER tr_log_motion_working_group_speaker_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON motion_working_group_speaker_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'motion_working_group_speaker_ids');
 
-CREATE TRIGGER tr_log_option AFTER INSERT OR UPDATE OR DELETE ON option_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models('option');
-CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON option_t
-DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
-
-CREATE TRIGGER tr_log_option_t_poll_id AFTER INSERT OR UPDATE OF poll_id OR DELETE ON option_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll', 'poll_id', 'option_ids');
-
-CREATE TRIGGER tr_log_motion_content_object_id_motion_id AFTER INSERT OR UPDATE OF content_object_id_motion_id OR DELETE ON option_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion','content_object_id_motion_id','option_ids');
-
-CREATE TRIGGER tr_log_user_content_object_id_user_id AFTER INSERT OR UPDATE OF content_object_id_user_id OR DELETE ON option_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user','content_object_id_user_id','option_ids');
-
-CREATE TRIGGER tr_log_poll_candidate_list_content_object_id_poll_candidc235209 AFTER INSERT OR UPDATE OF content_object_id_poll_candidate_list_id OR DELETE ON option_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll_candidate_list','content_object_id_poll_candidate_list_id','option_id');
-CREATE TRIGGER tr_log_option_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON option_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'option_ids');
-
 CREATE TRIGGER tr_log_organization AFTER INSERT OR UPDATE OR DELETE ON organization_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('organization');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON organization_t
@@ -4988,6 +5013,21 @@ CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELET
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
 
+CREATE TRIGGER tr_log_poll_config_approval_config_id_poll_config_approval_id AFTER INSERT OR UPDATE OF config_id_poll_config_approval_id OR DELETE ON poll_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll_config_approval','config_id_poll_config_approval_id','poll_id');
+
+CREATE TRIGGER tr_log_poll_config_selection_config_id_poll_config_selection_id AFTER INSERT OR UPDATE OF config_id_poll_config_selection_id OR DELETE ON poll_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll_config_selection','config_id_poll_config_selection_id','poll_id');
+
+CREATE TRIGGER tr_log_poll_config_rating_score_config_id_poll_config_raf40fad3 AFTER INSERT OR UPDATE OF config_id_poll_config_rating_score_id OR DELETE ON poll_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll_config_rating_score','config_id_poll_config_rating_score_id','poll_id');
+
+CREATE TRIGGER tr_log_poll_config_rating_approval_config_id_poll_config405bbee AFTER INSERT OR UPDATE OF config_id_poll_config_rating_approval_id OR DELETE ON poll_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll_config_rating_approval','config_id_poll_config_rating_approval_id','poll_id');
+
+CREATE TRIGGER tr_log_poll_config_stv_scottish_config_id_poll_config_st0701463 AFTER INSERT OR UPDATE OF config_id_poll_config_stv_scottish_id OR DELETE ON poll_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll_config_stv_scottish','config_id_poll_config_stv_scottish_id','poll_id');
+
 CREATE TRIGGER tr_log_motion_content_object_id_motion_id AFTER INSERT OR UPDATE OF content_object_id_motion_id OR DELETE ON poll_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('motion','content_object_id_motion_id','poll_ids');
 
@@ -4996,35 +5036,55 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('assignment','content_
 
 CREATE TRIGGER tr_log_topic_content_object_id_topic_id AFTER INSERT OR UPDATE OF content_object_id_topic_id OR DELETE ON poll_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('topic','content_object_id_topic_id','poll_ids');
-CREATE TRIGGER tr_log_poll_t_global_option_id AFTER INSERT OR UPDATE OF global_option_id OR DELETE ON poll_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('option', 'global_option_id', 'used_as_global_option_in_poll_id');
-
-CREATE TRIGGER tr_log_nm_poll_voted_ids_user_t AFTER INSERT OR UPDATE OR DELETE ON nm_poll_voted_ids_user_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll','poll_id','voted_ids','user','user_id','poll_voted_ids');
-CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON nm_poll_voted_ids_user_t
-DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 CREATE TRIGGER tr_log_poll_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON poll_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'poll_ids');
 
-CREATE TRIGGER tr_log_poll_candidate AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_candidate');
-CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_t
+CREATE TRIGGER tr_log_poll_ballot AFTER INSERT OR UPDATE OR DELETE ON poll_ballot_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_ballot');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON poll_ballot_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
-CREATE TRIGGER tr_log_poll_candidate_t_poll_candidate_list_id AFTER INSERT OR UPDATE OF poll_candidate_list_id OR DELETE ON poll_candidate_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll_candidate_list', 'poll_candidate_list_id', 'poll_candidate_ids');
-CREATE TRIGGER tr_log_poll_candidate_t_user_id AFTER INSERT OR UPDATE OF user_id OR DELETE ON poll_candidate_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'user_id', 'poll_candidate_ids');
-CREATE TRIGGER tr_log_poll_candidate_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON poll_candidate_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'poll_candidate_ids');
+CREATE TRIGGER tr_log_poll_ballot_t_poll_id AFTER INSERT OR UPDATE OF poll_id OR DELETE ON poll_ballot_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll', 'poll_id', 'ballot_ids');
+CREATE TRIGGER tr_log_poll_ballot_t_acting_meeting_user_id AFTER INSERT OR UPDATE OF acting_meeting_user_id OR DELETE ON poll_ballot_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user', 'acting_meeting_user_id', 'acting_ballot_ids');
+CREATE TRIGGER tr_log_poll_ballot_t_represented_meeting_user_id AFTER INSERT OR UPDATE OF represented_meeting_user_id OR DELETE ON poll_ballot_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user', 'represented_meeting_user_id', 'represented_ballot_ids');
 
-CREATE TRIGGER tr_log_poll_candidate_list AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_list_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_candidate_list');
-CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON poll_candidate_list_t
+CREATE TRIGGER tr_log_poll_config_approval AFTER INSERT OR UPDATE OR DELETE ON poll_config_approval_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_config_approval');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON poll_config_approval_t
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 
-CREATE TRIGGER tr_log_poll_candidate_list_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON poll_candidate_list_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'poll_candidate_list_ids');
+CREATE TRIGGER tr_log_poll_config_rating_approval AFTER INSERT OR UPDATE OR DELETE ON poll_config_rating_approval_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_config_rating_approval');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON poll_config_rating_approval_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+CREATE TRIGGER tr_log_poll_config_rating_score AFTER INSERT OR UPDATE OR DELETE ON poll_config_rating_score_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_config_rating_score');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON poll_config_rating_score_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+CREATE TRIGGER tr_log_poll_config_selection AFTER INSERT OR UPDATE OR DELETE ON poll_config_selection_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_config_selection');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON poll_config_selection_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+CREATE TRIGGER tr_log_poll_config_stv_scottish AFTER INSERT OR UPDATE OR DELETE ON poll_config_stv_scottish_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_config_stv_scottish');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON poll_config_stv_scottish_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+CREATE TRIGGER tr_log_poll_option AFTER INSERT OR UPDATE OR DELETE ON poll_option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_option');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON poll_option_t
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
+
+CREATE TRIGGER tr_log_poll_option_t_poll_id AFTER INSERT OR UPDATE OF poll_id OR DELETE ON poll_option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll', 'poll_id', 'option_ids');
+CREATE TRIGGER tr_log_poll_option_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id OR DELETE ON poll_option_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user', 'meeting_user_id', 'poll_option_ids');
 
 CREATE TRIGGER tr_log_projection AFTER INSERT OR UPDATE OR DELETE ON projection_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('projection');
@@ -5227,20 +5287,6 @@ FOR EACH ROW EXECUTE FUNCTION log_ud_modified_calculated_id_array_field('user', 
 
 CREATE TRIGGER tr_log_user_t_organization_id AFTER INSERT OR UPDATE OF organization_id OR DELETE ON user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('organization', 'organization_id', 'user_ids');
-
-CREATE TRIGGER tr_log_vote AFTER INSERT OR UPDATE OR DELETE ON vote_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_models('vote');
-CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON vote_t
-DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
-
-CREATE TRIGGER tr_log_vote_t_option_id AFTER INSERT OR UPDATE OF option_id OR DELETE ON vote_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('option', 'option_id', 'vote_ids');
-CREATE TRIGGER tr_log_vote_t_user_id AFTER INSERT OR UPDATE OF user_id OR DELETE ON vote_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'user_id', 'vote_ids');
-CREATE TRIGGER tr_log_vote_t_delegated_user_id AFTER INSERT OR UPDATE OF delegated_user_id OR DELETE ON vote_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('user', 'delegated_user_id', 'delegated_vote_ids');
-CREATE TRIGGER tr_log_vote_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON vote_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'vote_ids');
 
 
 
@@ -5613,25 +5659,6 @@ FOR EACH ROW EXECUTE FUNCTION check_equals('motion_working_group_speaker', 'moti
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_poll_id AFTER INSERT ON option_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'poll', 'poll_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_option_ids AFTER INSERT ON poll_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'poll', 'poll_id', 'meeting_id', TRUE);
-
-
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_motion_id AFTER INSERT OR UPDATE OF content_object_id ON option_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'motion', 'content_object_id_motion_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_motion_t_option_ids AFTER INSERT ON motion_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'motion', 'content_object_id_motion_id', 'meeting_id', TRUE);
-
-
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_content_object_id_poll_cand57125c5 AFTER INSERT OR UPDATE OF content_object_id ON option_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'poll_candidate_list', 'content_object_id_poll_candidate_list_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_candidate_list_t_option_id AFTER INSERT ON poll_candidate_list_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('option', 'poll_candidate_list', 'content_object_id_poll_candidate_list_id', 'meeting_id', TRUE);
-
-
-
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_personal_note_t_meeting_user_id AFTER INSERT ON personal_note_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('personal_note', 'meeting_user', 'meeting_user_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_meeting_user_t_personal_note_ids AFTER INSERT ON meeting_user_t INITIALLY DEFERRED
@@ -5661,19 +5688,6 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_content_object_id_topic_id 
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_topic_t_poll_ids AFTER INSERT ON topic_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id', TRUE);
-
-
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_global_option_id AFTER INSERT OR UPDATE OF global_option_id ON poll_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'option', 'global_option_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_used_as_global_option_in_poll_id AFTER INSERT ON option_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'option', 'global_option_id', 'meeting_id', TRUE);
-
-
-
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_candidate_t_poll_candidate_list_id AFTER INSERT ON poll_candidate_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('poll_candidate', 'poll_candidate_list', 'poll_candidate_list_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_candidate_list_t_poll_candidate_ids AFTER INSERT ON poll_candidate_list_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('poll_candidate', 'poll_candidate_list', 'poll_candidate_list_id', 'meeting_id', TRUE);
 
 
 
@@ -5823,13 +5837,6 @@ FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('tag_id', 'tag', 'tagged
 
 
 
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_vote_t_option_id AFTER INSERT ON vote_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('vote', 'option', 'option_id', 'meeting_id', FALSE);
-CREATE CONSTRAINT TRIGGER equal_meeting_id_on_option_t_vote_ids AFTER INSERT ON option_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_equals('vote', 'option', 'option_id', 'meeting_id', TRUE);
-
-
-
 /*   Relation-list infos
 Generated: What will be generated for left field
     FIELD: a usual Database field
@@ -5913,7 +5920,7 @@ FIELD 1r:nt => group/used_as_topic_poll_default_id:-> meeting/topic_poll_default
 FIELD 1r:nt => group/used_as_poll_default_id:-> meeting/poll_default_group_ids
 FIELD 1rR:nt => group/meeting_id:-> meeting/group_ids
 
-FIELD 1Gr:nt,nt,nt => history_entry/model_id:-> user/history_entry_ids,motion/history_entry_ids,assignment/history_entry_ids
+FIELD 1Gr:nt,nt,nt,nt => history_entry/model_id:-> assignment/history_entry_ids,motion/history_entry_ids,poll/history_entry_ids,user/history_entry_ids
 FIELD 1rR:nt => history_entry/position_id:-> history_position/entry_ids
 FIELD 1r:nt => history_entry/meeting_id:-> meeting/relevant_history_entry_ids
 
@@ -5938,8 +5945,6 @@ FIELD 1r:nt => meeting/template_for_organization_id:-> organization/template_mee
 FIELD 1rR:1t => meeting/motions_default_workflow_id:-> motion_workflow/default_workflow_meeting_id
 FIELD 1rR:1t => meeting/motions_default_amendment_workflow_id:-> motion_workflow/default_amendment_workflow_meeting_id
 SQL nt:1r => meeting/motion_poll_default_group_ids:-> group/used_as_motion_poll_default_id
-SQL nr:1rR => meeting/poll_candidate_list_ids:-> poll_candidate_list/meeting_id
-SQL nr:1rR => meeting/poll_candidate_ids:-> poll_candidate/meeting_id
 SQL nt:1rR => meeting/meeting_user_ids:-> meeting_user/meeting_id
 SQL nt:1r => meeting/assignment_poll_default_group_ids:-> group/used_as_assignment_poll_default_id
 SQL nt:1r => meeting/poll_default_group_ids:-> group/used_as_poll_default_id
@@ -5972,8 +5977,6 @@ SQL nt:1rR => meeting/motion_working_group_speaker_ids:-> motion_working_group_s
 SQL nt:1rR => meeting/motion_change_recommendation_ids:-> motion_change_recommendation/meeting_id
 SQL nt:1rR => meeting/motion_state_ids:-> motion_state/meeting_id
 SQL nr:1rR => meeting/poll_ids:-> poll/meeting_id
-SQL nr:1rR => meeting/option_ids:-> option/meeting_id
-SQL nr:1rR => meeting/vote_ids:-> vote/meeting_id
 SQL nt:1rR => meeting/assignment_ids:-> assignment/meeting_id
 SQL nt:1rR => meeting/assignment_candidate_ids:-> assignment_candidate/meeting_id
 SQL nt:1rR => meeting/personal_note_ids:-> personal_note/meeting_id
@@ -6059,6 +6062,10 @@ SQL nt:1r => meeting_user/motion_submitter_ids:-> motion_submitter/meeting_user_
 SQL nt:1r => meeting_user/assignment_candidate_ids:-> assignment_candidate/meeting_user_id
 FIELD 1r:nt => meeting_user/vote_delegated_to_id:-> meeting_user/vote_delegations_from_ids
 SQL nt:1r => meeting_user/vote_delegations_from_ids:-> meeting_user/vote_delegated_to_id
+SQL nt:nt => meeting_user/poll_voted_ids:-> poll/voted_ids
+SQL nr:1r => meeting_user/poll_option_ids:-> poll_option/meeting_user_id
+SQL nt:1r => meeting_user/acting_ballot_ids:-> poll_ballot/acting_meeting_user_id
+SQL nt:1r => meeting_user/represented_ballot_ids:-> poll_ballot/represented_meeting_user_id
 SQL nt:1r => meeting_user/chat_message_ids:-> chat_message/meeting_user_id
 SQL ntR:nt => meeting_user/group_ids:-> group/meeting_user_ids
 SQL nt:nt => meeting_user/structure_level_ids:-> structure_level/meeting_user_ids
@@ -6086,7 +6093,6 @@ SQL nt:1rR => motion/supporter_ids:-> motion_supporter/motion_id
 SQL nt:1rR => motion/editor_ids:-> motion_editor/motion_id
 SQL nt:1rR => motion/working_group_speaker_ids:-> motion_working_group_speaker/motion_id
 SQL nt:1GrR => motion/poll_ids:-> poll/content_object_id
-SQL nr:1Gr => motion/option_ids:-> option/content_object_id
 SQL nt:1rR => motion/change_recommendation_ids:-> motion_change_recommendation/motion_id
 SQL nt:1rR => motion/comment_ids:-> motion_comment/motion_id
 SQL 1t:1GrR => motion/agenda_item_id:-> agenda_item/content_object_id
@@ -6153,12 +6159,6 @@ FIELD 1r:nt => motion_working_group_speaker/meeting_user_id:-> meeting_user/moti
 FIELD 1rR:nt => motion_working_group_speaker/motion_id:-> motion/working_group_speaker_ids
 FIELD 1rR:nt => motion_working_group_speaker/meeting_id:-> meeting/motion_working_group_speaker_ids
 
-FIELD 1r:nr => option/poll_id:-> poll/option_ids
-SQL 1t:1r => option/used_as_global_option_in_poll_id:-> poll/global_option_id
-SQL nr:1rR => option/vote_ids:-> vote/option_id
-FIELD 1Gr:nr,nr,1tR => option/content_object_id:-> motion/option_ids,user/option_ids,poll_candidate_list/option_id
-FIELD 1rR:nr => option/meeting_id:-> meeting/option_ids
-
 SQL nr:1rR => organization/gender_ids:-> gender/organization_id
 SQL nr:1rR => organization/committee_ids:-> committee/organization_id
 SQL nt:1r => organization/active_meeting_ids:-> meeting/is_active_in_organization_id
@@ -6181,21 +6181,32 @@ FIELD 1rR:nt => personal_note/meeting_id:-> meeting/personal_note_ids
 FIELD 1rR:nt => point_of_order_category/meeting_id:-> meeting/point_of_order_category_ids
 SQL nt:1r => point_of_order_category/speaker_ids:-> speaker/point_of_order_category_id
 
+FIELD 1GrR:1tR,1tR,1tR,1tR,1tR => poll/config_id:-> poll_config_approval/poll_id,poll_config_selection/poll_id,poll_config_rating_score/poll_id,poll_config_rating_approval/poll_id,poll_config_stv_scottish/poll_id
+SQL nt:1rR => poll/option_ids:-> poll_option/poll_id
 FIELD 1GrR:nt,nt,nt => poll/content_object_id:-> motion/poll_ids,assignment/poll_ids,topic/poll_ids
-SQL nr:1r => poll/option_ids:-> option/poll_id
-FIELD 1r:1t => poll/global_option_id:-> option/used_as_global_option_in_poll_id
-SQL nt:nt => poll/voted_ids:-> user/poll_voted_ids
+SQL nr:1rR => poll/ballot_ids:-> poll_ballot/poll_id
+SQL nt:nt => poll/voted_ids:-> meeting_user/poll_voted_ids
 SQL nt:nt => poll/entitled_group_ids:-> group/poll_ids
 SQL nt:1GrR => poll/projection_ids:-> projection/content_object_id
 FIELD 1rR:nr => poll/meeting_id:-> meeting/poll_ids
+SQL nt:1Gr => poll/history_entry_ids:-> history_entry/model_id
 
-FIELD 1rR:nr => poll_candidate/poll_candidate_list_id:-> poll_candidate_list/poll_candidate_ids
-FIELD 1r:nr => poll_candidate/user_id:-> user/poll_candidate_ids
-FIELD 1rR:nr => poll_candidate/meeting_id:-> meeting/poll_candidate_ids
+FIELD 1rR:nr => poll_ballot/poll_id:-> poll/ballot_ids
+FIELD 1r:nt => poll_ballot/acting_meeting_user_id:-> meeting_user/acting_ballot_ids
+FIELD 1r:nt => poll_ballot/represented_meeting_user_id:-> meeting_user/represented_ballot_ids
 
-SQL nr:1rR => poll_candidate_list/poll_candidate_ids:-> poll_candidate/poll_candidate_list_id
-FIELD 1rR:nr => poll_candidate_list/meeting_id:-> meeting/poll_candidate_list_ids
-SQL 1tR:1Gr => poll_candidate_list/option_id:-> option/content_object_id
+SQL 1tR:1GrR => poll_config_approval/poll_id:-> poll/config_id
+
+SQL 1tR:1GrR => poll_config_rating_approval/poll_id:-> poll/config_id
+
+SQL 1tR:1GrR => poll_config_rating_score/poll_id:-> poll/config_id
+
+SQL 1tR:1GrR => poll_config_selection/poll_id:-> poll/config_id
+
+SQL 1tR:1GrR => poll_config_stv_scottish/poll_id:-> poll/config_id
+
+FIELD 1rR:nt => poll_option/poll_id:-> poll/option_ids
+FIELD 1r:nr => poll_option/meeting_user_id:-> meeting_user/poll_option_ids
 
 FIELD 1r:nt => projection/current_projector_id:-> projector/current_projection_ids
 FIELD 1r:nt => projection/preview_projector_id:-> projector/preview_projection_ids
@@ -6264,27 +6275,13 @@ SQL nt:nt => user/is_present_in_meeting_ids:-> meeting/present_user_ids
 SQL nts:nts => user/committee_ids:-> committee/user_ids
 SQL nt:nt => user/committee_management_ids:-> committee/manager_ids
 SQL nt:1rR => user/meeting_user_ids:-> meeting_user/user_id
-SQL nt:nt => user/poll_voted_ids:-> poll/voted_ids
-SQL nr:1Gr => user/option_ids:-> option/content_object_id
-SQL nr:1r => user/vote_ids:-> vote/user_id
-SQL nr:1r => user/delegated_vote_ids:-> vote/delegated_user_id
-SQL nr:1r => user/poll_candidate_ids:-> poll_candidate/user_id
 FIELD 1r:nt => user/home_committee_id:-> committee/native_user_ids
 SQL nt:1r => user/history_position_ids:-> history_position/user_id
 SQL nt:1Gr => user/history_entry_ids:-> history_entry/model_id
 SQL nts:nts => user/meeting_ids:-> meeting/user_ids
 FIELD 1rR:nr => user/organization_id:-> organization/user_ids
 
-FIELD 1rR:nr => vote/option_id:-> option/vote_ids
-FIELD 1r:nr => vote/user_id:-> user/vote_ids
-FIELD 1r:nr => vote/delegated_user_id:-> user/delegated_vote_ids
-FIELD 1rR:nr => vote/meeting_id:-> meeting/vote_ids
-
-*/
-/*
-There are 2 errors/warnings
-    poll/live_votes: type:JSON is marked as a calculated field and not generated in schema
-    projection/content: type:JSON is marked as a calculated field and not generated in schema
 */
 
 /*   Missing attribute handling for on_delete, constant_legacy, deferred */
+/*   Missing handling for collections _meta attributes: managed_by */
