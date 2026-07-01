@@ -7,10 +7,6 @@ enum_definitions:
   - ru
   - cs
   - fr
-  ballot_paper_selection:
-    - number_of_delegates
-    - number_of_all_participants
-    - custom_number
   onehundred_percent_bases:
     - no_general
     - yes_no

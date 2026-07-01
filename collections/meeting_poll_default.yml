@@ -5,15 +5,6 @@ fields:
     constant: true
     required: true
 
-  ballot_paper_selection:
-    type: string
-    enum: ballot_paper_selection
-    default: custom_number
-    restriction_mode: A
-  ballot_paper_number:
-    type: number
-    default: 8
-    restriction_mode: A
   sort_result_by_votes:
     type: boolean
     default: true
