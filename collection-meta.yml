@@ -7,10 +7,6 @@ enum_definitions:
   - ru
   - cs
   - fr
-  ballot_paper_selection:
-  - NUMBER_OF_DELEGATES
-  - NUMBER_OF_ALL_PARTICIPANTS
-  - CUSTOM_NUMBER
   onehundred_percent_bases:
     - no_general
     - yes_no
@@ -47,6 +43,17 @@ enum_definitions:
     - entitled
     - entitled_present
     - disabled
+  poll_visibility:
+    - manually
+    - named
+    - open
+    - secret
+  poll_methods:
+    - approval
+    - selection
+    - rating_score
+    - rating_approval
+    - stv_scottish
 id_field: &id_field
   type: number
   restriction_mode: A

@@ -532,47 +532,6 @@ fields:
     default: true
     restriction_mode: B
 
-  # Motion poll
-  motion_poll_ballot_paper_selection:
-    type: string
-    enum: ballot_paper_selection
-    default: CUSTOM_NUMBER
-    restriction_mode: B
-  motion_poll_ballot_paper_number:
-    type: number
-    default: 8
-    restriction_mode: B
-  motion_poll_default_type:
-    type: string
-    default: secret
-    restriction_mode: B
-  motion_poll_default_allow_abstain:
-    type: boolean
-    default: true
-    restriction_mode: B
-  motion_poll_default_onehundred_percent_base:
-    type: string
-    enum: approval_onehundred_percent_bases
-    default: valid
-    restriction_mode: B
-  motion_poll_default_group_ids:
-    type: relation-list
-    to: group/used_as_motion_poll_default_id
-    restriction_mode: B
-  motion_poll_projection_name_order_first:
-    type: string
-    enum:
-    - first_name
-    - last_name
-    default: last_name
-    required: true
-    restriction_mode: B
-  motion_poll_projection_max_columns:
-    type: number
-    default: 6
-    required: true
-    restriction_mode: B
-
   # Users
   meeting_user_ids:
     type: relation-list
@@ -670,71 +629,44 @@ fields:
     restriction_mode: B
 
   # Assignment polls
-  assignment_poll_ballot_paper_selection:
-    type: string
-    enum: ballot_paper_selection
-    default: CUSTOM_NUMBER
-    restriction_mode: B
-  assignment_poll_ballot_paper_number:
-    type: number
-    default: 8
-    restriction_mode: B
   assignment_poll_add_candidates_to_list_of_speakers:
     type: boolean
     default: false
     restriction_mode: B
-  assignment_poll_enable_max_votes_per_option:
-    type: boolean
-    default: false
-    restriction_mode: B
-  assignment_poll_sort_poll_result_by_votes:
-    type: boolean
-    default: true
-    restriction_mode: B
-  assignment_poll_default_type:
-    type: string
-    default: secret
-    restriction_mode: B
   assignment_poll_default_method:
     type: string
+    enum: poll_methods
     default: selection
     restriction_mode: B
-  assignment_poll_default_onehundred_percent_base:
-    type: string
-    enum: onehundred_percent_bases
-    default: valid
+  assignment_poll_config_id:
+    type: relation
+    reference: meeting_poll_default
+    to: meeting_poll_default/used_as_assignment_poll_config_in_meeting_id
     restriction_mode: B
-  assignment_poll_default_group_ids:
-    type: relation-list
-    to: group/used_as_assignment_poll_default_id
+
+  # Motion poll
+  motion_poll_config_id:
+    type: relation
+    reference: meeting_poll_default
+    to: meeting_poll_default/used_as_motion_poll_config_in_meeting_id
+    restriction_mode: B
+
+  # Topic poll
+  topic_poll_default_method:
+    type: string
+    enum: poll_methods
+    default: selection
+    restriction_mode: B
+  topic_poll_config_id:
+    type: relation
+    reference: meeting_poll_default
+    to: meeting_poll_default/used_as_topic_poll_config_in_meeting_id
     restriction_mode: B
 
   # Polls
-  poll_ballot_paper_selection:
-    type: string
-    enum: ballot_paper_selection
-    restriction_mode: B
-  poll_ballot_paper_number:
-    type: number
-    restriction_mode: B
-  poll_sort_poll_result_by_votes:
+  poll_enable_max_votes_per_option:
     type: boolean
-    restriction_mode: B
-  poll_default_type:
-    type: string
-    default: analog
-    restriction_mode: B
-  poll_default_method:
-    type: string
-    restriction_mode: B
-  poll_default_onehundred_percent_base:
-    type: string
-    enum: selection_onehundred_percent_bases
-    default: valid
-    restriction_mode: B
-  poll_default_group_ids:
-    type: relation-list
-    to: group/used_as_poll_default_id
+    default: false
     restriction_mode: B
   poll_default_live_voting_enabled:
     type: boolean
@@ -744,22 +676,31 @@ fields:
   poll_default_allow_invalid:
     type: boolean
     default: false
-    description: Defines defaut `poll.allow_invalid` option suggested to user.
+    description: Defines default `poll.allow_invalid` option suggested to user.
     restriction_mode: B
   poll_default_allow_vote_split:
     type: boolean
     default: false
-    description: Defines defaut `poll.allow_vote_split` option suggested to user.
+    description: Defines default `poll.allow_vote_split` option suggested to user.
     restriction_mode: B
   poll_couple_countdown:
     type: boolean
     default: true
     restriction_mode: B
 
-  # Topic poll
-  topic_poll_default_group_ids:
-    type: relation-list
-    to: group/used_as_topic_poll_default_id
+  # Single votes projection settings
+  poll_projection_name_order_first:
+    type: string
+    enum:
+    - first_name
+    - last_name
+    default: last_name
+    required: true
+    restriction_mode: B
+  poll_projection_max_columns:
+    type: number
+    default: 6
+    required: true
     restriction_mode: B
 
   # Relations
@@ -902,6 +843,11 @@ fields:
     type: relation-list
     to: poll/meeting_id
     reference: poll
+    on_delete: CASCADE
+    restriction_mode: B
+  poll_default_ids:
+    type: relation-list
+    to: meeting_poll_default/meeting_id
     on_delete: CASCADE
     restriction_mode: B
   assignment_ids:
