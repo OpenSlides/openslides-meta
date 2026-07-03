@@ -1,6 +1,4 @@
 managed_by: vote
-unique_together:
-  - poll_id, represented_meeting_user_id
 
 fields:
   id:
@@ -28,13 +26,7 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-  acting_meeting_user_id:
+  poll_ballot_user_id:
     type: relation
-    reference: meeting_user
-    to: meeting_user/acting_ballot_ids
-    restriction_mode: C
-  represented_meeting_user_id:
-    type: relation
-    reference: meeting_user
-    to: meeting_user/represented_ballot_ids
-    restriction_mode: C
+    to: poll_ballot_user/poll_ballot_id
+    restriction_mode: A
