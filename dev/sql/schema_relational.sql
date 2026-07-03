@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'ad8ce9394b81e2d4ee52e444e1459c82'
+-- MODELS_YML_CHECKSUM = '9d55626b93d5ded3bd64b5d445a7faaf'
 
 
 -- ENUM definitions
@@ -2231,7 +2231,7 @@ CREATE TABLE projector_t (
     used_as_default_projector_for_countdown_in_meeting_id integer,
     used_as_default_projector_for_assignment_poll_in_meeting_id integer,
     used_as_default_projector_for_motion_poll_in_meeting_id integer,
-    used_as_default_projector_for_poll_in_meeting_id integer,
+    used_as_default_projector_for_topic_poll_in_meeting_id integer,
     meeting_id integer
         CONSTRAINT required_projector_meeting_id NOT NULL
 );
@@ -3124,7 +3124,7 @@ CREATE VIEW "meeting" AS SELECT *,
 (select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_countdown_in_meeting_id = m.id) as default_projector_countdown_ids,
 (select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_assignment_poll_in_meeting_id = m.id) as default_projector_assignment_poll_ids,
 (select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_motion_poll_in_meeting_id = m.id) as default_projector_motion_poll_ids,
-(select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_poll_in_meeting_id = m.id) as default_projector_poll_ids,
+(select array_agg(p.id ORDER BY p.id) from projector_t p where p.used_as_default_projector_for_topic_poll_in_meeting_id = m.id) as default_projector_topic_poll_ids,
 (select array_agg(h.id ORDER BY h.id) from history_entry_t h where h.meeting_id = m.id) as relevant_history_entry_ids
 FROM meeting_t m;
 
@@ -3783,8 +3783,8 @@ ALTER TABLE projector_t ADD CONSTRAINT fk_projector_t_used_as_default_projector_
 CREATE INDEX idx_projector_t_used_as_default_projector_for_assignment5a08584 ON projector_t (used_as_default_projector_for_assignment_poll_in_meeting_id);
 ALTER TABLE projector_t ADD CONSTRAINT fk_projector_t_used_as_default_projector_for_motion_poll5bff78e FOREIGN KEY(used_as_default_projector_for_motion_poll_in_meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_projector_t_used_as_default_projector_for_motion_pol0605aa8 ON projector_t (used_as_default_projector_for_motion_poll_in_meeting_id);
-ALTER TABLE projector_t ADD CONSTRAINT fk_projector_t_used_as_default_projector_for_poll_in_mee417a148 FOREIGN KEY(used_as_default_projector_for_poll_in_meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
-CREATE INDEX idx_projector_t_used_as_default_projector_for_poll_in_me446bdba ON projector_t (used_as_default_projector_for_poll_in_meeting_id);
+ALTER TABLE projector_t ADD CONSTRAINT fk_projector_t_used_as_default_projector_for_topic_poll_b2f5888 FOREIGN KEY(used_as_default_projector_for_topic_poll_in_meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
+CREATE INDEX idx_projector_t_used_as_default_projector_for_topic_pollb4f5002 ON projector_t (used_as_default_projector_for_topic_poll_in_meeting_id);
 ALTER TABLE projector_t ADD CONSTRAINT fk_projector_t_meeting_id_meeting_t_id FOREIGN KEY(meeting_id) REFERENCES meeting_t(id) INITIALLY DEFERRED;
 CREATE INDEX idx_projector_t_meeting_id ON projector_t (meeting_id);
 
@@ -4074,12 +4074,12 @@ CREATE CONSTRAINT TRIGGER tr_ud_not_null_meeting_default_projector_motion_poll_i
 FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('meeting_t', 'default_projector_motion_poll_ids', 'projector_t', 'used_as_default_projector_for_motion_poll_in_meeting_id');
 
 
--- definition trigger not null for meeting.default_projector_poll_ids against projector.used_as_default_projector_for_poll_in_meeting_id
-CREATE CONSTRAINT TRIGGER tr_i_not_null_meeting_default_projector_poll_ids AFTER INSERT ON meeting_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('meeting_t', 'default_projector_poll_ids', 'projector_t', 'used_as_default_projector_for_poll_in_meeting_id');
+-- definition trigger not null for meeting.default_projector_topic_poll_ids against projector.used_as_default_projector_for_topic_poll_in_meeting_id
+CREATE CONSTRAINT TRIGGER tr_i_not_null_meeting_default_projector_topic_poll_ids AFTER INSERT ON meeting_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('meeting_t', 'default_projector_topic_poll_ids', 'projector_t', 'used_as_default_projector_for_topic_poll_in_meeting_id');
 
-CREATE CONSTRAINT TRIGGER tr_ud_not_null_meeting_default_projector_poll_ids AFTER UPDATE OF used_as_default_projector_for_poll_in_meeting_id OR DELETE ON projector_t INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('meeting_t', 'default_projector_poll_ids', 'projector_t', 'used_as_default_projector_for_poll_in_meeting_id');
+CREATE CONSTRAINT TRIGGER tr_ud_not_null_meeting_default_projector_topic_poll_ids AFTER UPDATE OF used_as_default_projector_for_topic_poll_in_meeting_id OR DELETE ON projector_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_not_null_for_1_n('meeting_t', 'default_projector_topic_poll_ids', 'projector_t', 'used_as_default_projector_for_topic_poll_in_meeting_id');
 
 
 
@@ -5200,8 +5200,8 @@ CREATE TRIGGER tr_log_projector_t_used_as_default_projector_for_assignmf3a7b0f A
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_default_projector_for_assignment_poll_in_meeting_id', 'default_projector_assignment_poll_ids');
 CREATE TRIGGER tr_log_projector_t_used_as_default_projector_for_motion_c48d3bb AFTER INSERT OR UPDATE OF used_as_default_projector_for_motion_poll_in_meeting_id OR DELETE ON projector_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_default_projector_for_motion_poll_in_meeting_id', 'default_projector_motion_poll_ids');
-CREATE TRIGGER tr_log_projector_t_used_as_default_projector_for_poll_inf6f7d63 AFTER INSERT OR UPDATE OF used_as_default_projector_for_poll_in_meeting_id OR DELETE ON projector_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_default_projector_for_poll_in_meeting_id', 'default_projector_poll_ids');
+CREATE TRIGGER tr_log_projector_t_used_as_default_projector_for_topic_p9aaf88b AFTER INSERT OR UPDATE OF used_as_default_projector_for_topic_poll_in_meeting_id OR DELETE ON projector_t
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'used_as_default_projector_for_topic_poll_in_meeting_id', 'default_projector_topic_poll_ids');
 CREATE TRIGGER tr_log_projector_t_meeting_id AFTER INSERT OR UPDATE OF meeting_id OR DELETE ON projector_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting', 'meeting_id', 'projector_ids');
 
@@ -6062,7 +6062,7 @@ SQL ntR:1r => meeting/default_projector_message_ids:-> projector/used_as_default
 SQL ntR:1r => meeting/default_projector_countdown_ids:-> projector/used_as_default_projector_for_countdown_in_meeting_id
 SQL ntR:1r => meeting/default_projector_assignment_poll_ids:-> projector/used_as_default_projector_for_assignment_poll_in_meeting_id
 SQL ntR:1r => meeting/default_projector_motion_poll_ids:-> projector/used_as_default_projector_for_motion_poll_in_meeting_id
-SQL ntR:1r => meeting/default_projector_poll_ids:-> projector/used_as_default_projector_for_poll_in_meeting_id
+SQL ntR:1r => meeting/default_projector_topic_poll_ids:-> projector/used_as_default_projector_for_topic_poll_in_meeting_id
 FIELD 1rR:1t => meeting/default_group_id:-> group/default_group_for_meeting_id
 FIELD 1r:1t => meeting/admin_group_id:-> group/admin_group_for_meeting_id
 FIELD 1r:1t => meeting/anonymous_group_id:-> group/anonymous_group_for_meeting_id
@@ -6278,7 +6278,7 @@ FIELD 1r:ntR => projector/used_as_default_projector_for_message_in_meeting_id:->
 FIELD 1r:ntR => projector/used_as_default_projector_for_countdown_in_meeting_id:-> meeting/default_projector_countdown_ids
 FIELD 1r:ntR => projector/used_as_default_projector_for_assignment_poll_in_meeting_id:-> meeting/default_projector_assignment_poll_ids
 FIELD 1r:ntR => projector/used_as_default_projector_for_motion_poll_in_meeting_id:-> meeting/default_projector_motion_poll_ids
-FIELD 1r:ntR => projector/used_as_default_projector_for_poll_in_meeting_id:-> meeting/default_projector_poll_ids
+FIELD 1r:ntR => projector/used_as_default_projector_for_topic_poll_in_meeting_id:-> meeting/default_projector_topic_poll_ids
 FIELD 1rR:nt => projector/meeting_id:-> meeting/projector_ids
 
 SQL nt:1GrR => projector_countdown/projection_ids:-> projection/content_object_id

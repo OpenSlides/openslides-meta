@@ -1085,9 +1085,9 @@ fields:
     to: projector/used_as_default_projector_for_motion_poll_in_meeting_id
     restriction_mode: B
     required: true
-  default_projector_poll_ids:
+  default_projector_topic_poll_ids:
     type: relation-list
-    to: projector/used_as_default_projector_for_poll_in_meeting_id
+    to: projector/used_as_default_projector_for_topic_poll_in_meeting_id
     restriction_mode: B
     required: true
   default_group_id:
