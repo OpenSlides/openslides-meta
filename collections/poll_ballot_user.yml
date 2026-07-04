@@ -23,9 +23,11 @@ fields:
     type: relation
     reference: meeting_user
     to: meeting_user/acting_ballot_ids
+    required: true
     restriction_mode: C
   represented_meeting_user_id:
     type: relation
     reference: meeting_user
     to: meeting_user/represented_ballot_ids
+    required: true
     restriction_mode: C
