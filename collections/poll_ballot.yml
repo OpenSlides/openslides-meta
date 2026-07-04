@@ -29,4 +29,5 @@ fields:
   poll_ballot_user_id:
     type: relation
     to: poll_ballot_user/poll_ballot_id
+    reference: poll_ballot_user
     restriction_mode: A

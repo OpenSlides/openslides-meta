@@ -17,7 +17,6 @@ fields:
     constant: true
   poll_ballot_id:
     type: relation
-    reference: poll_ballot
     to: poll_ballot/poll_ballot_user_id
     restriction_mode: A
   acting_meeting_user_id:
