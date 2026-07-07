@@ -8,6 +8,9 @@ fields:
   entries:
     type: text[]
     restriction_mode: A
+  changed_fields:
+    type: JSON
+    restriction_mode: A
   original_model_id:
     type: string
     restriction_mode: A
