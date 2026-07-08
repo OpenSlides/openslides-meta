@@ -722,11 +722,13 @@ class Checker:
         ):
             return f"One of the relation fields {from_collectionfield} and {to_collectionfield} must have 'reference' set."
 
-        allowed, required = self.get_reference_allowed_required(from_field, to_field)
-        if not allowed and from_field.get("reference"):
+        reference_allowed, reference_required = self.get_reference_allowed_required(
+            from_field, to_field
+        )
+        if not reference_allowed and from_field.get("reference"):
             return f"Relational collectionfield {from_collectionfield} can not have 'reference' attribute."
 
-        if required and not from_field.get("reference"):
+        if reference_required and not from_field.get("reference"):
             return f"Relational collectionfield {from_collectionfield} must have 'reference' attribute."
 
         return None
