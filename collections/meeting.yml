@@ -647,6 +647,10 @@ fields:
   users_enable_vote_delegations:
     type: boolean
     restriction_mode: B
+  users_vote_delegations_max_amount:
+      type: number
+      default: 1
+      restriction_mode: B
   users_forbid_delegator_in_list_of_speakers:
     type: boolean
     restriction_mode: B
