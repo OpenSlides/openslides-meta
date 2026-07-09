@@ -78,7 +78,6 @@ fields:
     restriction_mode: A
   vote_delegated_to_ids:
     type: relation-list
-    reference: meeting_user
     to: meeting_user/vote_delegations_from_ids
     equal_fields: meeting_id
     restriction_mode: A

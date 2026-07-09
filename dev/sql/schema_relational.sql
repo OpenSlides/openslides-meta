@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '0f12a37f0022f446414d6b83b39c0d99'
+-- MODELS_YML_CHECKSUM = 'accb55ba8debadb6c55f69dfb508076b'
 
 
 -- ENUM definitions
@@ -3171,6 +3171,7 @@ CREATE VIEW "meeting_user" AS SELECT *,
 (select array_agg(ms.id ORDER BY ms.id) from motion_submitter_t ms where ms.meeting_user_id = m.id) as motion_submitter_ids,
 (select array_agg(a.id ORDER BY a.id) from assignment_candidate_t a where a.meeting_user_id = m.id) as assignment_candidate_ids,
 (select array_agg(n.vote_delegated_to_id ORDER BY n.vote_delegated_to_id) from nm_meeting_user_vote_delegated_to_ids_meeting_user_t n where n.vote_delegations_from_id = m.id) as vote_delegated_to_ids,
+(select array_agg(n.vote_delegations_from_id ORDER BY n.vote_delegations_from_id) from nm_meeting_user_vote_delegated_to_ids_meeting_user_t n where n.vote_delegated_to_id = m.id) as vote_delegations_from_ids,
 (select array_agg(n.poll_id ORDER BY n.poll_id) from nm_meeting_user_poll_voted_ids_poll_t n where n.meeting_user_id = m.id) as poll_voted_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_option_t p where p.meeting_user_id = m.id) as poll_option_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_ballot_t p where p.acting_meeting_user_id = m.id) as acting_ballot_ids,
@@ -6080,9 +6081,8 @@ SQL nt:1r => meeting_user/motion_editor_ids:-> motion_editor/meeting_user_id
 SQL nt:1r => meeting_user/motion_working_group_speaker_ids:-> motion_working_group_speaker/meeting_user_id
 SQL nt:1r => meeting_user/motion_submitter_ids:-> motion_submitter/meeting_user_id
 SQL nt:1r => meeting_user/assignment_candidate_ids:-> assignment_candidate/meeting_user_id
-SQL nr:nt => meeting_user/vote_delegated_to_ids:-> meeting_user/vote_delegations_from_ids
-*** nt:nr => meeting_user/vote_delegations_from_ids:-> meeting_user/vote_delegated_to_ids
-    Type combination not implemented: nt:nr on field meeting_user/vote_delegations_from_ids
+SQL nt:nt => meeting_user/vote_delegated_to_ids:-> meeting_user/vote_delegations_from_ids
+SQL nt:nt => meeting_user/vote_delegations_from_ids:-> meeting_user/vote_delegated_to_ids
 SQL nt:nt => meeting_user/poll_voted_ids:-> poll/voted_ids
 SQL nr:1r => meeting_user/poll_option_ids:-> poll_option/meeting_user_id
 SQL nt:1r => meeting_user/acting_ballot_ids:-> poll_ballot/acting_meeting_user_id
@@ -6302,10 +6302,6 @@ SQL nt:1Gr => user/history_entry_ids:-> history_entry/model_id
 SQL nts:nts => user/meeting_ids:-> meeting/user_ids
 FIELD 1rR:nr => user/organization_id:-> organization/user_ids
 
-*/
-/*
-There are 1 errors/warnings
-    meeting_user/vote_delegations_from_ids: Type combination not implemented: nt:nr on field meeting_user/vote_delegations_from_ids
 */
 
 /*   Missing attribute handling for on_delete, constant_legacy, deferred */
