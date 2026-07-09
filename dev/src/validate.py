@@ -476,6 +476,9 @@ class Checker:
                 error = self.check_reverse(collectionfield, field, cf)
                 if error:
                     return error
+            self.check_reference_list(
+                collectionfield, field, [c.split(KEYSEPARATOR)[0] for c in to]
+            )
         else:
             to_field = to["field"]
             if not FIELD_REGEX.match(to_field):
@@ -492,6 +495,7 @@ class Checker:
                 )
                 if error:
                     return error
+            self.check_reference_list(collectionfield, field, to["collections"])
         return None
 
     def setify_equal_fields(self, field_def: dict[str, Any]) -> set[str]:
@@ -709,6 +713,7 @@ class Checker:
         to_collectionfield: str,
         to_field: dict[str, Any],
     ) -> str | None:
+        # Check attribute presence
         reference_in_fields = ["reference" in field for field in [to_field, from_field]]
         if (
             from_field["type"] == to_field["type"]
@@ -725,13 +730,57 @@ class Checker:
         reference_allowed, reference_required = self.get_reference_allowed_required(
             from_field, to_field
         )
-        if not reference_allowed and from_field.get("reference"):
+        reference = from_field.get("reference")
+        if not reference_allowed and reference:
             return f"Relational collectionfield {from_collectionfield} can not have 'reference' attribute."
+        if not reference:
+            if reference_required:
+                return f"Relational collectionfield {from_collectionfield} must have 'reference' attribute."
+            return None
 
-        if reference_required and not from_field.get("reference"):
-            return f"Relational collectionfield {from_collectionfield} must have 'reference' attribute."
+        # Check value
+        if from_field["type"] in ["relation", "relation-list"]:
+            if not isinstance(reference, str) or reference not in self.models:
+                return f"The collection '{reference}' in 'reference' of {from_collectionfield} is not a valid collection."
 
+            if reference != (
+                to_collection := to_collectionfield.split(KEYSEPARATOR)[0]
+            ):
+                return f"'reference' of {from_collectionfield} must match the collection of 'to': {to_collection}."
+
+        else:
+            assert isinstance(
+                reference, list
+            ), f"Reference of {from_collectionfield} must be a list of valid collection names."
+
+            if (
+                to_collection := to_collectionfield.split(KEYSEPARATOR)[0]
+            ) not in reference:
+                return f"'reference' of {from_collectionfield} is missing a collection '{to_collection}' from 'to'."
         return None
+
+    def check_reference_list(
+        self,
+        from_collectionfield: str,
+        from_field: dict[str, Any],
+        to_collections: list[Any],
+    ) -> None:
+        if not (reference := from_field.get("reference")):
+            return
+
+        if invalid := [value for value in reference if value not in self.models]:
+            self.errors.append(
+                f"'reference' of {from_collectionfield} contains values that are not valid collections: {invalid}"
+            )
+
+        if not_in_to := [
+            value
+            for value in reference
+            if value not in to_collections and value not in invalid
+        ]:
+            self.errors.append(
+                f"'reference' of {from_collectionfield} contains collections not present in 'to': {not_in_to}"
+            )
 
     def get_reference_allowed_required(
         self, from_field: dict[str, Any], to_field: dict[str, Any]
