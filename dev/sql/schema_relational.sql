@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '0c3b719e5466edf076a4e69b354eefb8'
+-- MODELS_YML_CHECKSUM = '5ffc48fdb60ada9186dc7e5f2b44a52b'
 
 
 -- ENUM definitions
@@ -5704,6 +5704,13 @@ CREATE CONSTRAINT TRIGGER equal_meeting_id_on_poll_t_content_object_id_topic_id 
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id', FALSE);
 CREATE CONSTRAINT TRIGGER equal_meeting_id_on_topic_t_poll_ids AFTER INSERT ON topic_t INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION check_equals('poll', 'topic', 'content_object_id_topic_id', 'meeting_id', TRUE);
+
+
+
+CREATE CONSTRAINT TRIGGER equal_poll_id_on_poll_ballot_t_poll_ballot_user_id AFTER INSERT OR UPDATE OF poll_ballot_user_id ON poll_ballot_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll_ballot', 'poll_ballot_user', 'poll_ballot_user_id', 'poll_id', FALSE);
+CREATE CONSTRAINT TRIGGER equal_poll_id_on_poll_ballot_user_t_poll_ballot_id AFTER INSERT ON poll_ballot_user_t INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION check_equals('poll_ballot', 'poll_ballot_user', 'poll_ballot_user_id', 'poll_id', TRUE);
 
 
 

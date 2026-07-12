@@ -30,4 +30,5 @@ fields:
     type: relation
     to: poll_ballot_user/poll_ballot_id
     reference: poll_ballot_user
+    equal_fields: poll_id
     restriction_mode: A
