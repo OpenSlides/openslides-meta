@@ -1,3 +1,6 @@
+unique_together:
+- mediafile_id, meeting_id
+
 fields:
   id:
     type: number
@@ -16,6 +19,7 @@ fields:
     to: meeting/meeting_mediafile_ids
     reference: meeting
     required: true
+    constant: true
     restriction_mode: A
   is_public:
     type: boolean

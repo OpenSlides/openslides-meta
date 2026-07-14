@@ -141,7 +141,7 @@ fields:
     on_delete: CASCADE
     equal_fields: meeting_id
     restriction_mode: A
-    constant: true
+    constant_legacy: true
   voted_ids:
     type: relation-list
     to: user/poll_voted_ids

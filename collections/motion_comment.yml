@@ -10,6 +10,7 @@ fields:
 
   comment:
     type: HTMLStrict
+    required: true
     restriction_mode: A
 
   motion_id:
