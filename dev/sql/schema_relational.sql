@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '2cfe90a963de211c4d2b5779ed048e22'
+-- MODELS_YML_CHECKSUM = '2a2bbf9adc467cb87a7b480518eb1dec'
 
 
 -- ENUM definitions
@@ -6341,4 +6341,3 @@ FIELD 1rR:nr => user/organization_id:-> organization/user_ids
 */
 
 /*   Missing attribute handling for on_delete, constant_legacy, deferred */
-/*   Missing handling for collections _meta attributes: managed_by */
