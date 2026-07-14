@@ -8,6 +8,9 @@ fields:
   entries:
     type: text[]
     restriction_mode: A
+  changed_fields:
+    type: JSON
+    restriction_mode: A
   original_model_id:
     type: string
     restriction_mode: A
@@ -16,15 +19,19 @@ fields:
     type: generic-relation
     to:
       collections:
-      - user
-      - motion
-      - assignment
+        - assignment
+        - meeting_user
+        - motion
+        - poll
+        - user
       field: history_entry_ids
     restriction_mode: A
     reference:
-    - user
-    - motion
-    - assignment
+      - assignment
+      - meeting_user
+      - motion
+      - poll
+      - user
   position_id:
     type: relation
     to: history_position/entry_ids

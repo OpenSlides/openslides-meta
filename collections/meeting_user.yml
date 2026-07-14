@@ -1,5 +1,5 @@
 unique_together:
-- meeting_id, user_id
+  - meeting_id, user_id
 
 fields:
   id:
@@ -87,6 +87,24 @@ fields:
     to: meeting_user/vote_delegated_to_id
     equal_fields: meeting_id
     restriction_mode: A
+  poll_voted_ids:
+    type: relation-list
+    to: poll/voted_ids
+    restriction_mode: A
+  poll_option_ids:
+    type: relation-list
+    to: poll_option/meeting_user_id
+    reference: poll_option
+    required: false
+    restriction_mode: A
+  acting_ballot_ids:
+    type: relation-list
+    to: poll_ballot/acting_meeting_user_id
+    restriction_mode: A
+  represented_ballot_ids:
+    type: relation-list
+    to: poll_ballot/represented_meeting_user_id
+    restriction_mode: A
   chat_message_ids:
     type: relation-list
     to: chat_message/meeting_user_id
@@ -103,4 +121,7 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     to: structure_level/meeting_user_ids
-
+  history_entry_ids:
+    type: relation-list
+    to: history_entry/model_id
+    restriction_mode: A
