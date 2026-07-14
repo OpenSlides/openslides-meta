@@ -19,7 +19,7 @@ fields:
     restriction_mode: A
   vote_weight:
     type: decimal(6)
-    minimum: "0.000001"
+    minimum: '0.000001'
     restriction_mode: A
   locked_out:
     type: boolean
@@ -97,10 +97,12 @@ fields:
     type: relation-list
     to: poll_ballot_user/acting_meeting_user_id
     restriction_mode: A
+    on_delete: CASCADE
   represented_ballot_ids:
     type: relation-list
     to: poll_ballot_user/represented_meeting_user_id
     restriction_mode: A
+    on_delete: CASCADE
   chat_message_ids:
     type: relation-list
     to: chat_message/meeting_user_id
