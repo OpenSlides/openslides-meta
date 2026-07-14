@@ -17,8 +17,6 @@ Each collection-file has the following format:
       for which UNIQUE constraints will be generated in the database.
       Difference: for `unique_together` the uniqueness check is skipped if
       value in at least one of the fields is NULL.
-    - `managed_by` can be set to the service the collection is managed by. Default to
-      `backend`. Available options are `backend` or `vote`.
 - Length of names:
     - field name: Their length is limited to 25 characters. There are still some
       fields with longer names, that has to be shortened
