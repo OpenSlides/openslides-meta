@@ -12,6 +12,11 @@ collection, there is a file in the `collections` directory. The file
 
 Each collection-file has the following format:
 
+- Model level settings:
+    - `unique_together` and `unique_together_strict` define groups of fields
+      for which UNIQUE constraints will be generated in the database.
+      Difference: for `unique_together` the uniqueness check is skipped if
+      value in at least one of the fields is NULL.
 - Length of names:
     - field name: Their length is limited to 25 characters. There are still some
       fields with longer names, that has to be shortened
@@ -73,6 +78,23 @@ Each collection-file has the following format:
       updated once set (protected by batabase constraint).
     - The property `constant_legacy` describes fields that should be protected from being
       changed inside of the regular external actions (logic should be defined in the services).
+    - The property `sql` is used in read‑only relational fields to define a custom SQL query
+      for calculating the field’s value. Must be used together with `log_triggers`.
+    - The property `log_triggers` contains a list of rules describing when
+      changes in the database should trigger log entries for this calculated
+      relational field. For each select statement of `sql` define a rule with:
+      - `on_table`: the table whose changes affect the calculated value.
+      - `on_columns` (optional): columns in `on_table` that affect the
+        calculated value. Omit this if all relevant fields have `constant: true`
+        or if `on_table` is an intermediate table.
+      - `log_collection_id_column` or `log_collection_id_sql`: how to get the id of
+        the calculated field's collection for the log entry:
+        - Use `log_collection_id_column` for direct access from the instance of `on_table`.
+        - Use `log_collection_id_sql` when id must be fetched from another table.
+      - `log_value_column` or `log_value_sql`: how to get the id added to the
+        calculated field result or deleted from it (depending on the operation type):
+        - Use `log_value_column` for direct access from the instance of `on_table`.
+        - Use `log_value_sql` when the value must be retrieved from another table.
 - Restriction Mode:
   The field `restriction_mode` is required for every field. It puts the field into a
   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview
