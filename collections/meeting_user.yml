@@ -105,6 +105,10 @@ fields:
     type: relation-list
     to: poll_ballot/represented_meeting_user_id
     restriction_mode: A
+  entitled_at_poll_ids:
+    type: relation-list
+    to: poll/entitled_meeting_user_ids
+    restriction_mode: A
   chat_message_ids:
     type: relation-list
     to: chat_message/meeting_user_id
