@@ -19,7 +19,7 @@ fields:
     restriction_mode: A
   vote_weight:
     type: decimal(6)
-    minimum: "0.000001"
+    minimum: '0.000001'
     restriction_mode: A
   locked_out:
     type: boolean
@@ -87,10 +87,6 @@ fields:
     to: meeting_user/vote_delegated_to_id
     equal_fields: meeting_id
     restriction_mode: A
-  poll_voted_ids:
-    type: relation-list
-    to: poll/voted_ids
-    restriction_mode: A
   poll_option_ids:
     type: relation-list
     to: poll_option/meeting_user_id
@@ -99,11 +95,17 @@ fields:
     restriction_mode: A
   acting_ballot_ids:
     type: relation-list
-    to: poll_ballot/acting_meeting_user_id
+    to: poll_ballot_user/acting_meeting_user_id
     restriction_mode: A
+    # on_delete: CASCADE
   represented_ballot_ids:
     type: relation-list
-    to: poll_ballot/represented_meeting_user_id
+    to: poll_ballot_user/represented_meeting_user_id
+    restriction_mode: A
+    # on_delete: CASCADE
+  entitled_at_poll_ids:
+    type: relation-list
+    to: poll/entitled_meeting_user_ids
     restriction_mode: A
   chat_message_ids:
     type: relation-list

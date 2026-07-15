@@ -102,13 +102,20 @@ fields:
     reference: poll_ballot
     on_delete: CASCADE
     restriction_mode: A
-  voted_ids:
+  ballot_user_ids:
     type: relation-list
-    to: meeting_user/poll_voted_ids
-    restriction_mode: B
+    to: poll_ballot_user/poll_id
+    reference: poll_ballot_user
+    on_delete: CASCADE
+    restriction_mode: A
   entitled_group_ids:
     type: relation-list
     to: group/poll_ids
+    equal_fields: meeting_id
+    restriction_mode: A
+  entitled_meeting_user_ids:
+    type: relation-list
+    to: meeting_user/entitled_at_poll_ids
     equal_fields: meeting_id
     restriction_mode: A
   projection_ids:
