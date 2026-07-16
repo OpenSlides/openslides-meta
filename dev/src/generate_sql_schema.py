@@ -77,7 +77,11 @@ class SubstDict(TypedDict, total=False):
 
 class GenerateCodeBlocks:
     """Main work is done here by recursing the models and their fields and determine the method to use"""
-
+    table_sql = {}
+    view_sql = {}
+    alter_table_final_sql = {}
+    trigger_sql = defaultdict(str)
+    intermediate_sql = defaultdict(str)
     if not InternalHelper.MODELS:
         InternalHelper.read_models_yml()
     intermediate_tables: dict[str, str] = (
@@ -189,8 +193,8 @@ class GenerateCodeBlocks:
                 cls.get_not_null_trigger_params(type_)
             )
 
-        for table_name, data in InternalHelper.MODELS.items():
-            if table_name in ["_migration_index", "_meta"]:
+        for collection_name, data in InternalHelper.MODELS.items():
+            if collection_name in ["_migration_index", "_meta"]:
                 continue
 
             fields = data["fields"]
@@ -206,15 +210,15 @@ class GenerateCodeBlocks:
                         missing_handled_attributes.append(attr)
                 method_or_str, type_ = cls.get_method(fname, fdata)
                 if isinstance(method_or_str, str):
-                    error = Helper.prefix_error(method_or_str, table_name, fname)
+                    error = Helper.prefix_error(method_or_str, collection_name, fname)
                     schema_zone_texts["undecided"] += error
                     errors.append(error)
                 else:
-                    result, error = method_or_str(table_name, fname, fdata, type_)
+                    result, error = method_or_str(collection_name, fname, fdata, type_)
                     for k, v in result.items():
                         schema_zone_texts[k] += v or ""  # type: ignore
                     if error:
-                        errors.append(Helper.prefix_error(error, table_name, fname))
+                        errors.append(Helper.prefix_error(error, collection_name, fname))
 
             if len(data) > 1:
                 for attr, value in data.items():
@@ -225,13 +229,13 @@ class GenerateCodeBlocks:
                             schema_zone_texts[
                                 "table"
                             ] += cls.get_constraint_unique_together(
-                                table_name, value, False
+                                collection_name, value, False
                             )
                         case "unique_together_strict":
                             schema_zone_texts[
                                 "table"
                             ] += cls.get_constraint_unique_together(
-                                table_name, value, True
+                                collection_name, value, True
                             )
                         case _:
                             if attr not in collection_meta_handled_attributes:
@@ -242,44 +246,59 @@ class GenerateCodeBlocks:
                                 )
 
             if code := schema_zone_texts["table"]:
-                table_name_code += Helper.get_table_head(table_name)
-                table_name_code += Helper.get_table_body_end(code) + "\n\n"
+                cls.table_sql[collection_name] = Helper.get_table_head(collection_name)
+                cls.table_sql[collection_name] += Helper.get_table_body_end(code) + "\n\n"
+                table_name_code += cls.table_sql[collection_name]
             if code := schema_zone_texts["alter_table"]:
+                cls.table_sql[collection_name] += code + "\n"
                 table_name_code += code + "\n"
             if code := schema_zone_texts["undecided"]:
-                table_name_code += Helper.get_undecided_all(table_name, code)
-            view_name_code += Helper.get_view_head(table_name)
-            view_name_code += Helper.get_view_body_end(
-                table_name, schema_zone_texts.get("view", "")
+                table_name_code += Helper.get_undecided_all(collection_name, code)
+            code = Helper.get_view_head(collection_name)
+            code += Helper.get_view_body_end(
+                collection_name, schema_zone_texts.get("view", "")
             )
+            cls.view_sql[collection_name] = code
+            view_name_code += code
+
             if code := schema_zone_texts["post_view"]:
+                cls.view_sql[collection_name] += code 
                 view_name_code += code
             if code := schema_zone_texts["alter_table_final"]:
+                cls.alter_table_final_sql[collection_name] = code + "\n"
                 alter_table_final_code += code + "\n"
             if code := schema_zone_texts["create_trigger_partitioned_sequences"]:
+                cls.trigger_sql[collection_name] = code + "\n"
                 create_trigger_partitioned_sequences_code += code + "\n"
             if code := schema_zone_texts["create_trigger_1_1_relation_not_null"]:
+                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_1_1_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_1_n_relation_not_null"]:
+                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_1_n_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_n_m_relation_not_null"]:
+                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_n_m_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_prevent_updates_code"]:
+                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_prevent_updates_code += code + "\n"
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
+                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["create_trigger_equal_fields_code"]:
+                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_equal_fields_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
             for im_table in cls.intermediate_tables.values():
+                cls.intermediate_sql[collection_name] += im_table
                 im_table_code += im_table
 
             # schema_zone_texts is filled per model field.
             # If any fields for this collection generated table code, create the main notify trigger on it.
             if schema_zone_texts["table"]:
                 create_trigger_notify_code += (
-                    Helper.get_notify_trigger(table_name) + "\n"
+                    Helper.get_notify_trigger(collection_name) + "\n"
                 )
             # Special triggers (e.g. for relation fields) come after
             # TODO: needs to be filled in the get_*_relation_*_type functions
