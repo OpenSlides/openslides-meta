@@ -120,3 +120,7 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     to: structure_level/meeting_user_ids
+  history_entry_ids:
+    type: relation-list
+    to: history_entry/model_id
+    restriction_mode: A

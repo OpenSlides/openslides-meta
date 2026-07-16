@@ -1,4 +1,3 @@
-managed_by: vote
 fields:
   id:
     type: number
@@ -24,6 +23,7 @@ fields:
       - poll_config_rating_approval
       - poll_config_stv_scottish
     required: true
+    on_delete: CASCADE
     restriction_mode: A
   option_ids:
     type: relation-list
@@ -33,11 +33,7 @@ fields:
   visibility:
     type: string
     required: true
-    enum:
-      - manually
-      - named
-      - open
-      - secret
+    enum: poll_visibility
     restriction_mode: A
   state:
     type: string
