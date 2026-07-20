@@ -82,7 +82,7 @@ class GenerateCodeBlocks:
     view_sql: dict[str, str] = {}
     alter_table_final_sql: dict[str, str] = {}
     trigger_sql: dict[str, str] = defaultdict(str)
-    intermediate_sql: dict[str, str] = defaultdict(str)
+    intermediate_sql: dict[str, str] = {}
     if not InternalHelper.MODELS:
         InternalHelper.read_models_yml()
     intermediate_tables: dict[str, str] = (
@@ -263,11 +263,9 @@ class GenerateCodeBlocks:
             cls.view_sql[collection_name] += Helper.get_view_body_end(
                 collection_name, schema_zone_texts.get("view", "")
             )
-            view_name_code += cls.view_sql[collection_name]
-
             if code := schema_zone_texts["post_view"]:
                 cls.view_sql[collection_name] += code
-                view_name_code += code
+            view_name_code += cls.view_sql[collection_name]
             if code := schema_zone_texts["alter_table_final"]:
                 cls.alter_table_final_sql[collection_name] = code + "\n"
                 alter_table_final_code += code + "\n"
@@ -295,7 +293,7 @@ class GenerateCodeBlocks:
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
             for im_table in cls.intermediate_tables.values():
-                cls.intermediate_sql[collection_name] += im_table
+                cls.intermediate_sql[collection_name] = im_table
                 im_table_code += im_table
 
             # schema_zone_texts is filled per model field.
