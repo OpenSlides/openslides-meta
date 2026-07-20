@@ -77,11 +77,12 @@ class SubstDict(TypedDict, total=False):
 
 class GenerateCodeBlocks:
     """Main work is done here by recursing the models and their fields and determine the method to use"""
-    table_sql = {}
-    view_sql = {}
-    alter_table_final_sql = {}
-    trigger_sql = defaultdict(str)
-    intermediate_sql = defaultdict(str)
+
+    table_sql: dict[str, str] = {}
+    view_sql: dict[str, str] = {}
+    alter_table_final_sql: dict[str, str] = {}
+    trigger_sql: dict[str, str] = defaultdict(str)
+    intermediate_sql: dict[str, str] = defaultdict(str)
     if not InternalHelper.MODELS:
         InternalHelper.read_models_yml()
     intermediate_tables: dict[str, str] = (
@@ -218,7 +219,9 @@ class GenerateCodeBlocks:
                     for k, v in result.items():
                         schema_zone_texts[k] += v or ""  # type: ignore
                     if error:
-                        errors.append(Helper.prefix_error(error, collection_name, fname))
+                        errors.append(
+                            Helper.prefix_error(error, collection_name, fname)
+                        )
 
             if len(data) > 1:
                 for attr, value in data.items():
@@ -247,7 +250,9 @@ class GenerateCodeBlocks:
 
             if code := schema_zone_texts["table"]:
                 cls.table_sql[collection_name] = Helper.get_table_head(collection_name)
-                cls.table_sql[collection_name] += Helper.get_table_body_end(code) + "\n\n"
+                cls.table_sql[collection_name] += (
+                    Helper.get_table_body_end(code) + "\n\n"
+                )
                 table_name_code += cls.table_sql[collection_name]
             if code := schema_zone_texts["alter_table"]:
                 cls.table_sql[collection_name] += code + "\n"
@@ -262,7 +267,7 @@ class GenerateCodeBlocks:
             view_name_code += code
 
             if code := schema_zone_texts["post_view"]:
-                cls.view_sql[collection_name] += code 
+                cls.view_sql[collection_name] += code
                 view_name_code += code
             if code := schema_zone_texts["alter_table_final"]:
                 cls.alter_table_final_sql[collection_name] = code + "\n"
