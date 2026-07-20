@@ -259,12 +259,11 @@ class GenerateCodeBlocks:
                 table_name_code += code + "\n"
             if code := schema_zone_texts["undecided"]:
                 table_name_code += Helper.get_undecided_all(collection_name, code)
-            code = Helper.get_view_head(collection_name)
-            code += Helper.get_view_body_end(
+            cls.view_sql[collection_name] = Helper.get_view_head(collection_name)
+            cls.view_sql[collection_name] += Helper.get_view_body_end(
                 collection_name, schema_zone_texts.get("view", "")
             )
-            cls.view_sql[collection_name] = code
-            view_name_code += code
+            view_name_code += cls.view_sql[collection_name]
 
             if code := schema_zone_texts["post_view"]:
                 cls.view_sql[collection_name] += code
