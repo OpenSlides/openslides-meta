@@ -1,6 +1,3 @@
-unique_together:
-  - poll_id, represented_meeting_user_id
-
 fields:
   id:
     type: number
@@ -9,16 +6,16 @@ fields:
     required: true
   weight:
     type: decimal(6)
-    restriction_mode: B
+    restriction_mode: A
     constant: true
-    default: "1.000000"
+    default: '1.000000'
   split:
     type: boolean
     default: false
-    restriction_mode: B
+    restriction_mode: A
   value:
     type: text
-    restriction_mode: B
+    restriction_mode: A
     constant: true
   poll_id:
     type: relation
@@ -27,13 +24,9 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-  acting_meeting_user_id:
+  poll_ballot_user_id:
     type: relation
-    reference: meeting_user
-    to: meeting_user/acting_ballot_ids
-    restriction_mode: C
-  represented_meeting_user_id:
-    type: relation
-    reference: meeting_user
-    to: meeting_user/represented_ballot_ids
-    restriction_mode: C
+    to: poll_ballot_user/poll_ballot_id
+    reference: poll_ballot_user
+    equal_fields: poll_id
+    restriction_mode: A
