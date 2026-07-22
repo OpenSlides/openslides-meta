@@ -627,7 +627,9 @@ class GenerateCodeBlocks:
                         own_table_field, foreign_table_field, state
                     )
                 )
-            initially_deferred = ModelsHelper.is_fk_initially_deferred(table_name, foreign_table)
+            initially_deferred = ModelsHelper.is_fk_initially_deferred(
+                table_name, foreign_table
+            )
             text["alter_table_final"] = (
                 Helper.get_foreign_key_table_constraint_as_alter_table(
                     table_name,
