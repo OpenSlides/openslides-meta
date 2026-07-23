@@ -900,7 +900,7 @@ class GenerateCodeBlocks:
         ), f"'{table_name}.yml/unique_together' must be a list of field names"
         result = ""
         for fields in value:
-            fields = [field_name.strip() for field_name in fields.split(",")]
+            fields = Helper.split_unique_together_fields(fields)
             result += Helper.get_unique_together_constraint_definition(
                 table_name, fields, strict
             )
@@ -2238,6 +2238,10 @@ class Helper:
             f"GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED",
         )
 
+    @staticmethod
+    def split_unique_together_fields(fields: str) -> list[str]:
+        return [field_name.strip() for field_name in fields.split(",")]
+
     @classmethod
     def get_unique_together_constraint_definition(
         cls, table: str, fields: list[str], strict: bool
@@ -2256,6 +2260,76 @@ class Helper:
                 }
             )
         return result
+
+    @staticmethod
+    def get_drop_type_statement(enum_name: str) -> str:
+        return f"DROP TYPE {enum_name};\n"
+
+    @staticmethod
+    def get_drop_enum_type_statement_from_collection_and_column(
+        collection_name: str, column_name: str
+    ) -> str:
+        return Helper.get_drop_type_statement(
+            HelperGetNames.get_enum_name_for_column(collection_name, column_name)
+        )
+
+    @staticmethod
+    def get_drop_table_statement(collection_or_table_name: str) -> str:
+        return f"DROP TABLE {HelperGetNames.get_table_name(collection_or_table_name)} CASCADE;\n"
+
+    @staticmethod
+    def get_drop_view_statement(collection_name: str) -> str:
+        return f"DROP VIEW IF EXISTS {collection_name};\n"
+
+    @staticmethod
+    def get_alter_table_statement(collection_or_table_name: str, action: str) -> str:
+        return f"ALTER TABLE {HelperGetNames.get_table_name(collection_or_table_name)} {action};\n"
+
+    @staticmethod
+    def get_drop_column_statement(
+        collection_or_table_name: str, column_name: str
+    ) -> str:
+        return Helper.get_alter_table_statement(
+            collection_or_table_name, f"DROP COLUMN {column_name} CASCADE"
+        )
+
+    @staticmethod
+    def get_alter_column_statement(
+        collection_or_table_name: str, column_name: str, action: str
+    ) -> str:
+        return Helper.get_alter_table_statement(
+            collection_or_table_name, f"ALTER COLUMN {column_name} {action}"
+        )
+
+    @staticmethod
+    def get_drop_column_attribute_statement(
+        collection_or_table_name: str, column_name: str, attribute: str
+    ) -> str:
+        return Helper.get_alter_column_statement(
+            collection_or_table_name, column_name, f"DROP {attribute}"
+        )
+
+    @staticmethod
+    def get_drop_table_constraint_statement(
+        collection_or_table_name: str, constraint_name: str
+    ) -> str:
+        return Helper.get_alter_table_statement(
+            collection_or_table_name, f"DROP CONSTRAINT IF EXISTS {constraint_name}"
+        )
+
+    @staticmethod
+    def get_drop_column_constraint_statement(
+        collection_or_table_name: str, column_name: str, constraint_name: str
+    ) -> str:
+        return Helper.get_drop_column_attribute_statement(
+            collection_or_table_name, column_name, f"CONSTRAINT {constraint_name}"
+        )
+
+    @staticmethod
+    def get_drop_trigger_statement(
+        collection_or_table_name: str, trigger_name: str
+    ) -> str:
+        return f"DROP TRIGGER IF EXISTS {trigger_name} ON {HelperGetNames.get_table_name(collection_or_table_name)};\n"
 
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
