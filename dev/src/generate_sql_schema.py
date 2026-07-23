@@ -548,23 +548,14 @@ class GenerateCodeBlocks:
         subst, szt = Helper.get_initials(table_name, fname, type_, fdata)
         text.update(szt)
         if isinstance((tmp := subst["type"]), string.Template):
-            if maxLength := fdata.get("maxLength"):
-                tmp = tmp.substitute(
+            if maxLength := Helper.get_varchar_max_length(fdata, type_):
+                subst["type"] = tmp.substitute(
                     {
                         "maxLength": maxLength,
                         "field_name": fname,
                         "table_name": table_name,
                     }
                 )
-            elif isinstance(type_, Decimal):
-                tmp = tmp.substitute(
-                    {"maxLength": 6, "field_name": fname, "table_name": table_name}
-                )
-            elif isinstance(type_, str):  # string
-                tmp = tmp.substitute(
-                    {"maxLength": 256, "field_name": fname, "table_name": table_name}
-                )
-            subst["type"] = tmp
         if fdata.get("constant"):
             text["create_trigger_prevent_updates_code"] = (
                 cls.get_trigger_prevent_updates(table_name, fname)
@@ -2330,6 +2321,15 @@ class Helper:
         collection_or_table_name: str, trigger_name: str
     ) -> str:
         return f"DROP TRIGGER IF EXISTS {trigger_name} ON {HelperGetNames.get_table_name(collection_or_table_name)};\n"
+
+    @staticmethod
+    def get_varchar_max_length(fdata: dict[str, Any], type_: str) -> int | None:
+        if maxLength := fdata.get("maxLength"):
+            return maxLength
+        elif isinstance(type_, Decimal):
+            return 6
+        elif isinstance(type_, str):  # string
+            return 256
 
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
