@@ -548,23 +548,14 @@ class GenerateCodeBlocks:
         subst, szt = Helper.get_initials(table_name, fname, type_, fdata)
         text.update(szt)
         if isinstance((tmp := subst["type"]), string.Template):
-            if maxLength := fdata.get("maxLength"):
-                tmp = tmp.substitute(
+            if maxLength := Helper.get_varchar_max_length(fdata, type_):
+                subst["type"] = tmp.substitute(
                     {
                         "maxLength": maxLength,
                         "field_name": fname,
                         "table_name": table_name,
                     }
                 )
-            elif isinstance(type_, Decimal):
-                tmp = tmp.substitute(
-                    {"maxLength": 6, "field_name": fname, "table_name": table_name}
-                )
-            elif isinstance(type_, str):  # string
-                tmp = tmp.substitute(
-                    {"maxLength": 256, "field_name": fname, "table_name": table_name}
-                )
-            subst["type"] = tmp
         if fdata.get("constant"):
             text["create_trigger_prevent_updates_code"] = (
                 cls.get_trigger_prevent_updates(table_name, fname)
@@ -900,7 +891,7 @@ class GenerateCodeBlocks:
         ), f"'{table_name}.yml/unique_together' must be a list of field names"
         result = ""
         for fields in value:
-            fields = [field_name.strip() for field_name in fields.split(",")]
+            fields = Helper.split_unique_together_fields(fields)
             result += Helper.get_unique_together_constraint_definition(
                 table_name, fields, strict
             )
@@ -2238,6 +2229,10 @@ class Helper:
             f"GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED",
         )
 
+    @staticmethod
+    def split_unique_together_fields(fields: str) -> list[str]:
+        return [field_name.strip() for field_name in fields.split(",")]
+
     @classmethod
     def get_unique_together_constraint_definition(
         cls, table: str, fields: list[str], strict: bool
@@ -2256,6 +2251,85 @@ class Helper:
                 }
             )
         return result
+
+    @staticmethod
+    def get_drop_type_statement(enum_name: str) -> str:
+        return f"DROP TYPE {enum_name};\n"
+
+    @staticmethod
+    def get_drop_enum_type_statement_from_collection_and_column(
+        collection_name: str, column_name: str
+    ) -> str:
+        return Helper.get_drop_type_statement(
+            HelperGetNames.get_enum_name_for_column(collection_name, column_name)
+        )
+
+    @staticmethod
+    def get_drop_table_statement(collection_or_table_name: str) -> str:
+        return f"DROP TABLE {HelperGetNames.get_table_name(collection_or_table_name)} CASCADE;\n"
+
+    @staticmethod
+    def get_drop_view_statement(collection_name: str) -> str:
+        return f"DROP VIEW IF EXISTS {collection_name};\n"
+
+    @staticmethod
+    def get_alter_table_statement(collection_or_table_name: str, action: str) -> str:
+        return f"ALTER TABLE {HelperGetNames.get_table_name(collection_or_table_name)} {action};\n"
+
+    @staticmethod
+    def get_drop_column_statement(
+        collection_or_table_name: str, column_name: str
+    ) -> str:
+        return Helper.get_alter_table_statement(
+            collection_or_table_name, f"DROP COLUMN {column_name} CASCADE"
+        )
+
+    @staticmethod
+    def get_alter_column_statement(
+        collection_or_table_name: str, column_name: str, action: str
+    ) -> str:
+        return Helper.get_alter_table_statement(
+            collection_or_table_name, f"ALTER COLUMN {column_name} {action}"
+        )
+
+    @staticmethod
+    def get_drop_column_attribute_statement(
+        collection_or_table_name: str, column_name: str, attribute: str
+    ) -> str:
+        return Helper.get_alter_column_statement(
+            collection_or_table_name, column_name, f"DROP {attribute}"
+        )
+
+    @staticmethod
+    def get_drop_table_constraint_statement(
+        collection_or_table_name: str, constraint_name: str
+    ) -> str:
+        return Helper.get_alter_table_statement(
+            collection_or_table_name, f"DROP CONSTRAINT IF EXISTS {constraint_name}"
+        )
+
+    @staticmethod
+    def get_drop_column_constraint_statement(
+        collection_or_table_name: str, column_name: str, constraint_name: str
+    ) -> str:
+        return Helper.get_drop_column_attribute_statement(
+            collection_or_table_name, column_name, f"CONSTRAINT {constraint_name}"
+        )
+
+    @staticmethod
+    def get_drop_trigger_statement(
+        collection_or_table_name: str, trigger_name: str
+    ) -> str:
+        return f"DROP TRIGGER IF EXISTS {trigger_name} ON {HelperGetNames.get_table_name(collection_or_table_name)};\n"
+
+    @staticmethod
+    def get_varchar_max_length(fdata: dict[str, Any], type_: str) -> int | None:
+        if maxLength := fdata.get("maxLength"):
+            return maxLength
+        elif isinstance(type_, Decimal):
+            return 6
+        elif isinstance(type_, str):  # string
+            return 256
 
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
@@ -2324,6 +2398,39 @@ class Helper:
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}', '{updated_field}');\n"""
 
     @staticmethod
+    def get_log_calculated_id_array_trigger_data(
+        view_name: str,
+        log_field: str,
+        log_trigger: dict[str, str],
+        processed_tables: dict[str, int],
+    ) -> tuple[str, str, str, str]:
+        on_table = log_trigger["on_table"]
+        on_columns = log_trigger.get("on_columns")
+
+        if on_table not in processed_tables:
+            processed_tables[on_table] = 1
+            unique_index = None
+        else:
+            processed_tables[on_table] += 1
+            unique_index = processed_tables[on_table]
+
+        trigger_name_iu, trigger_name_ud = (
+            HelperGetNames.get_log_calculated_id_array_trigger_names(
+                view_name, log_field, on_table, bool(on_columns), unique_index
+            )
+        )
+
+        trigger_columns_iu = f" OR UPDATE OF {on_columns}" if on_columns else ""
+        trigger_columns_ud = f" UPDATE OF {on_columns} OR" if on_columns else ""
+
+        return (
+            trigger_name_iu,
+            trigger_name_ud,
+            f"BEFORE INSERT{trigger_columns_iu}",
+            f"AFTER{trigger_columns_ud} DELETE",
+        )
+
+    @staticmethod
     def get_log_calculated_id_array_trigger_definition(
         view_name: str,
         log_field: str,
@@ -2342,22 +2449,13 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         }
 
         for log_trigger in log_triggers:
-            on_table = log_trigger["on_table"]
-            on_columns = log_trigger.get("on_columns")
-
-            if on_table not in processed_tables:
-                processed_tables[on_table] = 1
-                unique_index = None
-            else:
-                processed_tables[on_table] += 1
-                unique_index = processed_tables[on_table]
-
-            trigger_columns_iu = f" OR UPDATE OF {on_columns}" if on_columns else ""
-            trigger_columns_ud = f" UPDATE OF {on_columns} OR" if on_columns else ""
-            trigger_name_iu, trigger_name_ud = (
-                HelperGetNames.get_log_calculated_id_array_trigger_names(
-                    view_name, log_field, on_table, bool(on_columns), unique_index
-                )
+            (
+                trigger_name_iu,
+                trigger_name_ud,
+                trigger_operations_iu,
+                trigger_operations_ud,
+            ) = Helper.get_log_calculated_id_array_trigger_data(
+                view_name, log_field, log_trigger, processed_tables
             )
 
             subst_common = {
@@ -2371,20 +2469,20 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                         "log_value_column",
                     ]
                 },
-                "on_table": on_table,
+                "on_table": log_trigger["on_table"],
             }
             subst_iu = {
                 **subst_common,
                 "trigger_type": "iu",
                 "trigger_name": trigger_name_iu,
-                "trigger_operations": f"BEFORE INSERT{trigger_columns_iu}",
+                "trigger_operations": trigger_operations_iu,
             }
 
             subst_ud = {
                 **subst_common,
                 "trigger_type": "ud",
                 "trigger_name": trigger_name_ud,
-                "trigger_operations": f"AFTER{trigger_columns_ud} DELETE",
+                "trigger_operations": trigger_operations_ud,
             }
 
             parts.append(TRIGGER_TEMPLATE.substitute(subst_iu))
