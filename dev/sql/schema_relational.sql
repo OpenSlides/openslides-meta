@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '64c1db423c8901eecf1da9182f2a5543'
+-- MODELS_YML_CHECKSUM = '7a696f67a14acdbeac11bd8008f34a1f'
 
 
 -- ENUM definitions
@@ -1444,6 +1444,8 @@ This email was generated automatically.',
         CONSTRAINT default_meeting_topic_poll_default_method DEFAULT 'selection',
     topic_poll_config_id integer
         CONSTRAINT unique_meeting_topic_poll_config_id UNIQUE,
+    poll_enable_max_yes_votes boolean
+        CONSTRAINT default_meeting_poll_enable_max_yes_votes DEFAULT False,
     poll_enable_max_votes_per_option boolean
         CONSTRAINT default_meeting_poll_enable_max_votes_per_option DEFAULT False,
     poll_default_live_voting_enabled boolean
