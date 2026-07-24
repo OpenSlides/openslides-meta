@@ -2398,6 +2398,39 @@ class Helper:
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}', '{updated_field}');\n"""
 
     @staticmethod
+    def get_log_calculated_id_array_trigger_data(
+        view_name: str,
+        log_field: str,
+        log_trigger: dict[str, str],
+        processed_tables: dict[str, int],
+    ) -> tuple[str, str, str, str]:
+        on_table = log_trigger["on_table"]
+        on_columns = log_trigger.get("on_columns")
+
+        if on_table not in processed_tables:
+            processed_tables[on_table] = 1
+            unique_index = None
+        else:
+            processed_tables[on_table] += 1
+            unique_index = processed_tables[on_table]
+
+        trigger_name_iu, trigger_name_ud = (
+            HelperGetNames.get_log_calculated_id_array_trigger_names(
+                view_name, log_field, on_table, bool(on_columns), unique_index
+            )
+        )
+
+        trigger_columns_iu = f" OR UPDATE OF {on_columns}" if on_columns else ""
+        trigger_columns_ud = f" UPDATE OF {on_columns} OR" if on_columns else ""
+
+        return (
+            trigger_name_iu,
+            trigger_name_ud,
+            f"BEFORE INSERT{trigger_columns_iu}",
+            f"AFTER{trigger_columns_ud} DELETE",
+        )
+
+    @staticmethod
     def get_log_calculated_id_array_trigger_definition(
         view_name: str,
         log_field: str,
@@ -2416,22 +2449,13 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         }
 
         for log_trigger in log_triggers:
-            on_table = log_trigger["on_table"]
-            on_columns = log_trigger.get("on_columns")
-
-            if on_table not in processed_tables:
-                processed_tables[on_table] = 1
-                unique_index = None
-            else:
-                processed_tables[on_table] += 1
-                unique_index = processed_tables[on_table]
-
-            trigger_columns_iu = f" OR UPDATE OF {on_columns}" if on_columns else ""
-            trigger_columns_ud = f" UPDATE OF {on_columns} OR" if on_columns else ""
-            trigger_name_iu, trigger_name_ud = (
-                HelperGetNames.get_log_calculated_id_array_trigger_names(
-                    view_name, log_field, on_table, bool(on_columns), unique_index
-                )
+            (
+                trigger_name_iu,
+                trigger_name_ud,
+                trigger_operations_iu,
+                trigger_operations_ud,
+            ) = Helper.get_log_calculated_id_array_trigger_data(
+                view_name, log_field, log_trigger, processed_tables
             )
 
             subst_common = {
@@ -2445,20 +2469,20 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                         "log_value_column",
                     ]
                 },
-                "on_table": on_table,
+                "on_table": log_trigger["on_table"],
             }
             subst_iu = {
                 **subst_common,
                 "trigger_type": "iu",
                 "trigger_name": trigger_name_iu,
-                "trigger_operations": f"BEFORE INSERT{trigger_columns_iu}",
+                "trigger_operations": trigger_operations_iu,
             }
 
             subst_ud = {
                 **subst_common,
                 "trigger_type": "ud",
                 "trigger_name": trigger_name_ud,
-                "trigger_operations": f"AFTER{trigger_columns_ud} DELETE",
+                "trigger_operations": trigger_operations_ud,
             }
 
             parts.append(TRIGGER_TEMPLATE.substitute(subst_iu))
