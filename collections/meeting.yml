@@ -664,6 +664,10 @@ fields:
     restriction_mode: B
 
   # Polls
+  poll_enable_max_yes_votes:
+    type: boolean
+    default: false
+    restriction_mode: B
   poll_enable_max_votes_per_option:
     type: boolean
     default: false
