@@ -43,6 +43,10 @@ enum_definitions:
     - entitled
     - entitled_present
     - disabled
+  required_majority:
+    - no_majority
+    - two_third_majority
+    - absolute_majority
   poll_visibility:
     - manually
     - named
