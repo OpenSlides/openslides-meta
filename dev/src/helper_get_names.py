@@ -537,6 +537,29 @@ class HelperGetNames:
             )
         return own_trigger_name, foreign_trigger_name
 
+    @staticmethod
+    def get_trigger_names_for_check_equals_multi(
+        equal_field: str,
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        foreign_column: str,
+        is_generic_list: bool,
+    ) -> tuple[str, str, str]:
+        foreign_table_for_generic = foreign_table if is_generic_list else None
+        own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+            equal_field, own_table, own_column, foreign_table_for_generic
+        )
+        foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+            equal_field, foreign_table, foreign_column
+        )
+        intermediate_trigger_name = (
+            HelperGetNames.get_equal_field_intermediate_trigger_name(
+                equal_field, own_table, own_column, foreign_table_for_generic
+            )
+        )
+        return own_trigger_name, foreign_trigger_name, intermediate_trigger_name
+
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}

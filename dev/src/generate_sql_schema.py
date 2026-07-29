@@ -724,13 +724,14 @@ class GenerateCodeBlocks:
                         own_table_field, foreign_table_field
                     ):
                         text["create_trigger_equal_fields_code"] = (
-                            cls.get_trigger_check_equal_fields_for_n_m(
+                            cls.get_trigger_definitions_check_equals_multi(
                                 equal_fields,
                                 own_table_field,
                                 foreign_table_field,
                                 nm_table_name,
                                 own_intermediate_field,
                                 foreign_intermediate_field,
+                                False,
                             )
                         )
                     if nm_table_name not in cls.intermediate_tables:
@@ -1146,7 +1147,7 @@ class GenerateCodeBlocks:
         return sql
 
     @classmethod
-    def get_trigger_check_equal_fields_for_n_m(
+    def get_trigger_definitions_check_equals_multi(
         cls,
         equal_fields: list[str],
         own_table_field: TableFieldType,
@@ -1154,6 +1155,7 @@ class GenerateCodeBlocks:
         nm_table_name: str,
         own_intermediate_field: str,
         foreign_intermediate_field: str,
+        is_generic_list: bool,
     ) -> str:
         sql = ""
         for equal_field in equal_fields:
@@ -1166,58 +1168,14 @@ class GenerateCodeBlocks:
             )
             foreign_event_str = cls.get_event_string(foreign_on_update_fields)
             intermediate_event_str = cls.get_event_string([])
-            own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
-                equal_field, own_table, own_table_field.column
-            )
-            foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
-                equal_field, foreign_table, foreign_table_field.column
-            )
-            intermediate_trigger_name = (
-                HelperGetNames.get_equal_field_intermediate_trigger_name(
-                    equal_field, own_table, own_table_field.column
-                )
-            )
-            sql += dedent(f"""
-                CREATE CONSTRAINT TRIGGER {own_trigger_name} AFTER {own_event_str} ON {own_table} INITIALLY DEFERRED
-                FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
-                CREATE CONSTRAINT TRIGGER {foreign_trigger_name} AFTER {foreign_event_str} ON {foreign_table} INITIALLY DEFERRED
-                FOR EACH ROW EXECUTE FUNCTION check_equals_multi('{nm_table_name}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{own_intermediate_field}', '{own_table_field.table}', '{equal_field}', '{foreign_table_field.column}');
-                CREATE CONSTRAINT TRIGGER {intermediate_trigger_name} AFTER {intermediate_event_str} ON {nm_table_name} INITIALLY DEFERRED
-                FOR EACH ROW EXECUTE FUNCTION check_equals_intermediate('{own_intermediate_field}', '{own_table_field.table}', '{foreign_intermediate_field}', '{foreign_table_field.table}', '{equal_field}', '{own_table_field.column}');
-
-            """)
-        return sql
-
-    @classmethod
-    def get_trigger_check_equal_fields_for_gn_m(
-        cls,
-        equal_fields: list[str],
-        own_table_field: TableFieldType,
-        foreign_table_field: TableFieldType,
-        nm_table_name: str,
-        own_intermediate_field: str,
-        foreign_intermediate_field: str,
-    ) -> str:
-        sql = ""
-        for equal_field in equal_fields:
-            own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
-                own_table_field, [equal_field]
-            )
-            own_event_str = cls.get_event_string(own_on_update_fields)
-            foreign_table, foreign_on_update_fields = (
-                cls.get_equal_field_trigger_config(foreign_table_field, [equal_field])
-            )
-            foreign_event_str = cls.get_event_string(foreign_on_update_fields)
-            intermediate_event_str = cls.get_event_string([])
-            own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
-                equal_field, own_table, own_table_field.column, foreign_table
-            )
-            foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
-                equal_field, foreign_table, foreign_table_field.column
-            )
-            intermediate_trigger_name = (
-                HelperGetNames.get_equal_field_intermediate_trigger_name(
-                    equal_field, own_table, own_table_field.column, foreign_table
+            own_trigger_name, foreign_trigger_name, intermediate_trigger_name = (
+                HelperGetNames.get_trigger_names_for_check_equals_multi(
+                    equal_field,
+                    own_table,
+                    own_table_field.column,
+                    foreign_table,
+                    foreign_table_field.column,
+                    is_generic_list,
                 )
             )
             sql += dedent(f"""
@@ -1349,13 +1307,14 @@ class GenerateCodeBlocks:
                         own_table_field, foreign_table_field
                     ):
                         equal_fields_text += (
-                            cls.get_trigger_check_equal_fields_for_gn_m(
+                            cls.get_trigger_definitions_check_equals_multi(
                                 equal_fields,
                                 own_table_field,
                                 foreign_table_field,
                                 gm_foreign_table,
                                 own_intermediate_field,
                                 foreign_intermediate_field,
+                                True,
                             )
                         )
                 if equal_fields_text:
