@@ -190,6 +190,13 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_generic_plain_field_name(
+        own_column: str, foreign_table: str, ref_column: str
+    ) -> str:
+        return f"{own_column}_{foreign_table}_{ref_column}"
+
+    @staticmethod
+    @max_length
     def get_generic_valid_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of a generic valid constraint"""
         return f"valid_{table_name}_{fname}_part1"
