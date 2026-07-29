@@ -622,10 +622,12 @@ class GenerateCodeBlocks:
                 text, error = cls.get_schema_simple_types(
                     table_name, fname, fdata, "number"
                 )
-            if cls.get_equal_fields(own_table_field, foreign_table_field):
+            if equal_fields := cls.get_equal_fields(
+                own_table_field, foreign_table_field
+            ):
                 text["create_trigger_equal_fields_code"] = (
                     cls.get_trigger_check_equal_fields_for_1_x(
-                        own_table_field, foreign_table_field, state
+                        equal_fields, own_table_field, foreign_table_field, state
                     )
                 )
             initially_deferred = fdata.get(
@@ -718,9 +720,12 @@ class GenerateCodeBlocks:
                     ) = Helper.get_nm_table_for_n_m_relation_lists(
                         own_table_field, foreign_table_field
                     )
-                    if cls.get_equal_fields(own_table_field, foreign_table_field):
+                    if equal_fields := cls.get_equal_fields(
+                        own_table_field, foreign_table_field
+                    ):
                         text["create_trigger_equal_fields_code"] = (
                             cls.get_trigger_check_equal_fields_for_n_m(
+                                equal_fields,
                                 own_table_field,
                                 foreign_table_field,
                                 nm_table_name,
@@ -1083,12 +1088,12 @@ class GenerateCodeBlocks:
     @classmethod
     def get_trigger_check_equal_fields_for_1_x(
         cls,
+        equal_fields: list[str],
         own_table_field: TableFieldType,
         foreign_table_field: TableFieldType,
         state: FieldSqlErrorType,
     ) -> str:
         cls.equal_fields_state_check(state, own_table_field)
-        equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
@@ -1125,13 +1130,13 @@ class GenerateCodeBlocks:
     @classmethod
     def get_trigger_check_equal_fields_for_n_m(
         cls,
+        equal_fields: list[str],
         own_table_field: TableFieldType,
         foreign_table_field: TableFieldType,
         nm_table_name: str,
         own_intermediate_field: str,
         foreign_intermediate_field: str,
     ) -> str:
-        equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
@@ -1168,13 +1173,13 @@ class GenerateCodeBlocks:
     @classmethod
     def get_trigger_check_equal_fields_for_g1_x(
         cls,
+        equal_fields: list[str],
         own_table_field: TableFieldType,
         foreign_table_field: TableFieldType,
         specified_relation_field: str,
         state: FieldSqlErrorType,
     ) -> str:
         cls.equal_fields_state_check(state, own_table_field)
-        equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
@@ -1214,13 +1219,13 @@ class GenerateCodeBlocks:
     @classmethod
     def get_trigger_check_equal_fields_for_gn_m(
         cls,
+        equal_fields: list[str],
         own_table_field: TableFieldType,
         foreign_table_field: TableFieldType,
         nm_table_name: str,
         own_intermediate_field: str,
         foreign_intermediate_field: str,
     ) -> str:
-        equal_fields = cls.get_equal_fields(own_table_field, foreign_table_field)
         sql = ""
         for equal_field in equal_fields:
             own_table, own_on_update_fields = cls.get_equal_field_trigger_config(
@@ -1291,8 +1296,11 @@ class GenerateCodeBlocks:
                     own_table_field.column,
                     foreign_table_field,
                 )
-                if cls.get_equal_fields(own_table_field, foreign_table_field):
+                if equal_fields := cls.get_equal_fields(
+                    own_table_field, foreign_table_field
+                ):
                     equal_fields_text += cls.get_trigger_check_equal_fields_for_g1_x(
+                        equal_fields,
                         own_table_field,
                         foreign_table_field,
                         generic_plain_field_name,
@@ -1365,9 +1373,12 @@ class GenerateCodeBlocks:
                     foreign_intermediate_field,
                     foreign_table_field,
                 ) in foreign_intermediate_field_foreign_table_field.items():
-                    if cls.get_equal_fields(own_table_field, foreign_table_field):
+                    if equal_fields := cls.get_equal_fields(
+                        own_table_field, foreign_table_field
+                    ):
                         equal_fields_text += (
                             cls.get_trigger_check_equal_fields_for_gn_m(
+                                equal_fields,
                                 own_table_field,
                                 foreign_table_field,
                                 gm_foreign_table,
