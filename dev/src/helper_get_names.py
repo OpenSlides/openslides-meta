@@ -513,6 +513,30 @@ class HelperGetNames:
     def get_own_table_name_with_ref_column(own_table_field: TableFieldType) -> str:
         return f"{own_table_field.table}_{own_table_field.ref_column}"
 
+    @staticmethod
+    def get_trigger_names_for_check_equals(
+        equal_field: str,
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        foreign_column: str,
+        foreign_collection: str,
+    ) -> tuple[str, str | None]:
+        own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+            equal_field, own_table, own_column
+        )
+        if (
+            foreign_collection == "meeting"
+            and equal_field == "meeting_id"
+            and "meeting_id" not in InternalHelper.MODELS["meeting"]["fields"]
+        ):
+            foreign_trigger_name = None
+        else:
+            foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+                equal_field, foreign_table, foreign_column
+            )
+        return own_trigger_name, foreign_trigger_name
+
 
 class InternalHelper:
     MODELS: dict[str, dict[str, Any]] = {}
