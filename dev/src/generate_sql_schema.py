@@ -2634,6 +2634,24 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         )
 
     @staticmethod
+    def get_formatted_default_value(
+        table_name: str,
+        field_name: str,
+        default: str | int | bool | float | list[str],
+        type_: str,
+    ) -> str:
+        if isinstance(default, str) or type_ in ("string", "text", "timezone"):
+            return f"'{default}'"
+        elif isinstance(default, (int, bool, float)):
+            return str(default)
+        elif isinstance(default, list):
+            return '{"' + '", "'.join(default) + '"}' if default else "'{}'"
+        else:
+            raise Exception(
+                f"{table_name}.{field_name}: seems to be an invalid default value"
+            )
+
+    @staticmethod
     def get_initials(
         table_name: str, fname: str, type_: str, fdata: dict[str, Any]
     ) -> tuple[SubstDict, SchemaZoneTexts]:
@@ -2673,18 +2691,9 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         if fdata.get("unique"):
             subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
         if (default := fdata.get("default")) is not None:
-            if isinstance(default, str) or type_ in ("string", "text", "timezone"):
-                default_value = f"'{default}'"
-            elif isinstance(default, (int, bool, float)):
-                default_value = str(default)
-            elif isinstance(default, list):
-                default_value = (
-                    '{"' + '", "'.join(default) + '"}' if default else "'{}'"
-                )
-            else:
-                raise Exception(
-                    f"{table_name}.{fname}: seems to be an invalid default value"
-                )
+            default_value = Helper.get_formatted_default_value(
+                table_name, fname, default, type_
+            )
             subst["default"] = Helper.get_inline_default_constraint(
                 table_name, fname, default_value
             )
