@@ -190,6 +190,13 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
+    def get_generic_plain_field_name(
+        own_column: str, foreign_table: str, ref_column: str
+    ) -> str:
+        return f"{own_column}_{foreign_table}_{ref_column}"
+
+    @staticmethod
+    @max_length
     def get_generic_valid_constraint_name(table_name: str, fname: str) -> str:
         """gets the name of a generic valid constraint"""
         return f"valid_{table_name}_{fname}_part1"
@@ -512,6 +519,53 @@ class HelperGetNames:
     @max_length
     def get_own_table_name_with_ref_column(own_table_field: TableFieldType) -> str:
         return f"{own_table_field.table}_{own_table_field.ref_column}"
+
+    @staticmethod
+    def get_trigger_names_for_check_equals(
+        equal_field: str,
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        foreign_column: str,
+        foreign_collection: str,
+    ) -> tuple[str, str | None]:
+        own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+            equal_field, own_table, own_column
+        )
+        if (
+            foreign_collection == "meeting"
+            and equal_field == "meeting_id"
+            and "meeting_id" not in InternalHelper.MODELS["meeting"]["fields"]
+        ):
+            foreign_trigger_name = None
+        else:
+            foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+                equal_field, foreign_table, foreign_column
+            )
+        return own_trigger_name, foreign_trigger_name
+
+    @staticmethod
+    def get_trigger_names_for_check_equals_multi(
+        equal_field: str,
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        foreign_column: str,
+        is_generic_list: bool,
+    ) -> tuple[str, str, str]:
+        foreign_table_for_generic = foreign_table if is_generic_list else None
+        own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+            equal_field, own_table, own_column, foreign_table_for_generic
+        )
+        foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+            equal_field, foreign_table, foreign_column
+        )
+        intermediate_trigger_name = (
+            HelperGetNames.get_equal_field_intermediate_trigger_name(
+                equal_field, own_table, own_column, foreign_table_for_generic
+            )
+        )
+        return own_trigger_name, foreign_trigger_name, intermediate_trigger_name
 
 
 class InternalHelper:
