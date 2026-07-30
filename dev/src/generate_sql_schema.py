@@ -2294,9 +2294,9 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         return "".join(parts)
 
     @staticmethod
-    def get_nm_table_for_n_m_relation_lists(
+    def get_nm_table_name_and_fields(
         own_table_field: TableFieldType, foreign_table_field: TableFieldType
-    ) -> tuple[str, str, str, str]:
+    ) -> tuple[str, str, str]:
         nm_table_name = HelperGetNames.get_nm_table_name(
             own_table_field, foreign_table_field
         )
@@ -2309,6 +2309,15 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         if field1 == field2:
             field1 += "_1"
             field2 += "_2"
+        return nm_table_name, field1, field2
+
+    @staticmethod
+    def get_nm_table_for_n_m_relation_lists(
+        own_table_field: TableFieldType, foreign_table_field: TableFieldType
+    ) -> tuple[str, str, str, str]:
+        nm_table_name, field1, field2 = Helper.get_nm_table_name_and_fields(
+            own_table_field, foreign_table_field
+        )
         table_name = HelperGetNames.get_table_name(nm_table_name)
         table1 = HelperGetNames.get_table_name(own_table_field.table)
         table2 = HelperGetNames.get_table_name(foreign_table_field.table)
