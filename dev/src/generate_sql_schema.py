@@ -2350,23 +2350,18 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         return nm_table_name, text, field1, field2
 
     @staticmethod
-    def get_gm_table_for_gm_nm_relation_lists(
+    def get_gm_table_config(
         own_table_field: TableFieldType, foreign_table_fields: list[TableFieldType]
-    ) -> tuple[str, str, str, dict[str, TableFieldType]]:
+    ) -> tuple[str, str, dict[str, TableFieldType], str, str, list[str], list[str]]:
         gm_table_name = HelperGetNames.get_gm_table_name(own_table_field)
-        joined_table_names = (
-            "('"
-            + "', '".join(
-                [
-                    foreign_table_field.table
-                    for foreign_table_field in foreign_table_fields
-                ]
-            )
-            + "')"
+        own_table_name = HelperGetNames.get_table_name(own_table_field.table)
+        own_table_column = own_table_field.intermediate_column
+        own_table_name_with_ref_column = (
+            HelperGetNames.get_own_table_name_with_ref_column(own_table_field)
         )
+
         foreign_table_ref_lines = []
         indices_lines = []
-        own_table_column = own_table_field.intermediate_column
         intermediate_field_to_foreign_table_field: dict[str, TableFieldType] = {}
         for foreign_table_field in foreign_table_fields:
             foreign_table_name = foreign_table_field.table
@@ -2402,10 +2397,41 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                 )
             )
 
-        own_table_name = HelperGetNames.get_table_name(own_table_field.table)
-        own_table_name_with_ref_column = (
-            HelperGetNames.get_own_table_name_with_ref_column(own_table_field)
+        return (
+            gm_table_name,
+            own_table_name_with_ref_column,
+            intermediate_field_to_foreign_table_field,
+            own_table_name,
+            own_table_column,
+            foreign_table_ref_lines,
+            indices_lines,
         )
+
+    @staticmethod
+    def get_gm_table_for_gm_nm_relation_lists(
+        own_table_field: TableFieldType, foreign_table_fields: list[TableFieldType]
+    ) -> tuple[str, str, str, dict[str, TableFieldType]]:
+        joined_table_names = (
+            "('"
+            + "', '".join(
+                [
+                    foreign_table_field.table
+                    for foreign_table_field in foreign_table_fields
+                ]
+            )
+            + "')"
+        )
+
+        (
+            gm_table_name,
+            own_table_name_with_ref_column,
+            intermediate_field_to_foreign_table_field,
+            own_table_name,
+            own_table_column,
+            foreign_table_ref_lines,
+            indices_lines,
+        ) = Helper.get_gm_table_config(own_table_field, foreign_table_fields)
+
         fk_idx = HelperGetNames.get_fk_and_index_name(
             gm_table_name,
             own_table_name_with_ref_column,
