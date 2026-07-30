@@ -328,7 +328,7 @@ class Checker:
                 valid_attributes.append("reference")
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
-            valid_attributes.extend(("deferred", "sql"))
+            valid_attributes.append("sql")
             if field.get("sql"):
                 valid_attributes.append("log_triggers")
                 self.check_log_triggers(collectionfield, field)
