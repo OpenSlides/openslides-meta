@@ -1,13 +1,16 @@
 # Commands inside the container
 paths = src/ tests/
 
-all: pyupgrade black autoflake isort flake8 mypy sqlfluff
+lint: pyupgrade black autoflake isort flake8 mypy sqlfluff
 
 pyupgrade:
 	pyupgrade --py310-plus --exit-zero-even-if-changed $$(find . -name '*.py')
 
 check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
+
+cleanup-yaml:
+	find ../collections ../*.yml -type f -name "*.yml" | while read f ; do yq -i '.' $$f ; done
 
 black:
 	black $(paths)

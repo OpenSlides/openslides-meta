@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   external_id:
     type: string
     unique: true
@@ -17,7 +16,6 @@ fields:
     type: HTMLPermissive
     default: Space for your welcome text.
     restriction_mode: C
-
   # General
   name:
     type: string
@@ -65,7 +63,6 @@ fields:
     enum: languages
     default: "en"
     constant: true
-
   # Configuration (only for the server owner)
   jitsi_domain:
     type: string
@@ -76,7 +73,6 @@ fields:
   jitsi_room_password:
     type: string
     restriction_mode: E
-
   # System
   template_for_organization_id:
     type: relation
@@ -90,7 +86,6 @@ fields:
   custom_translations:
     type: JSON
     restriction_mode: B
-
   # Jitsi/Livestream settings
   conference_show:
     type: boolean
@@ -133,8 +128,8 @@ fields:
   applause_type:
     type: string
     enum:
-    - applause-type-bar
-    - applause-type-particles
+      - applause-type-bar
+      - applause-type-particles
     default: applause-type-bar
     restriction_mode: C
   applause_show_level:
@@ -159,7 +154,6 @@ fields:
   applause_particle_image_url:
     type: string
     restriction_mode: C
-
   # Projector countdown
   projector_countdown_default_time:
     type: number
@@ -172,13 +166,12 @@ fields:
     default: 0
     required: true
     restriction_mode: B
-
   # Exports
   export_csv_encoding:
     type: string
     enum:
-    - utf-8
-    - iso-8859-15
+      - utf-8
+      - iso-8859-15
     default: utf-8
     restriction_mode: B
   export_csv_separator:
@@ -188,9 +181,9 @@ fields:
   export_pdf_pagenumber_alignment:
     type: string
     enum:
-    - left
-    - right
-    - center
+      - left
+      - right
+      - center
     default: center
     restriction_mode: B
   export_pdf_fontsize:
@@ -227,11 +220,10 @@ fields:
   export_pdf_pagesize:
     type: string
     enum:
-    - A4
-    - A5
+      - A4
+      - A5
     default: A4
     restriction_mode: B
-
   # Agenda
   agenda_show_subtitles:
     type: boolean
@@ -248,25 +240,25 @@ fields:
   agenda_numeral_system:
     type: string
     enum:
-    - arabic
-    - roman
+      - arabic
+      - roman
     default: arabic
     restriction_mode: B
   agenda_item_creation:
     type: string
     enum:
-    - always
-    - never
-    - default_yes
-    - default_no
+      - always
+      - never
+      - default_yes
+      - default_no
     default: default_no
     restriction_mode: B
   agenda_new_items_default_visibility:
     type: string
     enum:
-    - common
-    - internal
-    - hidden
+      - common
+      - internal
+      - hidden
     default: internal
     restriction_mode: B
   agenda_show_internal_items_on_projector:
@@ -277,7 +269,6 @@ fields:
     type: boolean
     default: false
     restriction_mode: B
-
   # List of speakers
   list_of_speakers_amount_last_on_projector:
     type: number
@@ -357,7 +348,6 @@ fields:
     type: number
     restriction_mode: B
     description: 0 disables intervention speakers.
-
   # Motions
   motions_default_workflow_id:
     type: relation
@@ -378,9 +368,9 @@ fields:
   motions_default_line_numbering:
     type: string
     enum:
-    - outside
-    - inline
-    - none
+      - outside
+      - inline
+      - none
     default: outside
     restriction_mode: A
   motions_line_length:
@@ -441,25 +431,25 @@ fields:
   motions_recommendation_text_mode:
     type: string
     enum:
-    - original
-    - changed
-    - diff
-    - agreed
+      - original
+      - changed
+      - diff
+      - agreed
     default: diff
     restriction_mode: B
   motions_default_sorting:
     type: string
     enum:
-    - number
-    - weight
+      - number
+      - weight
     default: number
     restriction_mode: B
   motions_number_type:
     type: string
     enum:
-    - per_category
-    - serially_numbered
-    - manually
+      - per_category
+      - serially_numbered
+      - manually
     default: per_category
     restriction_mode: B
   motions_number_min_digits:
@@ -489,9 +479,9 @@ fields:
   motions_amendments_text_mode:
     type: string
     enum:
-    - freestyle
-    - fulltext
-    - paragraph
+      - freestyle
+      - fulltext
+      - paragraph
     default: paragraph
     restriction_mode: B
   motions_amendments_multiple_paragraphs:
@@ -531,7 +521,6 @@ fields:
     type: boolean
     default: true
     restriction_mode: B
-
   # Motion poll
   motion_poll_ballot_paper_selection:
     type: string
@@ -567,8 +556,8 @@ fields:
   motion_poll_projection_name_order_first:
     type: string
     enum:
-    - first_name
-    - last_name
+      - first_name
+      - last_name
     default: last_name
     required: true
     restriction_mode: B
@@ -577,7 +566,6 @@ fields:
     default: 6
     required: true
     restriction_mode: B
-
   # poll list election
   poll_candidate_list_ids:
     type: relation-list
@@ -589,7 +577,6 @@ fields:
     to: poll_candidate/meeting_id
     reference: poll_candidate
     restriction_mode: B
-
   # Users
   meeting_user_ids:
     type: relation-list
@@ -626,10 +613,10 @@ fields:
     type: string
     default: WPA
     enum:
-    - ""
-    - WEP
-    - WPA
-    - nopass
+      - ""
+      - WEP
+      - WPA
+      - nopass
     restriction_mode: B
   users_email_sender:
     type: string
@@ -676,7 +663,6 @@ fields:
   users_forbid_delegator_to_vote:
     type: boolean
     restriction_mode: B
-
   # Assignments
   assignments_export_title:
     type: string
@@ -685,7 +671,6 @@ fields:
   assignments_export_preamble:
     type: text
     restriction_mode: B
-
   # Assignment polls
   assignment_poll_ballot_paper_selection:
     type: string
@@ -730,7 +715,6 @@ fields:
     enum: poll_backends
     default: fast
     restriction_mode: B
-
   # Polls
   poll_ballot_paper_selection:
     type: string
@@ -772,13 +756,11 @@ fields:
     type: boolean
     default: true
     restriction_mode: B
-
   # Topic poll
   topic_poll_default_group_ids:
     type: relation-list
     to: group/used_as_topic_poll_default_id
     restriction_mode: B
-
   # Relations
   projector_ids:
     type: relation-list
@@ -963,7 +945,6 @@ fields:
     to: structure_level/meeting_id
     on_delete: CASCADE
     restriction_mode: B
-
   # Logos and Fonts
   logo_projector_main_id:
     type: relation
@@ -1045,7 +1026,6 @@ fields:
     to: meeting_mediafile/used_as_font_projector_h2_in_meeting_id
     reference: meeting_mediafile
     restriction_mode: B
-
   # Other relations
   committee_id:
     type: relation
@@ -1193,4 +1173,3 @@ fields:
     type: relation-list
     to: history_entry/meeting_id
     restriction_mode: A
-

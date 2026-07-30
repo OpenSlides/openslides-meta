@@ -53,6 +53,10 @@ jobs:
         if: always()
         run: make validate-models
 
+      - name: Validate models.yml
+        if: always()
+        run: make cleanup-yaml && git diff --exit-code ../collections && git diff --exit-code ../*.yml
+
       - name: Generate models.yml from collections
         run: python -m src.join_models_yml
 

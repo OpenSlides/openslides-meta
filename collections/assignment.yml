@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   title:
     type: string
     required: true
@@ -20,9 +19,9 @@ fields:
   phase:
     type: string
     enum:
-    - search
-    - voting
-    - finished
+      - search
+      - voting
+      - finished
     default: search
     restriction_mode: A
   default_poll_description:
@@ -39,7 +38,6 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
   candidate_ids:
     type: relation-list
     to: assignment_candidate/assignment_id
@@ -89,9 +87,7 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
   history_entry_ids:
     type: relation-list
     to: history_entry/model_id
     restriction_mode: A
-

@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   name:
     type: string
     required: true
@@ -13,9 +12,9 @@ fields:
     type: string
     required: true
     enum:
-    - running
-    - end
-    - aborted
+      - running
+      - end
+      - aborted
     restriction_mode: A
   created:
     type: timestamp
@@ -34,4 +33,3 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
