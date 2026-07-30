@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   name:
     type: string
     required: true
@@ -97,7 +96,6 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
   current_projection_ids:
     type: relation-list
     to: projection/current_projector_id

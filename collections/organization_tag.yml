@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   name:
     type: string
     required: true
@@ -13,7 +12,6 @@ fields:
     type: color
     required: true
     restriction_mode: A
-
   tagged_ids:
     type: generic-relation-list
     to:

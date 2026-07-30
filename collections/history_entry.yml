@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   entries:
     type: text[]
     restriction_mode: A

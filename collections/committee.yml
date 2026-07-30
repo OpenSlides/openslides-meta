@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   name:
     type: string
     required: true
@@ -59,7 +58,6 @@ fields:
     type: relation-list
     to: user/committee_management_ids
     restriction_mode: B
-
   parent_id:
     type: relation
     to: committee/child_ids

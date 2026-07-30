@@ -1,13 +1,11 @@
 unique_together_strict:
   - title, parent_id, owner_id
-
 fields:
   id:
     type: number
     restriction_mode: A
     constant: true
     required: true
-
   title:
     type: string
     description: Title and parent_id must be unique.
@@ -70,6 +68,5 @@ fields:
     to: meeting_mediafile/mediafile_id
     on_delete: CASCADE
     restriction_mode: A
-
 # Mediafiles are delivered by the mediafile server with the URL
 # `<media-prefix>/media/<meeting_id>/path`

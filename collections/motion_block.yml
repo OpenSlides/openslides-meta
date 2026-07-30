@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   title:
     type: string
     required: true
@@ -20,7 +19,6 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
   motion_ids:
     type: relation-list
     to: motion/block_id

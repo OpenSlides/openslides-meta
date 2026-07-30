@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   item_number:
     type: string
     restriction_mode: A
@@ -46,7 +45,6 @@ fields:
   weight:
     type: number
     restriction_mode: A
-
   content_object_id:
     type: generic-relation
     reference:

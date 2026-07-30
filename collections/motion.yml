@@ -1,13 +1,11 @@
 unique_together:
   - meeting_id, number
-
 fields:
   id:
     type: number
     restriction_mode: A
     constant: true
     required: true
-
   number:
     type: string
     restriction_mode: C
@@ -86,7 +84,6 @@ fields:
     type: boolean
     restriction_mode: A
     description: Forwarded amendments can be marked as such. This is just optional, however. Forwarded amendments can also have this field set to false.
-
   lead_motion_id:
     type: relation
     reference: motion
@@ -279,7 +276,6 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
   history_entry_ids:
     type: relation-list
     to: history_entry/model_id

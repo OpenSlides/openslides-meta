@@ -1,13 +1,11 @@
 unique_together:
   - name, workflow_id
-
 fields:
   id:
     type: number
     restriction_mode: A
     constant: true
     required: true
-
   name:
     type: string
     required: true
@@ -104,7 +102,6 @@ fields:
       - meeting_id
       - workflow_id
     restriction_mode: A
-
   next_state_ids:
     type: relation-list
     to: motion_state/previous_state_ids

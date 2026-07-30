@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   rejected:
     type: boolean
     default: false
@@ -42,7 +41,6 @@ fields:
     type: timestamp
     read_only: true
     restriction_mode: A
-
   motion_id:
     type: relation
     reference: motion

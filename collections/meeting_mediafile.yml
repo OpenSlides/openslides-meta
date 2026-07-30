@@ -1,13 +1,11 @@
 unique_together:
   - mediafile_id, meeting_id
-
 fields:
   id:
     type: number
     restriction_mode: A
     constant: true
     required: true
-
   mediafile_id:
     type: relation
     to: mediafile/meeting_mediafile_ids
@@ -53,7 +51,6 @@ fields:
         - assignment
       field: attachment_meeting_mediafile_ids
     restriction_mode: A
-
   # Reverse relations for meetings, if a mediafile is used as a special resource
   used_as_logo_projector_main_in_meeting_id:
     type: relation

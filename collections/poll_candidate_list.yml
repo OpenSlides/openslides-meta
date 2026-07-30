@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   poll_candidate_ids:
     type: relation-list
     to: poll_candidate/poll_candidate_list_id

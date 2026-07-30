@@ -10,10 +10,10 @@ check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
 
 cleanup-yaml:
-	docker build -t meta-prettier-image -f Dockerfile-prettier .
-	docker run --rm -d --name meta-prettier-container -v ..:/app/ meta-prettier-image
-	docker exec meta-prettier-container prettier --write *.yml collections/ || true
-	docker stop meta-prettier-container
+	for f in ../collections/*.yml; do [ -f "$$f" ] && yq -i '.' "$$f"; done
+	yq -i '.' ../collection-meta.yml
+	yq -i '.' ../permission.yml
+	yq -i '.' ../search.yml
 
 black:
 	black $(paths)

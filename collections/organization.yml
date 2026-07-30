@@ -4,14 +4,12 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   name:
     type: string
     restriction_mode: A
   description:
     type: HTMLStrict
     restriction_mode: A
-
   # Settings (configurable by the client)
   legal_notice:
     type: text
@@ -36,7 +34,6 @@ fields:
   restrict_edit_forward_committees:
     type: boolean
     restriction_mode: A
-
   # Configuration (only for the server owner)
   enable_electronic_voting:
     type: boolean
@@ -73,7 +70,6 @@ fields:
   restrict_editing_same_level_committee_admins:
     type: boolean
     restriction_mode: A
-
   # Saml settings
   saml_enabled:
     type: boolean

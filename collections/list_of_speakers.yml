@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   closed:
     type: boolean
     default: false
@@ -20,7 +19,6 @@ fields:
   moderator_notes:
     type: HTMLStrict
     restriction_mode: B
-
   content_object_id:
     type: generic-relation
     reference:

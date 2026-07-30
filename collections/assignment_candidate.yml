@@ -4,12 +4,10 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   weight:
     type: number
     default: 10000
     restriction_mode: A
-
   assignment_id:
     type: relation
     reference: assignment

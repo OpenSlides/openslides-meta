@@ -1,13 +1,11 @@
 unique_together:
   - meeting_id, external_id
-
 fields:
   id:
     type: number
     restriction_mode: A
     constant: true
     required: true
-
   external_id:
     type: string
     restriction_mode: A
@@ -66,7 +64,6 @@ fields:
   weight:
     type: number
     restriction_mode: A
-
   meeting_user_ids:
     type: relation-list
     to: meeting_user/group_ids

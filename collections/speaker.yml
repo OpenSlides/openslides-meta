@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   begin_time:
     type: timestamp
     restriction_mode: A
@@ -45,7 +44,6 @@ fields:
     type: boolean
     restriction_mode: A
     constant: true
-
   list_of_speakers_id:
     type: relation
     reference: list_of_speakers

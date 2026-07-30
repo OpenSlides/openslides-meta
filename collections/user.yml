@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   username:
     type: string
     unique: true
@@ -77,7 +76,6 @@ fields:
     to: gender/user_ids
     restriction_mode: A
     reference: gender
-
   # Organization, meeting and committee
   organization_management_level:
     type: string
@@ -91,7 +89,6 @@ fields:
     type: relation-list
     to: meeting/present_user_ids
     restriction_mode: A
-
   # Calculates all committee's where the user is
   # - committee-manager (= committees in committee_management_ids)
   # - is member (= is in a group) of a meeting in the committee
@@ -132,7 +129,6 @@ fields:
     type: relation-list
     to: committee/manager_ids
     restriction_mode: E
-
   meeting_user_ids:
     type: relation-list
     to: meeting_user/user_id
@@ -167,7 +163,6 @@ fields:
     to: committee/native_user_ids
     restriction_mode: E
     reference: committee
-
   history_position_ids:
     type: relation-list
     to: history_position/user_id
@@ -176,7 +171,6 @@ fields:
     type: relation-list
     to: history_entry/model_id
     restriction_mode: A
-
   meeting_ids:
     type: relation-list
     description: Calculated. All ids from meetings calculated via meeting_user.

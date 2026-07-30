@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   options:
     type: JSON
     restriction_mode: A
@@ -18,12 +17,10 @@ fields:
   type:
     type: string
     restriction_mode: A
-
   content:
     type: JSON
     calculated: true
     restriction_mode: A
-
   current_projector_id:
     type: relation
     reference: projector
@@ -79,7 +76,6 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
 # A projection is an M2M model between a projector and an element which is assigned to it.
 # It can either be the current projection, a preview or a history projection (i.e. previously
 # projected, with reference retained for protocolling purposes). The projection can only be

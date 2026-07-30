@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   name:
     type: string
     required: true
@@ -17,7 +16,6 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
   state_ids:
     type: relation-list
     to: motion_state/workflow_id
