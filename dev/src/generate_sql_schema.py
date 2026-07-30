@@ -731,7 +731,7 @@ class GenerateCodeBlocks:
                                 nm_table_name,
                                 own_intermediate_field,
                                 foreign_intermediate_field,
-                                False,
+                                is_generic_list=False,
                             )
                         )
                     if nm_table_name not in cls.intermediate_tables:
@@ -1273,7 +1273,7 @@ class GenerateCodeBlocks:
                                 gm_foreign_table,
                                 own_intermediate_field,
                                 foreign_intermediate_field,
-                                True,
+                                is_generic_list=True,
                             )
                         )
                 if equal_fields_text:
@@ -2553,9 +2553,9 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 """
         return trigger_text
 
-    @classmethod
+    @staticmethod
     def get_equal_field_trigger_config(
-        cls, table_field: TableFieldType, fields: list[TableFieldType | str]
+        table_field: TableFieldType, fields: list[TableFieldType | str]
     ) -> tuple[str, list[str]]:
         """
         Checks the configuration of the relation and returns:
@@ -2578,8 +2578,8 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 on_update_fields.append(field_name)
         return HelperGetNames.get_table_name(table_field.table), on_update_fields
 
-    @classmethod
-    def get_event_string(cls, on_update_fields: list[str]) -> str:
+    @staticmethod
+    def get_event_string(on_update_fields: list[str]) -> str:
         if on_update_fields:
             return f"INSERT OR UPDATE OF {', '.join(on_update_fields)}"
         else:
@@ -2594,8 +2594,6 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
     ) -> tuple[str, str, str | None, str, list[str], list[str], str, str, str]:
         if specified_relation_field is None:
             own_column = own_table_field.column
-        else:
-            own_column = specified_relation_field
             if (
                 "reference" in own_table_field.field_def
                 and "reference" in foreign_table_field.field_def
@@ -2604,6 +2602,8 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 raise Exception(
                     f"Cannot generate equal_fields triggers for {own_table_field.collectionfield} and {foreign_table_field.collectionfield}: Both have reference set."
                 )
+        else:
+            own_column = specified_relation_field
 
         own_table, own_on_update_fields = Helper.get_equal_field_trigger_config(
             own_table_field, [own_table_field, equal_field]
