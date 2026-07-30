@@ -2169,10 +2169,6 @@ class Helper:
         return f"DROP TABLE {HelperGetNames.get_table_name(collection_or_table_name)} CASCADE;\n"
 
     @staticmethod
-    def get_drop_view_statement(collection_name: str) -> str:
-        return f'DROP VIEW IF EXISTS "{collection_name}";\n'
-
-    @staticmethod
     def get_alter_table_statement(collection_or_table_name: str, action: str) -> str:
         return f"ALTER TABLE {HelperGetNames.get_table_name(collection_or_table_name)} {action};\n"
 
@@ -2205,14 +2201,14 @@ class Helper:
         collection_or_table_name: str, constraint_name: str
     ) -> str:
         return Helper.get_alter_table_statement(
-            collection_or_table_name, f"DROP CONSTRAINT IF EXISTS {constraint_name}"
+            collection_or_table_name, f"DROP CONSTRAINT {constraint_name}"
         )
 
     @staticmethod
     def get_drop_trigger_statement(
         collection_or_table_name: str, trigger_name: str
     ) -> str:
-        return f"DROP TRIGGER IF EXISTS {trigger_name} ON {HelperGetNames.get_table_name(collection_or_table_name)};\n"
+        return f"DROP TRIGGER {trigger_name} ON {HelperGetNames.get_table_name(collection_or_table_name)};\n"
 
     @staticmethod
     def get_varchar_max_length(fdata: dict[str, Any], type_: str) -> int | None:
