@@ -32,4 +32,5 @@ fields:
     required: true
     reference: meeting
     to: meeting/structure_level_ids
+    constant: true
     restriction_mode: A
