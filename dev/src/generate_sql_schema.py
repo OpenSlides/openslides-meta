@@ -463,10 +463,6 @@ class GenerateCodeBlocks:
             return (method.__get__(cls), type_)  # returns the callable classmethod
         else:
             return (f"type:{type_} no method defined\n", type_)
-        # if method := cls.get_field_type_schema_method(type_):
-        #     return (method.__get__(cls), type_)  # returns the callable classmethod
-        # else:
-        #     return (f"type:{type_} no method defined\n", type_)
 
     @classmethod
     def get_schema_simple_types(
@@ -1247,41 +1243,6 @@ class GenerateCodeBlocks:
         text["final_info"] = final_info
         return text, error
 
-    # @classmethod
-    # def get_field_type_schema_method(cls, field_type: str) -> Callable | None:
-    #     match field_type:
-    #         case (
-    #             "string"
-    #             | "number"
-    #             | "boolean"
-    #             | "JSON"
-    #             | "HTMLStrict"
-    #             | "HTMLPermissive"
-    #             | "float"
-    #             | "decimal(6)"
-    #             | "timestamp"
-    #             | "string[]"
-    #             | "number[]"
-    #             | "text[]"
-    #             | "text"
-    #             | "timezone"
-    #         ):
-    #             return GenerateCodeBlocks.get_schema_simple_types
-    #         case "color":
-    #             return GenerateCodeBlocks.get_schema_color
-    #         case "relation":
-    #             return GenerateCodeBlocks.get_relation_type
-    #         case "relation-list":
-    #             return GenerateCodeBlocks.get_relation_list_type
-    #         case "generic-relation":
-    #             return GenerateCodeBlocks.get_generic_relation_type
-    #         case "generic-relation-list":
-    #             return GenerateCodeBlocks.get_generic_relation_list_type
-    #         case "primary_key":
-    #             # special defined
-    #             return GenerateCodeBlocks.get_schema_primary_key
-    #         case _:
-    #             return None
 
 
 class ModelsHelper:
@@ -1353,89 +1314,6 @@ TYPE_METHOD_MAP = {
 }
 
 
-# FIELD_TYPES: dict[str, dict[str, Any]] = {
-#     "string": {
-#         "pg_type": PG_TYPES["string"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "number": {
-#         "pg_type": PG_TYPES["number"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "boolean": {
-#         "pg_type": PG_TYPES["boolean"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "JSON": {
-#         "pg_type": PG_TYPES["JSON"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "HTMLStrict": {
-#         "pg_type": PG_TYPES["HTMLStrict"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "HTMLPermissive": {
-#         "pg_type": PG_TYPES["HTMLPermissive"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "float": {
-#         "pg_type": PG_TYPES["float"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "decimal(6)": {
-#         "pg_type": PG_TYPES["decimal(6)"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "timestamp": {
-#         "pg_type": PG_TYPES["timestamp"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "color": {
-#         "pg_type": PG_TYPES["color"],
-#         "method": GenerateCodeBlocks.get_schema_color,
-#     },
-#     "string[]": {
-#         "pg_type": PG_TYPES["string[]"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "number[]": {
-#         "pg_type": PG_TYPES["number[]"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "text[]": {
-#         "pg_type": PG_TYPES["text[]"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "text": {
-#         "pg_type": PG_TYPES["text"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "timezone": {
-#         "pg_type": PG_TYPES["timezone"],
-#         "method": GenerateCodeBlocks.get_schema_simple_types,
-#     },
-#     "relation": {
-#         "pg_type": PG_TYPES["relation"],
-#         "method": GenerateCodeBlocks.get_relation_type,
-#     },
-#     "relation-list": {
-#         "pg_type": PG_TYPES["relation-list"],
-#         "method": GenerateCodeBlocks.get_relation_list_type,
-#     },
-#     "generic-relation": {
-#         "pg_type": PG_TYPES["generic-relation"],
-#         "method": GenerateCodeBlocks.get_generic_relation_type,
-#     },
-#     "generic-relation-list": {
-#         "pg_type": PG_TYPES["generic-relation-list"],
-#         "method": GenerateCodeBlocks.get_generic_relation_list_type,
-#     },
-#     # special defined
-#     "primary_key": {
-#         "pg_type": PG_TYPES["primary_key"],
-#         "method": GenerateCodeBlocks.get_schema_primary_key,
-#     },
-# }
 
 
 def main() -> None:
