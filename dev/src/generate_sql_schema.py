@@ -1244,7 +1244,6 @@ class GenerateCodeBlocks:
         return text, error
 
 
-
 class ModelsHelper:
     @staticmethod
     def is_fk_initially_deferred(own_table: str, foreign_table: str) -> bool:
@@ -1312,8 +1311,6 @@ TYPE_METHOD_MAP = {
     "generic-relation-list": GenerateCodeBlocks.get_generic_relation_list_type,
     "primary_key": GenerateCodeBlocks.get_schema_primary_key,
 }
-
-
 
 
 def main() -> None:
