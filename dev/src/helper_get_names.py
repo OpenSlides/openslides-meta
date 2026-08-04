@@ -57,7 +57,6 @@ class TableFieldType:
         ref_column: str = "id",
     ):
         self.table = table
-        self.view = table.rstrip("_t")
         self.column = column
         self.intermediate_column = column[:-1]
         self.field_def: dict[str, Any] = field_def or {}
