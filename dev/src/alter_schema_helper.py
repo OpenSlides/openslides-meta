@@ -112,7 +112,10 @@ class AlterSchemaHelper:
 
     @staticmethod
     def get_alter_table_statement(collection_or_table_name: str, action: str) -> str:
-        return f"ALTER TABLE {HelperGetNames.get_table_name(collection_or_table_name)} {action};\n"
+        alter_table_part = AlterSchemaHelper.get_alter_table_part(
+            HelperGetNames.get_table_name(collection_or_table_name)
+        )
+        return f"{alter_table_part} {action};\n"
 
     @staticmethod
     def get_drop_column_statement(
