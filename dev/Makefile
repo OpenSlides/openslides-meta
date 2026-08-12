@@ -31,7 +31,7 @@ mypy:
 	mypy src/
 
 sqruff:
-	sqruff fix . --verbose
+	sqruff fix . --config setup.cfg
 
 validate-models:
 	python -m src.validate

@@ -1,4 +1,3 @@
-import logging
 import string
 from collections import defaultdict
 from collections.abc import Callable
