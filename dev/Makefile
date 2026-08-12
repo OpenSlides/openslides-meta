@@ -1,5 +1,5 @@
 # Commands inside the container
-paths = src/ tests/
+paths = src/ tests/ sql/
 
 all: pyupgrade black autoflake isort flake8 mypy sqruff
 
@@ -31,7 +31,7 @@ mypy:
 	mypy src/
 
 sqruff:
-	sqruff fix . --config setup.cfg
+	sqruff fix $(paths) --config setup.cfg
 
 validate-models:
 	python -m src.validate
