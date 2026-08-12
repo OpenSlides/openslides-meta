@@ -7,8 +7,6 @@ from pathlib import Path
 from textwrap import dedent, indent
 from typing import Any, cast
 
-from sqlfluff import fix
-
 from .alter_schema_helper import AlterSchemaHelper
 from .generate_schema_helper import Helper
 from .helper_get_names import (
@@ -21,12 +19,6 @@ from .helper_get_names import (
 from .typing import PG_TYPES, SchemaZoneTexts, SubstDict
 
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
-
-
-# Set log level for sqlfluff
-for name in logging.root.manager.loggerDict:
-    if "sqlfluff" in name:
-        logging.getLogger(name).setLevel(logging.WARN)
 
 
 class GenerateCodeBlocks:
@@ -603,7 +595,7 @@ class GenerateCodeBlocks:
                 initially_deferred,
             )
         elif state == FieldSqlErrorType.SQL:
-            if sql := fix(fdata.get("sql", "")):
+            if sql := fdata.get("sql", ""):
                 text["view"] = sql + ",\n"
             else:
                 if foreign_table_field.field_def["type"] == "generic-relation":
