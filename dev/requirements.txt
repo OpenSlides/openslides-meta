@@ -2,10 +2,10 @@ autoflake==2.3.3
 black==26.5.1
 flake8==7.3.0
 isort==8.0.1
-sqlfluff==4.2.2
 mypy==2.3.0
 pytest==9.1.1
 pyupgrade==3.21.2
+sqruff==0.39.0
 pyyaml==6.0.3
 simplejson==4.1.1
 debugpy==1.8.21

@@ -47,7 +47,11 @@ jobs:
 
       - name: Check pyupgrade
         if: always()
-        run: make pyupgrade
+        run: make check-pyupgrade
+
+      - name: Check sqruff
+        if: always()
+        run: make sqruff
 
       - name: Validate models.yml
         if: always()

@@ -1,7 +1,7 @@
 # Commands inside the container
-paths = src/ tests/
+paths = src/ tests/ sql/
 
-all: pyupgrade black autoflake isort flake8 mypy sqlfluff
+all: pyupgrade black autoflake isort flake8 mypy sqruff
 
 pyupgrade:
 	pyupgrade --py310-plus --exit-zero-even-if-changed $$(find . -name '*.py')
@@ -30,8 +30,8 @@ flake8:
 mypy:
 	mypy src/
 
-sqlfluff:
-	sqlfluff fix --dialect postgres --verbose
+sqruff:
+	sqruff fix $(paths) --config setup.cfg
 
 validate-models:
 	python -m src.validate
