@@ -30,3 +30,8 @@ fields:
     required: true
     enum: rating_approval_onehundred_percent_bases
     restriction_mode: A
+  required_majority:
+    type: string
+    enum: required_majority
+    default: no_majority
+    restriction_mode: A

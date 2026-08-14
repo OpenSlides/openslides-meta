@@ -668,9 +668,18 @@ fields:
     restriction_mode: B
 
   # Polls
+  poll_enable_max_yes_votes:
+    type: boolean
+    default: false
+    restriction_mode: B
   poll_enable_max_votes_per_option:
     type: boolean
     default: false
+    restriction_mode: B
+  poll_default_required_majority:
+    type: string
+    enum: required_majority
+    default: no_majority
     restriction_mode: B
   poll_default_live_voting_enabled:
     type: boolean
