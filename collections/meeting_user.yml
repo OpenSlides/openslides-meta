@@ -76,15 +76,14 @@ fields:
     to: assignment_candidate/meeting_user_id
     equal_fields: meeting_id
     restriction_mode: A
-  vote_delegated_to_id:
-    type: relation
-    reference: meeting_user
+  vote_delegated_to_ids:
+    type: relation-list
     to: meeting_user/vote_delegations_from_ids
     equal_fields: meeting_id
     restriction_mode: A
   vote_delegations_from_ids:
     type: relation-list
-    to: meeting_user/vote_delegated_to_id
+    to: meeting_user/vote_delegated_to_ids
     equal_fields: meeting_id
     restriction_mode: A
   poll_option_ids:
