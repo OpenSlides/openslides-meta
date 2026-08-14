@@ -1,13 +1,11 @@
 unique_together:
-- meeting_id, number
-
+  - meeting_id, number
 fields:
   id:
     type: number
     restriction_mode: A
     constant: true
     required: true
-
   number:
     type: string
     restriction_mode: C
@@ -86,7 +84,6 @@ fields:
     type: boolean
     restriction_mode: A
     description: Forwarded amendments can be marked as such. This is just optional, however. Forwarded amendments can also have this field set to false.
-
   lead_motion_id:
     type: relation
     reference: motion
@@ -113,22 +110,22 @@ fields:
   origin_id:
     type: relation
     reference: motion
-    to: motion/derived_motion_ids   # Note: The related motions may not be in the same meeting
+    to: motion/derived_motion_ids # Note: The related motions may not be in the same meeting
     restriction_mode: A
-  origin_meeting_id:   # The meeting of the motion in origin_id, if any
+  origin_meeting_id: # The meeting of the motion in origin_id, if any
     type: relation
     reference: meeting
     to: meeting/forwarded_motion_ids
     restriction_mode: A
   derived_motion_ids:
     type: relation-list
-    to: motion/origin_id   # Note: The related motions may not be in the same meeting
+    to: motion/origin_id # Note: The related motions may not be in the same meeting
     restriction_mode: A
-  all_origin_ids:   # Calculated: All parents (origin_id), grandparents, etc. of this motion.
+  all_origin_ids: # Calculated: All parents (origin_id), grandparents, etc. of this motion.
     type: relation-list
     to: motion/all_derived_motion_ids
     restriction_mode: A
-  all_derived_motion_ids:   # Calculated: All children (derived_motion_ids), grandchildren, etc. of this motion.
+  all_derived_motion_ids: # Calculated: All children (derived_motion_ids), grandchildren, etc. of this motion.
     type: relation-list
     to: motion/all_origin_ids
     restriction_mode: A
@@ -153,7 +150,7 @@ fields:
     type: generic-relation-list
     to:
       collections:
-      - motion
+        - motion
       field: referenced_in_motion_state_extension_ids
     equal_fields: meeting_id
     restriction_mode: C
@@ -166,7 +163,7 @@ fields:
     type: generic-relation-list
     to:
       collections:
-      - motion
+        - motion
       field: referenced_in_motion_recommendation_extension_ids
     equal_fields: meeting_id
     restriction_mode: C
@@ -272,9 +269,7 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
   history_entry_ids:
     type: relation-list
     to: history_entry/model_id
     restriction_mode: A
-

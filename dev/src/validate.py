@@ -324,9 +324,11 @@ class Checker:
                     f"invalid value for 'on_delete' for {collectionfield}"
                 )
             valid_attributes.append("equal_fields")
+            if type != "generic-relation-list":
+                valid_attributes.append("reference")
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
-            valid_attributes.extend(("reference", "deferred", "sql"))
+            valid_attributes.extend(("deferred", "sql"))
             if field.get("sql"):
                 valid_attributes.append("log_triggers")
                 self.check_log_triggers(collectionfield, field)
@@ -474,6 +476,9 @@ class Checker:
                 error = self.check_reverse(collectionfield, field, cf)
                 if error:
                     return error
+            self.check_reference_list(
+                collectionfield, field, [c.split(KEYSEPARATOR)[0] for c in to]
+            )
         else:
             to_field = to["field"]
             if not FIELD_REGEX.match(to_field):
@@ -490,6 +495,7 @@ class Checker:
                 )
                 if error:
                     return error
+            self.check_reference_list(collectionfield, field, to["collections"])
         return None
 
     def setify_equal_fields(self, field_def: dict[str, Any]) -> set[str]:
@@ -586,15 +592,10 @@ class Checker:
             to_collectionfield,
             to_field,
         )
-        if all(
-            [
-                "reference" in field and field["type"] == "relation"
-                for field in [to_field, from_field]
-            ]
+        if reference_error := self.check_reference(
+            from_collectionfield, from_field, to_collectionfield, to_field
         ):
-            self.errors.append(
-                f"The relation fields {from_collectionfield} and {to_collectionfield} both have reference set."
-            )
+            self.errors.append(reference_error)
 
         to = to_field["to"]
         if isinstance(to, str):
@@ -704,6 +705,100 @@ class Checker:
     def split_collectionfield(self, collectionfield: str) -> tuple[str, str]:
         parts = collectionfield.split(KEYSEPARATOR)
         return parts[0], parts[1]
+
+    def check_reference(
+        self,
+        from_collectionfield: str,
+        from_field: dict[str, Any],
+        to_collectionfield: str,
+        to_field: dict[str, Any],
+    ) -> str | None:
+        # Check attribute presence
+        reference_in_fields = ["reference" in field for field in [to_field, from_field]]
+        if (
+            from_field["type"] == to_field["type"]
+            and from_field["type"] in ["relation", "relation-list"]
+            and all(reference_in_fields)
+        ):
+            return f"The relation fields {from_collectionfield} and {to_collectionfield} both have 'reference' set."
+
+        if from_field["type"] == to_field["type"] == "relation" and not any(
+            reference_in_fields
+        ):
+            return f"One of the relation fields {from_collectionfield} and {to_collectionfield} must have 'reference' set."
+
+        reference_allowed, reference_required = self.get_reference_allowed_required(
+            from_field, to_field
+        )
+        reference = from_field.get("reference")
+        if not reference_allowed and reference:
+            return f"Relational collectionfield {from_collectionfield} can not have 'reference' attribute."
+        if not reference:
+            if reference_required:
+                return f"Relational collectionfield {from_collectionfield} must have 'reference' attribute."
+            return None
+
+        # Check value
+        if from_field["type"] in ["relation", "relation-list"]:
+            if not isinstance(reference, str) or reference not in self.models:
+                return f"The collection '{reference}' in 'reference' of {from_collectionfield} is not a valid collection."
+
+            if reference != (
+                to_collection := to_collectionfield.split(KEYSEPARATOR)[0]
+            ):
+                return f"'reference' of {from_collectionfield} must match the collection of 'to': {to_collection}."
+
+        else:
+            assert isinstance(
+                reference, list
+            ), f"Reference of {from_collectionfield} must be a list of valid collection names."
+
+            if (
+                to_collection := to_collectionfield.split(KEYSEPARATOR)[0]
+            ) not in reference:
+                return f"'reference' of {from_collectionfield} is missing a collection '{to_collection}' from 'to'."
+        return None
+
+    def check_reference_list(
+        self,
+        from_collectionfield: str,
+        from_field: dict[str, Any],
+        to_collections: list[Any],
+    ) -> None:
+        if not (reference := from_field.get("reference")):
+            return
+
+        if invalid := [value for value in reference if value not in self.models]:
+            self.errors.append(
+                f"'reference' of {from_collectionfield} contains values that are not valid collections: {invalid}"
+            )
+
+        if not_in_to := [
+            value
+            for value in reference
+            if value not in to_collections and value not in invalid
+        ]:
+            self.errors.append(
+                f"'reference' of {from_collectionfield} contains collections not present in 'to': {not_in_to}"
+            )
+
+    def get_reference_allowed_required(
+        self, from_field: dict[str, Any], to_field: dict[str, Any]
+    ) -> tuple[bool, bool]:
+        if from_field["type"] == to_field["type"] == "relation":
+            return (True, False)
+        if from_field["type"] == "relation-list" and to_field["type"] in [
+            "relation",
+            "generic-relation",
+        ]:
+            return (True, False)
+        if (from_field["type"], to_field["type"]) in (
+            ("generic-relation", "relation-list"),
+            ("generic-relation", "relation"),
+            ("relation", "relation-list"),
+        ):
+            return (True, True)
+        return (False, False)
 
 
 def main() -> int:

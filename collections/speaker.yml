@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   begin_time:
     type: timestamp
     restriction_mode: A
@@ -28,11 +27,11 @@ fields:
   speech_state:
     type: string
     enum:
-    - contribution
-    - pro
-    - contra
-    - intervention
-    - interposed_question
+      - contribution
+      - pro
+      - contra
+      - intervention
+      - interposed_question
     restriction_mode: A
   answer:
     type: boolean
@@ -45,7 +44,6 @@ fields:
     type: boolean
     restriction_mode: A
     constant_legacy: true
-
   list_of_speakers_id:
     type: relation
     reference: list_of_speakers
@@ -79,4 +77,3 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
