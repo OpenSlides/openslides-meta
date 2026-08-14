@@ -107,10 +107,6 @@ class AlterSchemaHelper:
         return f"DROP TABLE {HelperGetNames.get_table_name(collection_or_table_name)} CASCADE;\n"
 
     @staticmethod
-    def get_drop_view_statement(collection_name: str) -> str:
-        return f'DROP VIEW "{collection_name}";\n'
-
-    @staticmethod
     def get_alter_table_statement(collection_or_table_name: str, action: str) -> str:
         alter_table_part = AlterSchemaHelper.get_alter_table_part(
             HelperGetNames.get_table_name(collection_or_table_name)
