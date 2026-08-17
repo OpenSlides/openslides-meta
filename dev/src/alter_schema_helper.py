@@ -55,6 +55,14 @@ class AlterSchemaHelper:
         )
 
     @staticmethod
+    def get_rename_constraint_part(
+        constraint_name_old: str, constraint_name_new: str
+    ) -> str:
+        return AlterSchemaHelper.get_rename_part(
+            f" CONSTRAINT {constraint_name_old}", constraint_name_new
+        )
+
+    @staticmethod
     def get_alter_view_part(view_name: str) -> str:
         return f"ALTER VIEW {view_name}"
 
@@ -89,3 +97,25 @@ class AlterSchemaHelper:
         atp = AlterSchemaHelper.get_alter_table_part(table_name_old)
         rp = AlterSchemaHelper.get_rename_part("", table_name_new)
         return f"{atp} {rp};\n"
+
+    @staticmethod
+    def get_rename_constraint(
+        table_name: str, constraint_name_old: str, constraint_name_new: str
+    ) -> str:
+        atp = AlterSchemaHelper.get_alter_table_part(table_name)
+        rcp = AlterSchemaHelper.get_rename_constraint_part(
+            constraint_name_old, constraint_name_new
+        )
+        return f"{atp} {rcp};\n"
+
+    @staticmethod
+    def get_rename_index(idx_name_old: str, idx_name_new: str) -> str:
+        rp = AlterSchemaHelper.get_rename_part("", idx_name_new)
+        return f"ALTER INDEX {idx_name_old} {rp};\n"
+
+    @staticmethod
+    def get_rename_trigger(
+        table_name: str, trigger_name_old: str, trigger_name_new: str
+    ) -> str:
+        rp = AlterSchemaHelper.get_rename_part("", trigger_name_new)
+        return f"ALTER TRIGGER {trigger_name_old} ON {table_name} {rp};\n"
