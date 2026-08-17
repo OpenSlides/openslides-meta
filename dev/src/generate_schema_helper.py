@@ -1,6 +1,5 @@
 import string
 from collections import defaultdict
-from decimal import Decimal
 from string import Formatter
 from textwrap import dedent, indent
 from typing import Any, cast
@@ -860,13 +859,10 @@ class Helper:
         return [field_name.strip() for field_name in fields.split(",")]
 
     @staticmethod
-    def get_varchar_max_length(fdata: dict[str, Any], type_: str) -> int | None:
+    def get_varchar_max_length(fdata: dict[str, Any], type_: str) -> int:
         if maxLength := fdata.get("maxLength"):
             return maxLength
-        elif isinstance(type_, Decimal):
-            return 6
-        elif isinstance(type_, str):  # string
-            return 256
+        return 256
 
     @classmethod
     def get_unique_together_constraint_definition(
