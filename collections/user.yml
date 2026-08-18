@@ -14,6 +14,12 @@ fields:
     type: string
     unique: true
     restriction_mode: B
+  idp_id:
+    type: string
+    minLength: 1
+    unique: true
+    restriction_mode: B
+    description: unique-key from IDP for login
   saml_id:
     type: string
     minLength: 1
