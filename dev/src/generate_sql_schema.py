@@ -1274,26 +1274,26 @@ class ModelsHelper:
             raise Exception("Relation field without reference or to")
 
 
+SIMPLE_TYPES = (
+    "string",
+    "number",
+    "boolean",
+    "JSON",
+    "HTMLStrict",
+    "HTMLPermissive",
+    "float",
+    "decimal(6)",
+    "timestamp",
+    "string[]",
+    "number[]",
+    "text[]",
+    "text",
+    "timezone",
+)
+
+
 TYPE_METHOD_MAP = {
-    **{
-        type_: GenerateCodeBlocks.get_schema_simple_types
-        for type_ in (
-            "string",
-            "number",
-            "boolean",
-            "JSON",
-            "HTMLStrict",
-            "HTMLPermissive",
-            "float",
-            "decimal(6)",
-            "timestamp",
-            "string[]",
-            "number[]",
-            "text[]",
-            "text",
-            "timezone",
-        )
-    },
+    **{type_: GenerateCodeBlocks.get_schema_simple_types for type_ in SIMPLE_TYPES},
     "color": GenerateCodeBlocks.get_schema_color,
     "relation": GenerateCodeBlocks.get_relation_type,
     "relation-list": GenerateCodeBlocks.get_relation_list_type,
