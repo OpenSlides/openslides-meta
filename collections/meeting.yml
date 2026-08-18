@@ -44,13 +44,13 @@ fields:
     restriction_mode: F
   time_zone:
     type: timezone
-    restriction_mode: F
+    restriction_mode: A
   start_time:
     type: timestamp
-    restriction_mode: F
+    restriction_mode: A
   end_time:
     type: timestamp
-    restriction_mode: F
+    restriction_mode: A
   locked_from_inside:
     type: boolean
     restriction_mode: F
