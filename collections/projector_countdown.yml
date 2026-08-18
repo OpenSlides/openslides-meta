@@ -1,13 +1,11 @@
 unique_together:
-- meeting_id, title
-
+  - meeting_id, title
 fields:
   id:
     type: number
     restriction_mode: A
     constant: true
     required: true
-
   title:
     type: string
     required: true
@@ -27,7 +25,6 @@ fields:
     type: boolean
     default: false
     restriction_mode: A
-
   projection_ids:
     type: relation-list
     to: projection/content_object_id
@@ -49,4 +46,3 @@ fields:
     restriction_mode: A
     required: true
     constant: true
-

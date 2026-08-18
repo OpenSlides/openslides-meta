@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   timestamp:
     type: timestamp
     restriction_mode: A
@@ -23,4 +22,3 @@ fields:
     to: history_entry/position_id
     restriction_mode: A
     on_delete: CASCADE
-

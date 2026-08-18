@@ -4,11 +4,10 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   entries:
     type: text[]
     restriction_mode: A
-  changed_fields:
+  structured_information:
     type: JSON
     restriction_mode: A
   original_model_id:

@@ -1,12 +1,12 @@
 enum_definitions:
   languages:
-  - en
-  - de
-  - it
-  - es
-  - ru
-  - cs
-  - fr
+    - en
+    - de
+    - it
+    - es
+    - ru
+    - cs
+    - fr
   onehundred_percent_bases:
     - no_general
     - yes_no
@@ -43,6 +43,10 @@ enum_definitions:
     - entitled
     - entitled_present
     - disabled
+  required_majority:
+    - no_majority
+    - two_third_majority
+    - absolute_majority
   poll_visibility:
     - manually
     - named

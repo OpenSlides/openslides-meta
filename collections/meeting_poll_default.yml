@@ -4,12 +4,10 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   sort_result_by_votes:
     type: boolean
     default: true
     restriction_mode: A
-
   # Defaults for poll create form
   visibility:
     type: string
@@ -39,7 +37,6 @@ fields:
   display_chart:
     type: string
     restriction_mode: A
-
   used_as_assignment_poll_config_in_meeting_id:
     type: relation
     to: meeting/assignment_poll_config_id
@@ -55,7 +52,6 @@ fields:
     to: meeting/topic_poll_config_id
     restriction_mode: A
     constant: true
-
   meeting_id:
     type: relation
     required: true
