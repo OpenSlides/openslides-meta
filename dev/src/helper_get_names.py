@@ -56,8 +56,9 @@ class TableFieldType:
         field_def: dict[str, Any] | None,
         ref_column: str = "id",
     ):
+        # TODO: TableFieldType is always created with collection name and not a table name => should be renamed.
+        # TODO: consider introducing the new attribute `table` generated from collection using get_table_name.
         self.table = table
-        self.view = table.rstrip("_t")
         self.column = column
         self.intermediate_column = column[:-1]
         self.field_def: dict[str, Any] = field_def or {}
