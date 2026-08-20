@@ -16,9 +16,9 @@ fields:
   text:
     type: string
     restriction_mode: A
-  meeting_user_id:
+  user_id:
     type: relation
-    to: meeting_user/poll_option_ids
-    reference: meeting_user
+    to: user/poll_option_ids
+    reference: user
     required: false
     restriction_mode: A

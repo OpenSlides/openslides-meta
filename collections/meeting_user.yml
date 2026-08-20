@@ -82,12 +82,6 @@ fields:
     to: meeting_user/vote_delegated_to_ids
     equal_fields: meeting_id
     restriction_mode: A
-  poll_option_ids:
-    type: relation-list
-    to: poll_option/meeting_user_id
-    reference: poll_option
-    required: false
-    restriction_mode: A
   acting_ballot_ids:
     type: relation-list
     to: poll_ballot_user/acting_meeting_user_id
