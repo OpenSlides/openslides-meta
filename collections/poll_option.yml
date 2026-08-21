@@ -25,6 +25,6 @@ fields:
   meeting_user_id:
     type: relation
     to: meeting_user/poll_option_ids
-    reference: user
+    reference: meeting_user
     required: false
     restriction_mode: A

@@ -150,11 +150,21 @@ fields:
     to: committee/native_user_ids
     restriction_mode: E
     reference: committee
+  acting_ballot_ids:
+    type: relation-list
+    to: poll_ballot_user/acting_user_id
+    on_delete: PROTECT
+    restriction_mode: A
+  represented_ballot_ids:
+    type: relation-list
+    to: poll_ballot_user/represented_user_id
+    on_delete: PROTECT
+    restriction_mode: A
   poll_option_ids:
     type: relation-list
     to: poll_option/user_id
     reference: poll_option
-    required: false
+    on_delete: PROTECT
     restriction_mode: A
   history_position_ids:
     type: relation-list

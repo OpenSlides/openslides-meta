@@ -92,12 +92,13 @@ fields:
   acting_ballot_ids:
     type: relation-list
     to: poll_ballot_user/acting_meeting_user_id
+    on_delete: SET_NULL
     restriction_mode: A
   represented_ballot_ids:
     type: relation-list
     to: poll_ballot_user/represented_meeting_user_id
+    on_delete: SET_NULL
     restriction_mode: A
-    # on_delete: CASCADE
   entitled_at_poll_ids:
     type: relation-list
     to: poll/entitled_meeting_user_ids

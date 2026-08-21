@@ -25,7 +25,6 @@ fields:
       - assignment
       - meeting_user
       - motion
-      - poll
       - user
   position_id:
     type: relation
