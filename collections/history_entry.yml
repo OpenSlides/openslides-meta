@@ -16,14 +16,12 @@ fields:
     to:
       collections:
         - assignment
-        - meeting_user
         - motion
         - user
       field: history_entry_ids
     restriction_mode: A
     reference:
       - assignment
-      - meeting_user
       - motion
       - user
   position_id:
