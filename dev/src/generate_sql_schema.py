@@ -2,7 +2,6 @@ import logging
 import string
 from collections import defaultdict
 from collections.abc import Callable
-from decimal import Decimal
 from pathlib import Path
 from textwrap import dedent, indent
 from typing import Any, cast
@@ -497,23 +496,14 @@ class GenerateCodeBlocks:
         subst, szt = Helper.get_initials(table_name, fname, type_, fdata)
         text.update(szt)
         if isinstance((tmp := subst["type"]), string.Template):
-            if maxLength := fdata.get("maxLength"):
-                tmp = tmp.substitute(
+            if maxLength := Helper.get_varchar_max_length(fdata, type_):
+                subst["type"] = tmp.substitute(
                     {
                         "maxLength": maxLength,
                         "field_name": fname,
                         "table_name": table_name,
                     }
                 )
-            elif isinstance(type_, Decimal):
-                tmp = tmp.substitute(
-                    {"maxLength": 6, "field_name": fname, "table_name": table_name}
-                )
-            elif isinstance(type_, str):  # string
-                tmp = tmp.substitute(
-                    {"maxLength": 256, "field_name": fname, "table_name": table_name}
-                )
-            subst["type"] = tmp
         if fdata.get("constant"):
             text["create_trigger_prevent_updates_code"] = (
                 cls.get_trigger_prevent_updates(table_name, fname)
@@ -856,7 +846,7 @@ class GenerateCodeBlocks:
         ), f"'{table_name}.yml/unique_together' must be a list of field names"
         result = ""
         for fields in value:
-            fields = [field_name.strip() for field_name in fields.split(",")]
+            fields = Helper.split_unique_together_fields(fields)
             result += Helper.get_unique_together_constraint_definition(
                 table_name, fields, strict
             )
@@ -1283,26 +1273,26 @@ class ModelsHelper:
             raise Exception("Relation field without reference or to")
 
 
+SIMPLE_TYPES = (
+    "string",
+    "number",
+    "boolean",
+    "JSON",
+    "HTMLStrict",
+    "HTMLPermissive",
+    "float",
+    "decimal(6)",
+    "timestamp",
+    "string[]",
+    "number[]",
+    "text[]",
+    "text",
+    "timezone",
+)
+
+
 TYPE_METHOD_MAP = {
-    **{
-        type_: GenerateCodeBlocks.get_schema_simple_types
-        for type_ in (
-            "string",
-            "number",
-            "boolean",
-            "JSON",
-            "HTMLStrict",
-            "HTMLPermissive",
-            "float",
-            "decimal(6)",
-            "timestamp",
-            "string[]",
-            "number[]",
-            "text[]",
-            "text",
-            "timezone",
-        )
-    },
+    **{type_: GenerateCodeBlocks.get_schema_simple_types for type_ in SIMPLE_TYPES},
     "color": GenerateCodeBlocks.get_schema_color,
     "relation": GenerateCodeBlocks.get_relation_type,
     "relation-list": GenerateCodeBlocks.get_relation_list_type,

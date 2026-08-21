@@ -129,3 +129,68 @@ class AlterSchemaHelper:
     ) -> str:
         rp = AlterSchemaHelper.get_rename_part("", trigger_name_new)
         return f"ALTER TRIGGER {trigger_name_old} ON {table_name} {rp};\n"
+    def get_drop_type_statement(enum_name: str) -> str:
+        return f"DROP TYPE {enum_name};\n"
+
+    @staticmethod
+    def get_drop_enum_type_statement_from_collection_and_column(
+        collection_name: str, column_name: str
+    ) -> str:
+        return AlterSchemaHelper.get_drop_type_statement(
+            HelperGetNames.get_enum_name_for_column(collection_name, column_name)
+        )
+
+    @staticmethod
+    def get_drop_table_statement(collection_or_table_name: str) -> str:
+        return f"DROP TABLE {HelperGetNames.get_table_name(collection_or_table_name)} CASCADE;\n"
+
+    @staticmethod
+    def get_alter_table_statement(collection_or_table_name: str, action: str) -> str:
+        alter_table_part = AlterSchemaHelper.get_alter_table_part(
+            HelperGetNames.get_table_name(collection_or_table_name)
+        )
+        return f"{alter_table_part} {action};\n"
+
+    @staticmethod
+    def get_drop_column_statement(
+        collection_or_table_name: str, column_name: str
+    ) -> str:
+        return AlterSchemaHelper.get_alter_table_statement(
+            collection_or_table_name, f"DROP COLUMN {column_name} CASCADE"
+        )
+
+    @staticmethod
+    def get_drop_index_statement(collection_or_table_name: str, index: str) -> str:
+        return AlterSchemaHelper.get_alter_table_statement(
+            collection_or_table_name, f"DROP INDEX {index}"
+        )
+
+    @staticmethod
+    def get_alter_column_statement(
+        collection_or_table_name: str, column_name: str, action: str
+    ) -> str:
+        return AlterSchemaHelper.get_alter_table_statement(
+            collection_or_table_name, f"ALTER COLUMN {column_name} {action}"
+        )
+
+    @staticmethod
+    def get_drop_column_attribute_statement(
+        collection_or_table_name: str, column_name: str, attribute: str
+    ) -> str:
+        return AlterSchemaHelper.get_alter_column_statement(
+            collection_or_table_name, column_name, f"DROP {attribute}"
+        )
+
+    @staticmethod
+    def get_drop_table_constraint_statement(
+        collection_or_table_name: str, constraint_name: str
+    ) -> str:
+        return AlterSchemaHelper.get_alter_table_statement(
+            collection_or_table_name, f"DROP CONSTRAINT {constraint_name}"
+        )
+
+    @staticmethod
+    def get_drop_trigger_statement(
+        collection_or_table_name: str, trigger_name: str
+    ) -> str:
+        return f"DROP TRIGGER {trigger_name} ON {HelperGetNames.get_table_name(collection_or_table_name)};\n"
