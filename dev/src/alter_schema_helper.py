@@ -129,6 +129,8 @@ class AlterSchemaHelper:
     ) -> str:
         rp = AlterSchemaHelper.get_rename_part("", trigger_name_new)
         return f"ALTER TRIGGER {trigger_name_old} ON {table_name} {rp};\n"
+
+    @staticmethod
     def get_drop_type_statement(enum_name: str) -> str:
         return f"DROP TYPE {enum_name};\n"
 
