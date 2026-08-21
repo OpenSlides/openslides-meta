@@ -71,6 +71,10 @@ class AlterSchemaHelper:
         return f"ALTER TABLE {table_name}"
 
     @staticmethod
+    def get_alter_type_part(type_name: str) -> str:
+        return f"ALTER TYPE {type_name}"
+
+    @staticmethod
     def get_rename_view_column(
         view_name: str, column_name_old: str, column_name_new: str
     ) -> str:
@@ -96,6 +100,12 @@ class AlterSchemaHelper:
     def get_rename_table(table_name_old: str, table_name_new: str) -> str:
         atp = AlterSchemaHelper.get_alter_table_part(table_name_old)
         rp = AlterSchemaHelper.get_rename_part("", table_name_new)
+        return f"{atp} {rp};\n"
+
+    @staticmethod
+    def get_rename_enum(enum_name_old: str, enum_name_new: str) -> str:
+        atp = AlterSchemaHelper.get_alter_type_part(enum_name_old)
+        rp = AlterSchemaHelper.get_rename_part("", enum_name_new)
         return f"{atp} {rp};\n"
 
     @staticmethod
