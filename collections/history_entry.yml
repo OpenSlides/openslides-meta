@@ -17,12 +17,14 @@ fields:
       collections:
         - assignment
         - motion
+        - topic
         - user
       field: history_entry_ids
     restriction_mode: A
     reference:
       - assignment
       - motion
+      - topic
       - user
   position_id:
     type: relation
