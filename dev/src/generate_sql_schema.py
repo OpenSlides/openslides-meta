@@ -170,36 +170,35 @@ class GenerateCodeBlocks:
                 else:
                     result, error = method_or_str(collection_name, fname, fdata, type_)
                     for k, v in result.items():
-                        schema_zone_texts[k] += v or ""  # type: ignore
+                        schema_zone_texts[k] += v or ""  # type: ignore[literal-required]
                     if error:
                         errors.append(
                             Helper.prefix_error(error, collection_name, fname)
                         )
 
-            if len(data) > 1:
-                for attr, value in data.items():
-                    match attr:
-                        case "fields":
-                            continue
-                        case "unique_together":
-                            schema_zone_texts[
-                                "table"
-                            ] += cls.get_constraint_unique_together(
-                                collection_name, value, False
+            for attr, value in data.items():
+                match attr:
+                    case "fields":
+                        continue
+                    case "unique_together":
+                        schema_zone_texts[
+                            "table"
+                        ] += cls.get_constraint_unique_together(
+                            collection_name, value, False
+                        )
+                    case "unique_together_strict":
+                        schema_zone_texts[
+                            "table"
+                        ] += cls.get_constraint_unique_together(
+                            collection_name, value, True
+                        )
+                    case _:
+                        if attr not in collection_meta_handled_attributes:
+                            missing_handled_collections_meta_attributes.add(attr)
+                        else:
+                            raise Exception(
+                                f"Attribute '{attr}' set to be handled but actually unhandled."
                             )
-                        case "unique_together_strict":
-                            schema_zone_texts[
-                                "table"
-                            ] += cls.get_constraint_unique_together(
-                                collection_name, value, True
-                            )
-                        case _:
-                            if attr not in collection_meta_handled_attributes:
-                                missing_handled_collections_meta_attributes.add(attr)
-                            else:
-                                raise Exception(
-                                    f"Attribute '{attr}' set to be handled but actually unhandled."
-                                )
 
             if code := schema_zone_texts["table"]:
                 cls.table_sql[collection_name] = Helper.get_table_head(collection_name)
