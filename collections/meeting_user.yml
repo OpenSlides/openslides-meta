@@ -87,16 +87,18 @@ fields:
     to: poll_option/meeting_user_id
     reference: poll_option
     required: false
+    on_delete: SET_NULL
     restriction_mode: A
   acting_ballot_ids:
     type: relation-list
     to: poll_ballot_user/acting_meeting_user_id
+    on_delete: SET_NULL
     restriction_mode: A
   represented_ballot_ids:
     type: relation-list
     to: poll_ballot_user/represented_meeting_user_id
+    on_delete: SET_NULL
     restriction_mode: A
-    # on_delete: CASCADE
   entitled_at_poll_ids:
     type: relation-list
     to: poll/entitled_meeting_user_ids
@@ -117,7 +119,3 @@ fields:
     equal_fields: meeting_id
     restriction_mode: A
     to: structure_level/meeting_user_ids
-  history_entry_ids:
-    type: relation-list
-    to: history_entry/model_id
-    restriction_mode: A

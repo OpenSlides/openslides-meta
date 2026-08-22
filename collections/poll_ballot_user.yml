@@ -17,15 +17,27 @@ fields:
     type: relation
     to: poll_ballot/poll_ballot_user_id
     restriction_mode: A
+  acting_user_id:
+    type: relation
+    reference: user
+    to: user/acting_ballot_ids
+    required: true
+    restriction_mode: A
+  represented_user_id:
+    type: relation
+    reference: user
+    to: user/represented_ballot_ids
+    required: true
+    restriction_mode: A
   acting_meeting_user_id:
     type: relation
     reference: meeting_user
     to: meeting_user/acting_ballot_ids
-    required: true
+    required: false
     restriction_mode: A
   represented_meeting_user_id:
     type: relation
     reference: meeting_user
     to: meeting_user/represented_ballot_ids
-    required: true
+    required: false
     restriction_mode: A
