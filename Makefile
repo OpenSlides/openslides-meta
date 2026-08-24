@@ -1,13 +1,16 @@
 # Commands inside the container
 paths = dev/src/ dev/tests/
 
-all: pyupgrade black autoflake isort flake8 mypy sqlfluff
+lint: pyupgrade black autoflake isort flake8 mypy sqlfluff
 
 pyupgrade:
 	pyupgrade --py310-plus --exit-zero-even-if-changed $$(find . -name '*.py')
 
 check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
+
+cleanup-yaml:
+	find ../collections ../*.yml -type f -name "*.yml" | while read f ; do yq -i '.' $$f ; done
 
 black:
 	black $(paths)
@@ -35,6 +38,9 @@ sqlfluff:
 
 validate-models:
 	python -m dev.src.validate
+
+join-models-yml:
+	python -m src.join_models_yml
 
 generate-relational-schema:
 	python -m dev.src.generate_sql_schema

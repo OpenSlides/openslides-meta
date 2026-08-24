@@ -12,7 +12,7 @@ SELECT nextval('motion_state_t_id_seq');
 INSERT INTO motion_workflow_t (
     id, name, first_state_id, meeting_id
 )
-VALUES (2, 'workflow2', 4, 2);
+VALUES (2, 'workflow2', 5, 2);
 SELECT nextval('motion_workflow_t_id_seq');
 
 INSERT INTO meeting_t (
@@ -41,6 +41,7 @@ SELECT nextval('committee_t_id_seq');
 INSERT INTO projector_t (
     id,
     meeting_id,
+    name,
     used_as_default_projector_for_agenda_item_list_in_meeting_id,
     used_as_default_projector_for_topic_in_meeting_id,
     used_as_default_projector_for_list_of_speakers_in_meeting_id,
@@ -56,11 +57,11 @@ INSERT INTO projector_t (
     used_as_default_projector_for_motion_poll_in_meeting_id,
     used_as_default_projector_for_poll_in_meeting_id
 )
-VALUES (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+VALUES (2, 2, 'main', 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
 SELECT nextval('projector_t_id_seq');
 
-INSERT INTO projector_t (id, meeting_id)
-VALUES (3, 2);
+INSERT INTO projector_t (id, meeting_id, name)
+VALUES (3, 2, 'secondary');
 SELECT nextval('projector_t_id_seq');
 
 INSERT INTO group_t (id, name, meeting_id)
@@ -93,8 +94,8 @@ VALUES ('topic/1', 2);
 COMMIT;
 
 --rl:gr organization.mediafile_ids:mediafile.owner_id
-INSERT INTO mediafile_t (id, owner_id)
-VALUES (1, 'organization/1');
+INSERT INTO mediafile_t (id, owner_id, title)
+VALUES (1, 'organization/1', 'first');
 
 --rl:rl committee_ids:user_ids
 INSERT INTO nm_committee_manager_ids_user_t (committee_id, user_id)
