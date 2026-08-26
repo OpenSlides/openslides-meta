@@ -16,15 +16,15 @@ fields:
   text:
     type: string
     restriction_mode: A
-  user_id:
-    type: relation
-    to: user/poll_option_ids
-    reference: user
-    required: false
-    restriction_mode: A
-  meeting_user_id:
-    type: relation
-    to: meeting_user/poll_option_ids
-    reference: meeting_user
+  content_object_id:
+    type: generic-relation
+    reference:
+      - meeting_user
+      - user
+    to:
+      collections:
+        - meeting_user
+        - user
+      field: poll_option_ids
     required: false
     restriction_mode: A
