@@ -1,6 +1,25 @@
 import string
 from enum import Enum
-from typing import TypedDict
+from typing import Literal, TypedDict
+
+SchemaZoneKey = Literal[
+    "table",
+    "alter_table",
+    "alter_table_final",
+    "view",
+    "post_view",
+    "create_trigger_partitioned_sequences",
+    "create_trigger_1_1_relation_not_null",
+    "create_trigger_1_n_relation_not_null",
+    "create_trigger_n_m_relation_not_null",
+    "create_trigger_prevent_updates_code",
+    "create_trigger_unique_ids_pair_code",
+    "create_trigger_equal_fields_code",
+    "create_trigger_notify",
+    "undecided",
+    "final_info",
+    "errors",
+]
 
 
 class SchemaZoneTexts(TypedDict, total=False):
