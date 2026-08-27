@@ -10,8 +10,8 @@ fields:
     reference: poll
     required: true
     restriction_mode: A
-  meeting_user_ids:
-    type: relation-list
+  meeting_user_id:
+    type: relation
     to: meeting_user/entitled_at_poll_ids
     required: false
     restriction_mode: A
