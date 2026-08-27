@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'daa8d50ba6d0360b33420c510fcd952c'
+-- MODELS_YML_CHECKSUM = '156fc394cbf7dcd659047e24fe3d696a'
 
 
 -- ENUM definitions
@@ -3218,7 +3218,7 @@ CREATE VIEW "meeting_user" AS SELECT *,
 (select array_agg(p.id ORDER BY p.id) from poll_option_t p where p.content_object_id_meeting_user_id = m.id) as poll_option_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_ballot_user_t p where p.acting_meeting_user_id = m.id) as acting_ballot_ids,
 (select array_agg(p.id ORDER BY p.id) from poll_ballot_user_t p where p.represented_meeting_user_id = m.id) as represented_ballot_ids,
-(select array_agg(p.id ORDER BY p.id) from poll_entitled_user_t p where p.meeting_user_id = m.id) as entitled_user_ids,
+(select array_agg(p.id ORDER BY p.id) from poll_entitled_user_t p where p.meeting_user_id = m.id) as poll_entitled_user_ids,
 (select array_agg(c.id ORDER BY c.id) from chat_message_t c where c.meeting_user_id = m.id) as chat_message_ids,
 (select array_agg(n.group_id ORDER BY n.group_id) from nm_group_meeting_user_ids_meeting_user_t n where n.meeting_user_id = m.id) as group_ids,
 (select array_agg(n.structure_level_id ORDER BY n.structure_level_id) from nm_meeting_user_structure_level_ids_structure_level_t n where n.meeting_user_id = m.id) as structure_level_ids
@@ -5195,7 +5195,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 CREATE TRIGGER tr_log_poll_entitled_user_t_poll_id AFTER INSERT OR UPDATE OF poll_id OR DELETE ON poll_entitled_user_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('poll', 'poll_id', 'entitled_user_ids');
 CREATE TRIGGER tr_log_poll_entitled_user_t_meeting_user_id AFTER INSERT OR UPDATE OF meeting_user_id OR DELETE ON poll_entitled_user_t
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user', 'meeting_user_id', 'entitled_user_ids');
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('meeting_user', 'meeting_user_id', 'poll_entitled_user_ids');
 
 CREATE TRIGGER tr_log_poll_option AFTER INSERT OR UPDATE OR DELETE ON poll_option_t
 FOR EACH ROW EXECUTE FUNCTION log_modified_models('poll_option');
@@ -6210,7 +6210,7 @@ SQL nt:nt => meeting_user/vote_delegations_from_ids:-> meeting_user/vote_delegat
 SQL nt:1Gr => meeting_user/poll_option_ids:-> poll_option/content_object_id
 SQL nt:1r => meeting_user/acting_ballot_ids:-> poll_ballot_user/acting_meeting_user_id
 SQL nt:1r => meeting_user/represented_ballot_ids:-> poll_ballot_user/represented_meeting_user_id
-SQL nt:1r => meeting_user/entitled_user_ids:-> poll_entitled_user/meeting_user_id
+SQL nt:1r => meeting_user/poll_entitled_user_ids:-> poll_entitled_user/meeting_user_id
 SQL nt:1r => meeting_user/chat_message_ids:-> chat_message/meeting_user_id
 SQL ntR:nt => meeting_user/group_ids:-> group/meeting_user_ids
 SQL nt:nt => meeting_user/structure_level_ids:-> structure_level/meeting_user_ids
@@ -6355,7 +6355,7 @@ SQL 1tR:1GrR => poll_config_selection/poll_id:-> poll/config_id
 SQL 1tR:1GrR => poll_config_stv_scottish/poll_id:-> poll/config_id
 
 FIELD 1rR:nt => poll_entitled_user/poll_id:-> poll/entitled_user_ids
-FIELD 1r:nt => poll_entitled_user/meeting_user_id:-> meeting_user/entitled_user_ids
+FIELD 1r:nt => poll_entitled_user/meeting_user_id:-> meeting_user/poll_entitled_user_ids
 
 FIELD 1rR:nt => poll_option/poll_id:-> poll/option_ids
 FIELD 1Gr:nt,nt => poll_option/content_object_id:-> meeting_user/poll_option_ids,user/poll_option_ids
