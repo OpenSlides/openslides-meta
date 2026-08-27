@@ -96,7 +96,7 @@ fields:
     to: poll_ballot_user/represented_meeting_user_id
     on_delete: SET_NULL
     restriction_mode: A
-  entitled_at_poll_ids:
+  entitled_user_ids:
     type: relation-list
     to: poll_entitled_user/meeting_user_id
     restriction_mode: A
