@@ -98,7 +98,7 @@ fields:
     restriction_mode: A
   entitled_at_poll_ids:
     type: relation-list
-    to: poll_entitled_user/meeting_user_ids
+    to: poll_entitled_user/meeting_user_id
     restriction_mode: A
   chat_message_ids:
     type: relation-list
