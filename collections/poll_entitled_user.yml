@@ -13,5 +13,6 @@ fields:
   meeting_user_id:
     type: relation
     to: meeting_user/entitled_at_poll_ids
+    reference: meeting_user
     required: false
     restriction_mode: A
