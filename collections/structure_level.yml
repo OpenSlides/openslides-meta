@@ -1,13 +1,11 @@
 unique_together:
-- meeting_id, name
-
+  - meeting_id, name
 fields:
   id:
     type: number
     restriction_mode: A
     constant: true
     required: true
-
   name:
     type: string
     required: true
@@ -36,4 +34,3 @@ fields:
     to: meeting/structure_level_ids
     constant: true
     restriction_mode: A
-

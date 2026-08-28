@@ -4,7 +4,6 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-
   name:
     type: string
     required: true
@@ -29,7 +28,6 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
   parent_id:
     type: relation
     reference: motion_category
@@ -53,4 +51,3 @@ fields:
     required: true
     restriction_mode: A
     constant: true
-
