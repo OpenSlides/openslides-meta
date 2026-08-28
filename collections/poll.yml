@@ -116,6 +116,7 @@ fields:
   entitled_user_ids:
     type: relation-list
     to: poll_entitled_user/poll_id
+    on_delete: CASCADE
     restriction_mode: A
   projection_ids:
     type: relation-list

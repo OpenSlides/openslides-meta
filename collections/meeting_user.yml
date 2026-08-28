@@ -85,6 +85,7 @@ fields:
   poll_option_ids:
     type: relation-list
     to: poll_option/content_object_id
+    on_delete: PROTECT
     restriction_mode: A
   acting_ballot_ids:
     type: relation-list
