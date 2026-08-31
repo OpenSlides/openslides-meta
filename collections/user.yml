@@ -150,6 +150,10 @@ fields:
     to: committee/native_user_ids
     restriction_mode: E
     reference: committee
+  poll_option_ids:
+    type: relation-list
+    to: poll_option/content_object_id
+    restriction_mode: A
   history_position_ids:
     type: relation-list
     to: history_position/user_id

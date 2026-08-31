@@ -7,9 +7,6 @@ fields:
   entries:
     type: text[]
     restriction_mode: A
-  structured_information:
-    type: JSON
-    restriction_mode: A
   original_model_id:
     type: string
     restriction_mode: A
@@ -19,17 +16,15 @@ fields:
     to:
       collections:
         - assignment
-        - meeting_user
         - motion
-        - poll
+        - topic
         - user
       field: history_entry_ids
     restriction_mode: A
     reference:
       - assignment
-      - meeting_user
       - motion
-      - poll
+      - topic
       - user
   position_id:
     type: relation

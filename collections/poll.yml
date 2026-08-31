@@ -113,10 +113,10 @@ fields:
     to: group/poll_ids
     equal_fields: meeting_id
     restriction_mode: A
-  entitled_meeting_user_ids:
+  entitled_user_ids:
     type: relation-list
-    to: meeting_user/entitled_at_poll_ids
-    equal_fields: meeting_id
+    to: poll_entitled_user/poll_id
+    on_delete: CASCADE
     restriction_mode: A
   projection_ids:
     type: relation-list
@@ -131,7 +131,3 @@ fields:
     restriction_mode: A
     required: true
     constant: true
-  history_entry_ids:
-    type: relation-list
-    to: history_entry/model_id
-    restriction_mode: A
