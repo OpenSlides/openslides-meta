@@ -10,6 +10,7 @@ enum_definitions:
   onehundred_percent_bases:
     - no_general
     - yes_no
+    - yes_no_abstain
     - valid
     - cast
     - entitled
@@ -17,6 +18,7 @@ enum_definitions:
     - disabled
   approval_onehundred_percent_bases:
     - yes_no
+    - yes_no_abstain
     - valid
     - cast
     - entitled
@@ -24,6 +26,7 @@ enum_definitions:
     - disabled
   rating_approval_onehundred_percent_bases:
     - yes_no
+    - yes_no_abstain
     - valid
     - cast
     - entitled
