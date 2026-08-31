@@ -10,7 +10,7 @@ check-pyupgrade:
 	pyupgrade --py310-plus $$(find . -name '*.py')
 
 cleanup-yaml:
-	find ../collections ../*.yml -type f -name "*.yml" | while read f ; do yq -i '.' $$f ; done
+	find ./collections ./*.yml -type f -name "*.yml" | while read f ; do yq -i '.' $$f ; done
 
 black:
 	black $(paths)
