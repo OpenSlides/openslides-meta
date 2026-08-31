@@ -184,6 +184,14 @@ class AlterSchemaHelper:
         )
 
     @staticmethod
+    def get_change_column_type_statement(
+        collection_or_table_name: str, column_name: str, new_type: str
+    ) -> str:
+        return AlterSchemaHelper.get_alter_column_statement(
+            collection_or_table_name, column_name, f"TYPE {new_type}"
+        )
+
+    @staticmethod
     def get_drop_table_constraint_statement(
         collection_or_table_name: str, constraint_name: str
     ) -> str:
@@ -196,3 +204,17 @@ class AlterSchemaHelper:
         collection_or_table_name: str, trigger_name: str
     ) -> str:
         return f"DROP TRIGGER {trigger_name} ON {HelperGetNames.get_table_name(collection_or_table_name)};\n"
+
+    @staticmethod
+    def get_drop_view_statement(collection_name: str) -> str:
+        return f'DROP VIEW IF EXISTS "{collection_name}";\n'
+
+    @staticmethod
+    def generate_change_column_type_statements(
+        collection_name: str, field_name: str, new_type: str
+    ) -> str:
+        return AlterSchemaHelper.get_drop_view_statement(
+            collection_name
+        ) + AlterSchemaHelper.get_change_column_type_statement(
+            collection_name, field_name, new_type
+        )
