@@ -11,19 +11,14 @@ class AlterSchemaHelper:
         foreign_table: str,
         own_column: str,
         fk_column: str,
-        initially_deferred: bool = False,
         delete_action: str = "",
         update_action: str = "",
     ) -> str:
         FOREIGN_KEY_TABLE_CONSTRAINT_TEMPLATE = string.Template(
-            "ALTER TABLE ${own_table} ADD CONSTRAINT ${fk_name} FOREIGN KEY(${own_column}) REFERENCES ${foreign_table}(${fk_column})${initially_deferred}${delete_action}${update_action};\n"
+            "ALTER TABLE ${own_table} ADD CONSTRAINT ${fk_name} FOREIGN KEY(${own_column}) REFERENCES ${foreign_table}(${fk_column}) INITIALLY DEFERRED${delete_action}${update_action};\n"
             "CREATE INDEX ${index} ON ${own_table} (${own_column});\n"
         )
 
-        if initially_deferred:
-            text_initially_deferred = " INITIALLY DEFERRED"
-        else:
-            text_initially_deferred = ""
         own_table = HelperGetNames.get_table_name(table_name)
         foreign_table = HelperGetNames.get_table_name(foreign_table)
         fk_idx = HelperGetNames.get_fk_and_index_name(
@@ -37,7 +32,6 @@ class AlterSchemaHelper:
                 "foreign_table": foreign_table,
                 "own_column": own_column,
                 "fk_column": fk_column,
-                "initially_deferred": text_initially_deferred,
                 "delete_action": Helper.get_on_action_mode(delete_action, True),
                 "update_action": Helper.get_on_action_mode(update_action, False),
             }
