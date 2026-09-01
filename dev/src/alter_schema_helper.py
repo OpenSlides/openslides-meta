@@ -57,6 +57,14 @@ class AlterSchemaHelper:
         )
 
     @staticmethod
+    def get_rename_value_part(
+        constraint_name_old: str, constraint_name_new: str
+    ) -> str:
+        return AlterSchemaHelper.get_rename_part(
+            f" VALUE '{constraint_name_old}'", f"'{constraint_name_new}'"
+        )
+
+    @staticmethod
     def get_alter_view_part(view_name: str) -> str:
         return f"ALTER VIEW {view_name}"
 
@@ -190,3 +198,28 @@ class AlterSchemaHelper:
         collection_or_table_name: str, trigger_name: str
     ) -> str:
         return f"DROP TRIGGER {trigger_name} ON {HelperGetNames.get_table_name(collection_or_table_name)};\n"
+
+    @staticmethod
+    def get_add_value_to_enum(enum_name: str, value: str) -> str:
+        atp = AlterSchemaHelper.get_alter_type_part(enum_name)
+        return f"{atp} ADD VALUE {value};\n"
+
+    @staticmethod
+    def get_rename_value_in_enum(enum_name: str, value_old: str, value_new: str) -> str:
+        atp = AlterSchemaHelper.get_alter_type_part(enum_name)
+        rvp = AlterSchemaHelper.get_rename_value_part(value_old, value_new)
+        return f"{atp} {rvp};\n"
+
+    @staticmethod
+    def get_set_not_null_statement(table_name: str, field_name: str) -> str:
+        return AlterSchemaHelper.get_alter_column_statement(
+            table_name, field_name, "SET NOT NULL"
+        )
+
+    @staticmethod
+    def get_set_default_statement(
+        table_name: str, field_name: str, default: str
+    ) -> str:
+        return AlterSchemaHelper.get_alter_column_statement(
+            table_name, field_name, f"SET DEFAULT {default}"
+        )
