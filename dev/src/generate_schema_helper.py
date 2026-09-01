@@ -1359,18 +1359,9 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             )
 
     @staticmethod
-    def get_initials(
+    def get_type_definition(
         table_name: str, fname: str, type_: str, fdata: dict[str, Any]
-    ) -> tuple[SubstDict, SchemaZoneTexts]:
-        """
-        Helper method to generate common constraints and type definitions for all columns.
-        """
-        text = cast(SchemaZoneTexts, defaultdict(str))
-        flist: list[str] = [
-            cast(str, form[1])
-            for form in Formatter().parse(Helper.FIELD_TEMPLATE.template)
-        ]
-        subst: SubstDict = cast(SubstDict, {k: "" for k in flist})
+    ) -> str:
         enum_type: str | None = None
         if (enum_ := fdata.get("enum")) or (
             enum_ := fdata.get("items", {}).get("enum")
@@ -1386,8 +1377,45 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 raise Exception(f"{table_name}.{fname}: is an unsupported enum value")
             if "[]" in fdata.get("type", ""):
                 enum_type += "[]"
-        subst_type = enum_type or PG_TYPES[type_]
-        subst.update({"field_name": fname, "type": subst_type})
+            return enum_type
+
+        if isinstance((pg_type := PG_TYPES[type_]), string.Template):
+            if type_ == "color":
+                return pg_type.substitute(
+                    {
+                        "color_constraint": Helper.get_inline_color_constraint(
+                            table_name, fname
+                        )
+                    }
+                )
+            return pg_type.substitute(
+                {
+                    "maxLength": Helper.get_varchar_max_length(fdata, type_),
+                    "field_name": fname,
+                    "table_name": table_name,
+                }
+            )
+        return pg_type
+
+    @staticmethod
+    def get_initials(
+        table_name: str, fname: str, type_: str, fdata: dict[str, Any]
+    ) -> tuple[SubstDict, SchemaZoneTexts]:
+        """
+        Helper method to generate common constraints and type definitions for all columns.
+        """
+        text = cast(SchemaZoneTexts, defaultdict(str))
+        flist: list[str] = [
+            cast(str, form[1])
+            for form in Formatter().parse(Helper.FIELD_TEMPLATE.template)
+        ]
+        subst: SubstDict = cast(SubstDict, {k: "" for k in flist})
+        subst.update(
+            {
+                "field_name": fname,
+                "type": Helper.get_type_definition(table_name, fname, type_, fdata),
+            }
+        )
         if fdata.get("required"):
             if fname == "id":
                 subst["required"] = " NOT NULL"

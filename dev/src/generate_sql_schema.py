@@ -1,5 +1,4 @@
 import logging
-import string
 from collections import defaultdict
 from collections.abc import Callable
 from pathlib import Path
@@ -17,7 +16,7 @@ from .helper_get_names import (
     InternalHelper,
     TableFieldType,
 )
-from .typing import PG_TYPES, SchemaZoneTexts, SubstDict
+from .typing import SchemaZoneTexts, SubstDict
 
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 
@@ -495,15 +494,6 @@ class GenerateCodeBlocks:
         text = cast(SchemaZoneTexts, defaultdict(str))
         subst, szt = Helper.get_initials(table_name, fname, type_, fdata)
         text.update(szt)
-        if isinstance((tmp := subst["type"]), string.Template):
-            if maxLength := Helper.get_varchar_max_length(fdata, type_):
-                subst["type"] = tmp.substitute(
-                    {
-                        "maxLength": maxLength,
-                        "field_name": fname,
-                        "table_name": table_name,
-                    }
-                )
         if fdata.get("constant"):
             text["create_trigger_prevent_updates_code"] = (
                 cls.get_trigger_prevent_updates(table_name, fname)
@@ -517,11 +507,6 @@ class GenerateCodeBlocks:
         text = cast(SchemaZoneTexts, defaultdict(str))
         subst, szt = Helper.get_initials(table_name, fname, type_, fdata)
         text.update(szt)
-        tmpl = PG_TYPES[type_]
-        assert isinstance(tmpl, string.Template)
-        subst["type"] = tmpl.substitute(
-            {"color_constraint": Helper.get_inline_color_constraint(table_name, fname)}
-        )
         text["table"] = Helper.FIELD_TEMPLATE.substitute(subst)
         return text, ""
 
