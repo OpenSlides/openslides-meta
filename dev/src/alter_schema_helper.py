@@ -1,4 +1,5 @@
 import string
+from typing import Any
 
 from .generate_schema_helper import Helper
 from .helper_get_names import HelperGetNames
@@ -69,6 +70,10 @@ class AlterSchemaHelper:
     @staticmethod
     def get_alter_table_part(table_name: str) -> str:
         return f"ALTER TABLE {table_name}"
+
+    @staticmethod
+    def get_update_table_part(table_name: str) -> str:
+        return f"UPDATE TABLE {table_name}"
 
     @staticmethod
     def get_alter_type_part(type_name: str) -> str:
@@ -154,6 +159,13 @@ class AlterSchemaHelper:
         return f"{alter_table_part} {action};\n"
 
     @staticmethod
+    def get_update_table_statement(collection_or_table_name: str, action: str) -> str:
+        update_table_part = AlterSchemaHelper.get_update_table_part(
+            HelperGetNames.get_table_name(collection_or_table_name)
+        )
+        return f"{update_table_part} {action};\n"
+
+    @staticmethod
     def get_drop_column_statement(
         collection_or_table_name: str, column_name: str
     ) -> str:
@@ -181,6 +193,14 @@ class AlterSchemaHelper:
     ) -> str:
         return AlterSchemaHelper.get_alter_column_statement(
             collection_or_table_name, column_name, f"DROP {attribute}"
+        )
+
+    @staticmethod
+    def get_set_column_attribute_statement(
+        collection_or_table_name: str, column_name: str, attribute: str
+    ) -> str:
+        return AlterSchemaHelper.get_alter_column_statement(
+            collection_or_table_name, column_name, f"SET {attribute}"
         )
 
     @staticmethod
@@ -217,4 +237,33 @@ class AlterSchemaHelper:
             collection_name
         ) + AlterSchemaHelper.get_change_column_type_statement(
             collection_name, field_name, new_type
+        )
+
+    @staticmethod
+    def get_update_entries_statement(
+        collection_or_table_name: str,
+        column_name: str,
+        value: Any,
+        type_: str,
+        condition: str,
+    ) -> str:
+        return AlterSchemaHelper.get_update_table_statement(
+            collection_or_table_name,
+            f"SET {column_name} = {Helper.format_value(collection_or_table_name, column_name, value, type_)} WHERE {condition}",
+        )
+
+    @staticmethod
+    def get_update_all_entries_statement(
+        collection_or_table_name: str, column_name: str, value: Any, type_: str
+    ) -> str:
+        return AlterSchemaHelper.get_update_entries_statement(
+            collection_or_table_name, column_name, value, type_, "TRUE"
+        )
+
+    @staticmethod
+    def get_update_empty_entries_statement(
+        collection_or_table_name: str, column_name: str, value: Any, type_: str
+    ) -> str:
+        return AlterSchemaHelper.get_update_entries_statement(
+            collection_or_table_name, column_name, value, type_, f"{column_name} IS NULL"
         )
