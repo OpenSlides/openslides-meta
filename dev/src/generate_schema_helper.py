@@ -1350,7 +1350,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         field_name: str,
         plain_value: str | int | bool | float | list[str],
         type_: str,
-        custom_error_message: str = None
+        custom_error_message: str | None = None,
     ) -> str:
         if isinstance(plain_value, str) or type_ in ("string", "text", "timezone"):
             return f"'{plain_value}'"
@@ -1359,7 +1359,10 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         elif isinstance(plain_value, list):
             return '{"' + '", "'.join(plain_value) + '"}' if plain_value else "'{}'"
         else:
-            error_message = custom_error_message or f"{table_name}.{field_name}: type of '{plain_value}' is not supported value type"
+            error_message = (
+                custom_error_message
+                or f"{table_name}.{field_name}: type of '{plain_value}' is not supported value type"
+            )
             raise Exception(error_message)
 
     @staticmethod
@@ -1369,7 +1372,13 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         default: str | int | bool | float | list[str],
         type_: str,
     ) -> str:
-        return Helper.format_value(table_name, field_name, default, type_, f"{table_name}.{field_name}: seems to be an invalid default value")
+        return Helper.format_value(
+            table_name,
+            field_name,
+            default,
+            type_,
+            f"{table_name}.{field_name}: seems to be an invalid default value",
+        )
 
     @staticmethod
     def get_type_definition(

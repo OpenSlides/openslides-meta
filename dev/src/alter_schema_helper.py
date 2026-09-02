@@ -257,7 +257,11 @@ class AlterSchemaHelper:
         collection_or_table_name: str, column_name: str, value: Any, type_: str
     ) -> str:
         return AlterSchemaHelper.get_update_entries_statement(
-            collection_or_table_name, column_name, value, type_, "TRUE"
+            collection_or_table_name,
+            column_name,
+            value,
+            type_,
+            "TRUE",
         )
 
     @staticmethod
@@ -265,5 +269,9 @@ class AlterSchemaHelper:
         collection_or_table_name: str, column_name: str, value: Any, type_: str
     ) -> str:
         return AlterSchemaHelper.get_update_entries_statement(
-            collection_or_table_name, column_name, value, type_, f"{column_name} IS NULL"
+            collection_or_table_name,
+            column_name,
+            value,
+            type_,
+            f"{column_name} IS NULL",
         )
