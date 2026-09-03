@@ -14,9 +14,6 @@ jobs:
   validate-models:
     name: CI
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dev/
 
     steps:
       - uses: actions/checkout@v7
@@ -27,7 +24,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install requirements
-        run: pip install -r requirements.txt
+        run: pip install -r dev/requirements.txt
 
       - name: Check black
         if: always()
@@ -55,14 +52,14 @@ jobs:
 
       - name: Validate models.yml
         if: always()
-        run: make cleanup-yaml && git diff --exit-code ../collections && git diff --exit-code ../*.yml
+        run: make cleanup-yaml && git diff --exit-code ./collections && git diff --exit-code ./*.yml
 
       - name: Generate models.yml from collections
-        run: python -m src.join_models_yml
+        run: python -m dev.src.join_models_yml
 
       - name: Check if models.yml is up-to-date
         run: |
-          if git diff --exit-code ../models.yml; then
+          if git diff --exit-code ./models.yml; then
             echo "✅ models.yml is up-to-date"
           else
             echo "❌ models.yml is out of sync with collections/"

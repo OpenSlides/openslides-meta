@@ -3,7 +3,6 @@ from typing import Any
 import psycopg
 import pytest
 from psycopg import sql
-
 from src.db_utils import DbUtils
 from src.python_sql import Table
 from tests.base import BaseTestCase
