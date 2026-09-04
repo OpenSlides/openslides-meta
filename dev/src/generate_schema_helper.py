@@ -859,7 +859,7 @@ class Helper:
         return [field_name.strip() for field_name in fields.split(",")]
 
     @staticmethod
-    def get_varchar_max_length(fdata: dict[str, Any], type_: str) -> int:
+    def get_varchar_max_length(fdata: dict[str, Any]) -> int:
         if maxLength := fdata.get("maxLength"):
             return maxLength
         return 256
@@ -1411,11 +1411,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                     }
                 )
             return pg_type.substitute(
-                {
-                    "maxLength": Helper.get_varchar_max_length(fdata, type_),
-                    "field_name": fname,
-                    "table_name": table_name,
-                }
+                {"maxLength": Helper.get_varchar_max_length(fdata)}
             )
         return pg_type
 
