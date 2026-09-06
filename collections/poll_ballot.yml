@@ -16,7 +16,6 @@ fields:
   value:
     type: text
     restriction_mode: A
-    constant: true
   poll_id:
     type: relation
     reference: poll
