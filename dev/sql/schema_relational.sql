@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '4ba08fee260346f7ca2b8ddec1918db5'
+-- MODELS_YML_CHECKSUM = 'c0bc5378f4886b235ed9d26699d40ea9'
 
 
 -- ENUM definitions
@@ -4428,10 +4428,6 @@ FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll', 'meeting_id');
 -- definition trigger prevent_updates for poll_ballot.weight
 CREATE TRIGGER tr_constant_poll_ballot_weight BEFORE UPDATE OF weight ON poll_ballot_t
 FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_ballot', 'weight');
-
--- definition trigger prevent_updates for poll_ballot.value
-CREATE TRIGGER tr_constant_poll_ballot_value BEFORE UPDATE OF value ON poll_ballot_t
-FOR EACH ROW EXECUTE FUNCTION prevent_updates('poll_ballot', 'value');
 
 -- definition trigger prevent_updates for poll_ballot.poll_id
 CREATE TRIGGER tr_constant_poll_ballot_poll_id BEFORE UPDATE OF poll_id ON poll_ballot_t
