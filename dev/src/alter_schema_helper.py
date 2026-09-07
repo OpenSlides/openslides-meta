@@ -148,8 +148,10 @@ class AlterSchemaHelper:
         )
 
     @staticmethod
-    def get_drop_table_statement(collection_or_table_name: str) -> str:
-        return f"DROP TABLE {HelperGetNames.get_table_name(collection_or_table_name)} CASCADE;\n"
+    def get_drop_table_statement(
+        collection_or_table_name: str, migration: bool = False
+    ) -> str:
+        return f"DROP TABLE {HelperGetNames.get_table_name(collection_or_table_name, migration)} CASCADE;\n"
 
     @staticmethod
     def get_alter_table_statement(collection_or_table_name: str, action: str) -> str:
