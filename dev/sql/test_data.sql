@@ -55,7 +55,7 @@ INSERT INTO projector_t (
     used_as_default_projector_for_countdown_in_meeting_id,
     used_as_default_projector_for_assignment_poll_in_meeting_id,
     used_as_default_projector_for_motion_poll_in_meeting_id,
-    used_as_default_projector_for_poll_in_meeting_id
+    used_as_default_projector_for_topic_poll_in_meeting_id
 )
 VALUES (2, 2, 'main', 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
 SELECT nextval('projector_t_id_seq');
