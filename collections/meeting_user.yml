@@ -90,12 +90,10 @@ fields:
   acting_ballot_ids:
     type: relation-list
     to: poll_ballot_user/acting_meeting_user_id
-    on_delete: SET_NULL
     restriction_mode: A
   represented_ballot_ids:
     type: relation-list
     to: poll_ballot_user/represented_meeting_user_id
-    on_delete: SET_NULL
     restriction_mode: A
   poll_entitled_user_ids:
     type: relation-list
