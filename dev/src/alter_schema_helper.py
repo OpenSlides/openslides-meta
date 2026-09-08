@@ -277,20 +277,3 @@ class AlterSchemaHelper:
             type_,
             f"{column_name} IS NULL",
         )
-
-    @staticmethod
-    def get_update_multiple_columns_statement(
-        collection_or_table_name: str,
-        column_names: list[str],
-        values_and_types: list[tuple[Any, str]],
-        condition: str,
-    ) -> str:
-        formatted_values = [
-            Helper.format_value(collection_or_table_name, column_names[i], value, type_)
-            for i, value_and_type in enumerate(values_and_types)
-            for value, type_ in values_and_types
-        ]
-        return AlterSchemaHelper.get_update_table_statement(
-            collection_or_table_name,
-            f"SET ({', '.join(column_names)}) = ({', '.join(formatted_values)} WHERE {condition}",
-        )
