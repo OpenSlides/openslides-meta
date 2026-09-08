@@ -56,8 +56,9 @@ class TableFieldType:
         field_def: dict[str, Any] | None,
         ref_column: str = "id",
     ):
+        # TODO: TableFieldType is always created with collection name and not a table name => should be renamed.
+        # TODO: consider introducing the new attribute `table` generated from collection using get_table_name.
         self.table = table
-        self.view = table.rstrip("_t")
         self.column = column
         self.intermediate_column = column[:-1]
         self.field_def: dict[str, Any] = field_def or {}
@@ -187,6 +188,13 @@ class HelperGetNames:
     def get_gm_content_field(table: str, field: str) -> str:
         """Gets the name of content field in an generic:many intermediate table"""
         return f"{table}_{field}_id"
+
+    @staticmethod
+    @max_length
+    def get_generic_plain_field_name(
+        own_column: str, foreign_table: str, ref_column: str
+    ) -> str:
+        return f"{own_column}_{foreign_table}_{ref_column}"
 
     @staticmethod
     @max_length
@@ -512,6 +520,53 @@ class HelperGetNames:
     @max_length
     def get_own_table_name_with_ref_column(own_table_field: TableFieldType) -> str:
         return f"{own_table_field.table}_{own_table_field.ref_column}"
+
+    @staticmethod
+    def get_trigger_names_for_check_equals(
+        equal_field: str,
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        foreign_column: str,
+        foreign_collection: str,
+    ) -> tuple[str, str | None]:
+        own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+            equal_field, own_table, own_column
+        )
+        if (
+            foreign_collection == "meeting"
+            and equal_field == "meeting_id"
+            and "meeting_id" not in InternalHelper.MODELS["meeting"]["fields"]
+        ):
+            foreign_trigger_name = None
+        else:
+            foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+                equal_field, foreign_table, foreign_column
+            )
+        return own_trigger_name, foreign_trigger_name
+
+    @staticmethod
+    def get_trigger_names_for_check_equals_multi(
+        equal_field: str,
+        own_table: str,
+        own_column: str,
+        foreign_table: str,
+        foreign_column: str,
+        is_generic_list: bool,
+    ) -> tuple[str, str, str]:
+        foreign_table_for_generic = foreign_table if is_generic_list else None
+        own_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+            equal_field, own_table, own_column, foreign_table_for_generic
+        )
+        foreign_trigger_name = HelperGetNames.get_equal_field_trigger_name(
+            equal_field, foreign_table, foreign_column
+        )
+        intermediate_trigger_name = (
+            HelperGetNames.get_equal_field_intermediate_trigger_name(
+                equal_field, own_table, own_column, foreign_table_for_generic
+            )
+        )
+        return own_trigger_name, foreign_trigger_name, intermediate_trigger_name
 
 
 class InternalHelper:
