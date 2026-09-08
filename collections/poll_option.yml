@@ -26,5 +26,4 @@ fields:
         - meeting_user
         - user
       field: poll_option_ids
-    required: false
     restriction_mode: A
