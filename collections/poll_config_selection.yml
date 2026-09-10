@@ -21,6 +21,10 @@ fields:
     type: boolean
     default: false
     restriction_mode: A
+  allow_abstain:
+    type: boolean
+    default: true
+    restriction_mode: A
   strike_out:
     type: boolean
     default: false
