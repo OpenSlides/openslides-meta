@@ -73,7 +73,7 @@ class AlterSchemaHelper:
 
     @staticmethod
     def get_update_table_part(table_name: str) -> str:
-        return f"UPDATE TABLE {table_name}"
+        return f"UPDATE {table_name}"
 
     @staticmethod
     def get_alter_type_part(type_name: str) -> str:
