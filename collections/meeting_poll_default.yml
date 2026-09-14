@@ -12,6 +12,7 @@ fields:
   visibility:
     type: string
     enum: poll_visibility
+    default: secret
     restriction_mode: A
   allow_abstain:
     type: boolean
