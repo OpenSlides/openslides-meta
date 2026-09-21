@@ -33,7 +33,9 @@ class GenerateCodeBlocks:
     table_sql: dict[str, str] = {}
     view_sql: dict[str, str] = {}
     alter_table_final_sql: dict[str, str] = {}
-    trigger_sql: dict[str, str] = defaultdict(str)
+    trigger_sql: dict[str, dict[str, dict[str, str]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(str))
+    )
     intermediate_sql: dict[str, str] = {}
     if not InternalHelper.MODELS:
         InternalHelper.read_models_yml()
@@ -170,6 +172,8 @@ class GenerateCodeBlocks:
                     result, error = method_or_str(collection_name, fname, fdata, type_)
                     for k, v in result.items():
                         schema_zone_texts[k] += v or ""  # type: ignore[literal-required]
+                        if k.startswith("create_trigger_"):
+                            cls.trigger_sql[collection_name][fname][k] += v  # type: ignore[operator]
                     if error:
                         errors.append(
                             Helper.prefix_error(error, collection_name, fname)
@@ -221,25 +225,25 @@ class GenerateCodeBlocks:
                 cls.alter_table_final_sql[collection_name] = code + "\n"
                 alter_table_final_code += code + "\n"
             if code := schema_zone_texts["create_trigger_partitioned_sequences"]:
-                cls.trigger_sql[collection_name] = code + "\n"
+                # cls.trigger_sql[collection_name] = code + "\n"
                 create_trigger_partitioned_sequences_code += code + "\n"
             if code := schema_zone_texts["create_trigger_1_1_relation_not_null"]:
-                cls.trigger_sql[collection_name] += code + "\n"
+                # cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_1_1_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_1_n_relation_not_null"]:
-                cls.trigger_sql[collection_name] += code + "\n"
+                # cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_1_n_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_n_m_relation_not_null"]:
-                cls.trigger_sql[collection_name] += code + "\n"
+                # cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_n_m_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_prevent_updates_code"]:
-                cls.trigger_sql[collection_name] += code + "\n"
+                # cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_prevent_updates_code += code + "\n"
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
-                cls.trigger_sql[collection_name] += code + "\n"
+                # cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["create_trigger_equal_fields_code"]:
-                cls.trigger_sql[collection_name] += code + "\n"
+                # cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_equal_fields_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
