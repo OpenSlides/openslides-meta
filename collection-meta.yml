@@ -50,6 +50,11 @@ enum_definitions:
     - no_majority
     - two_third_majority
     - absolute_majority
+  required_majority_selection:
+    - no_majority
+    - two_third_majority
+    - absolute_majority
+    - simple_majority
   poll_visibility:
     - manually
     - named

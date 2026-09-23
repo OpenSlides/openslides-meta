@@ -36,6 +36,6 @@ fields:
     restriction_mode: A
   required_majority:
     type: string
-    enum: required_majority
+    enum: required_majority_selection
     default: no_majority
     restriction_mode: A
