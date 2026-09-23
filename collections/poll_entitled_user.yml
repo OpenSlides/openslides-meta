@@ -15,3 +15,7 @@ fields:
     to: meeting_user/poll_entitled_user_ids
     reference: meeting_user
     restriction_mode: A
+  present:
+    type: boolean
+    required: true
+    restriction_mode: A
