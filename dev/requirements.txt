@@ -1,6 +1,6 @@
 autoflake==2.4.0
 black==26.5.1
-flake8==7.3.0
+flake8==7.4.0
 isort==9.0.1
 sqlfluff==4.3.0
 mypy==2.3.1
@@ -8,7 +8,7 @@ pytest==9.1.1
 pyupgrade==3.21.2
 pyyaml==6.0.3
 simplejson==4.1.2
-debugpy==1.8.21
+debugpy==1.8.22
 requests==2.34.2
 psycopg[binary]==3.3.4
 python-sql==1.8.1
