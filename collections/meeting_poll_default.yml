@@ -54,7 +54,6 @@ fields:
   display_chart:
     type: string
     restriction_mode: A
-
   used_as_assignment_poll_config_in_meeting_id:
     type: relation
     to: meeting/assignment_poll_config_id
