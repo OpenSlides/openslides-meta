@@ -12,15 +12,6 @@ fields:
     type: boolean
     default: false
     restriction_mode: A
-  # Defaults for poll create form
-  default_method:
-    type: string
-    restriction_mode: A
-  visibility:
-    type: string
-    enum: poll_visibility
-    default: secret
-    restriction_mode: A
   enable_max_yes_votes:
     type: boolean
     default: false
@@ -32,6 +23,15 @@ fields:
   enable_max_options_limit:
     type: boolean
     default: false
+    restriction_mode: A
+  # Defaults for poll create form
+  default_method:
+    type: string
+    restriction_mode: A
+  visibility:
+    type: string
+    enum: poll_visibility
+    default: secret
     restriction_mode: A
   default_live_voting_enabled:
     type: boolean
