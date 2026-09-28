@@ -16,7 +16,7 @@ fields:
     type: boolean
     default: false
     restriction_mode: A
-  enable_comulative_voting:
+  enable_cumulative_voting:
     type: boolean
     default: false
     restriction_mode: A
