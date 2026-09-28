@@ -60,12 +60,6 @@ enum_definitions:
     - named
     - open
     - secret
-  poll_methods:
-    - approval
-    - selection
-    - rating_score
-    - rating_approval
-    - stv_scottish
 id_field: &id_field
   type: number
   restriction_mode: A

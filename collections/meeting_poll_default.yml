@@ -8,23 +8,39 @@ fields:
     type: boolean
     default: true
     restriction_mode: A
+  allow_live_voting:
+    type: boolean
+    default: false
+    restriction_mode: A
   # Defaults for poll create form
+  default_method:
+    type: string
+    restriction_mode: A
   visibility:
     type: string
     enum: poll_visibility
     default: secret
     restriction_mode: A
-  allow_abstain:
-    type: boolean
-    default: true
-    restriction_mode: A
-  allow_nota:
+  enable_max_yes_votes:
     type: boolean
     default: false
     restriction_mode: A
-  strike_out:
+  enable_comulative_voting:
     type: boolean
     default: false
+    restriction_mode: A
+  enable_max_options_limit:
+    type: boolean
+    default: false
+    restriction_mode: A
+  default_live_voting_enabled:
+    type: boolean
+    default: false
+    restriction_mode: A
+  default_required_majority:
+    type: string
+    enum: required_majority
+    default: no_majority
     restriction_mode: A
   onehundred_percent_base:
     type: string
@@ -38,6 +54,7 @@ fields:
   display_chart:
     type: string
     restriction_mode: A
+
   used_as_assignment_poll_config_in_meeting_id:
     type: relation
     to: meeting/assignment_poll_config_id
