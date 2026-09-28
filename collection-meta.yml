@@ -60,6 +60,14 @@ enum_definitions:
     - named
     - open
     - secret
+  poll_methods:
+    - approval.yes_no
+    - approval.yes_no_abstain
+    - selection.yes
+    - selection.no
+    - rating_score
+    - rating_approval.yes_no
+    - rating_approval.yes_no_abstain
 id_field: &id_field
   type: number
   restriction_mode: A

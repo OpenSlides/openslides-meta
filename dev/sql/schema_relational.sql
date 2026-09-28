@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'a7eb1332e9aa38190459f64222d6228c'
+-- MODELS_YML_CHECKSUM = 'effae6b211e2a035c3415f0164682b38'
 
 
 -- ENUM definitions
@@ -23,6 +23,8 @@ CREATE TYPE enum_required_majority AS ENUM ('no_majority', 'two_third_majority',
 CREATE TYPE enum_required_majority_selection AS ENUM ('no_majority', 'two_third_majority', 'absolute_majority', 'simple_majority');
 
 CREATE TYPE enum_poll_visibility AS ENUM ('manually', 'named', 'open', 'secret');
+
+CREATE TYPE enum_poll_methods AS ENUM ('approval.yes_no', 'approval.yes_no_abstain', 'selection.yes', 'selection.no', 'rating_score', 'rating_approval.yes_no', 'rating_approval.yes_no_abstain');
 
 CREATE TYPE enum_action_worker_state AS ENUM ('running', 'end', 'aborted');
 
@@ -1535,7 +1537,7 @@ CREATE TABLE meeting_poll_default_t (
         CONSTRAINT default_meeting_poll_default_enable_comulative_voting DEFAULT False,
     enable_max_options_limit boolean
         CONSTRAINT default_meeting_poll_default_enable_max_options_limit DEFAULT False,
-    default_method varchar(256),
+    default_method enum_poll_methods,
     visibility enum_poll_visibility
         CONSTRAINT default_meeting_poll_default_visibility DEFAULT 'secret',
     default_live_voting_enabled boolean

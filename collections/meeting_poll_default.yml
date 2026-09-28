@@ -27,6 +27,7 @@ fields:
   # Defaults for poll create form
   default_method:
     type: string
+    enum: poll_methods
     restriction_mode: A
   visibility:
     type: string
