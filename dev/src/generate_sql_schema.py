@@ -16,7 +16,7 @@ from .helper_get_names import (
     InternalHelper,
     TableFieldType,
 )
-from .typing import SchemaZoneTexts, SubstDict
+from .typing import SchemaZoneTexts, SubstDict, TriggerSqlDict
 
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 
@@ -33,15 +33,16 @@ class GenerateCodeBlocks:
     table_sql: dict[str, str] = {}
     view_sql: dict[str, str] = {}
     alter_table_final_sql: dict[str, str] = {}
-    trigger_sql: dict[str, dict[str, dict[str, str]]] = defaultdict(
+    trigger_sql: TriggerSqlDict = defaultdict(
         lambda: defaultdict(lambda: defaultdict(str))
     )
+    # Map of intermediate table name and sql definition of all intermediate tables
     intermediate_sql: dict[str, str] = {}
+    # In comparison to intermediate_sql, reinitialized for every collection.
+    intermediate_tables: dict[str, str] = {}
+
     if not InternalHelper.MODELS:
         InternalHelper.read_models_yml()
-    intermediate_tables: dict[str, str] = (
-        {}
-    )  # Key=Name, data: collected content of table
 
     @classmethod
     def generate_the_code(
@@ -154,7 +155,6 @@ class GenerateCodeBlocks:
 
             fields = data["fields"]
             schema_zone_texts = cast(SchemaZoneTexts, defaultdict(str))
-            cls.intermediate_tables = {}
 
             for fname, fdata in fields.items():
                 for attr in fdata:
@@ -240,9 +240,10 @@ class GenerateCodeBlocks:
                 create_trigger_equal_fields_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
-            for im_table in cls.intermediate_tables.values():
-                cls.intermediate_sql[collection_name] = im_table
-                im_table_code += im_table
+            for im_table_name, im_table_def in cls.intermediate_tables.items():
+                cls.intermediate_sql[im_table_name] = im_table_def
+                im_table_code += im_table_def
+            cls.intermediate_tables = {}
 
             # schema_zone_texts is filled per model field.
             # If any fields for this collection generated table code, create the main notify trigger on it.
