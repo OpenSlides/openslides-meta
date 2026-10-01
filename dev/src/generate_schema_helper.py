@@ -731,8 +731,10 @@ class Helper:
                 return letter
 
     @staticmethod
-    def get_table_head(table_name: str) -> str:
-        return f"\nCREATE TABLE {HelperGetNames.get_table_name(table_name)} (\n"
+    def get_table_head(table_or_collection: str) -> str:
+        return (
+            f"\nCREATE TABLE {HelperGetNames.get_table_name(table_or_collection)} (\n"
+        )
 
     @staticmethod
     def get_table_body_end(code: str) -> str:
@@ -741,8 +743,8 @@ class Helper:
         return code
 
     @staticmethod
-    def get_view_head(table_name: str) -> str:
-        return f"\nCREATE VIEW {HelperGetNames.get_view_name(table_name)} AS SELECT *"
+    def get_view_head(view_name: str) -> str:
+        return f"\nCREATE VIEW {HelperGetNames.get_view_name(view_name)} AS SELECT *"
 
     @staticmethod
     def get_view_body_end(table_name: str, code: str) -> str:
@@ -757,12 +759,14 @@ class Helper:
         return code
 
     @staticmethod
-    def get_notify_trigger(table_name: str) -> str:
-        trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
-        own_table = HelperGetNames.get_table_name(table_name)
-        escaped_table_name = "'" + table_name + "'"
+    def get_notify_trigger(collection_name: str) -> str:
+        trigger_name = HelperGetNames.get_notify_trigger_name(collection_name)
+        own_table = HelperGetNames.get_table_name(collection_name)
+        escaped_view_name = "'" + collection_name + "'"
         code = f"CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
-        code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
+        code += (
+            f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_view_name});\n"
+        )
         code += f"CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();\n"
         return code
@@ -786,72 +790,75 @@ class Helper:
         return f"\n        CONSTRAINT {constraint_name} {check}"
 
     @staticmethod
-    def get_inline_unique_constraint(table_name: str, fname: str) -> str:
+    def get_inline_unique_constraint(
+        view_name: str, fname: str, value: bool = True
+    ) -> str:
+        # unused parameter value to keep the signature aligned for generic method access
         return Helper.get_constraint_with_line_break(
-            HelperGetNames.get_unique_constraint_name(table_name, [fname]),
+            HelperGetNames.get_unique_constraint_name(view_name, [fname]),
             "UNIQUE",
         )
 
     @staticmethod
-    def get_inline_required_constraint(table_name: str, fname: str) -> str:
+    def get_inline_required_constraint(view_name: str, fname: str) -> str:
         return Helper.get_constraint_with_line_break(
-            HelperGetNames.get_required_constraint_name(table_name, fname),
+            HelperGetNames.get_required_constraint_name(view_name, fname),
             "NOT NULL",
         )
 
     @staticmethod
-    def get_inline_default_constraint(table_name: str, fname: str, default: str) -> str:
+    def get_inline_default_constraint(view_name: str, fname: str, default: str) -> str:
         return Helper.get_constraint_with_line_break(
-            HelperGetNames.get_default_constraint_name(table_name, fname),
+            HelperGetNames.get_default_constraint_name(view_name, fname),
             f"DEFAULT {default}",
         )
 
     @staticmethod
-    def get_inline_timezone_constraint(table_name: str, fname: str) -> str:
+    def get_inline_timezone_constraint(view_name: str, fname: str) -> str:
         return Helper.get_constraint_with_line_break(
-            HelperGetNames.get_timezone_constraint_name(table_name, fname),
+            HelperGetNames.get_timezone_constraint_name(view_name, fname),
             f"CHECK (is_timezone({fname}))",
         )
 
     @staticmethod
-    def get_inline_minimum_constraint(table_name: str, fname: str, minimum: int) -> str:
+    def get_inline_minimum_constraint(view_name: str, fname: str, minimum: int) -> str:
         return Helper.get_constraint_with_line_break(
-            HelperGetNames.get_minimum_constraint_name(table_name, fname),
+            HelperGetNames.get_minimum_constraint_name(view_name, fname),
             f"CHECK ({fname} >= {minimum})",
         )
 
     @staticmethod
-    def get_inline_maximum_constraint(table_name: str, fname: str, maximum: int) -> str:
+    def get_inline_maximum_constraint(view_name: str, fname: str, maximum: int) -> str:
         return Helper.get_constraint_with_line_break(
-            HelperGetNames.get_maximum_constraint_name(table_name, fname),
+            HelperGetNames.get_maximum_constraint_name(view_name, fname),
             f"CHECK ({fname} <= {maximum})",
         )
 
     @staticmethod
     def get_inline_minlength_constraint(
-        table_name: str, fname: str, minLength: int
+        view_name: str, fname: str, minLength: int
     ) -> str:
         return Helper.get_constraint_with_line_break(
-            HelperGetNames.get_minlength_constraint_name(table_name, fname),
+            HelperGetNames.get_minlength_constraint_name(view_name, fname),
             f"CHECK (char_length({fname}) >= {minLength})",
         )
 
     @staticmethod
-    def get_inline_color_constraint(table_name: str, fname: str) -> str:
+    def get_inline_color_constraint(view_name: str, fname: str) -> str:
         return Helper.get_constraint_with_line_break(
-            HelperGetNames.get_color_constraint_name(table_name, fname),
+            HelperGetNames.get_color_constraint_name(view_name, fname),
             f"CHECK ({fname} is null or {fname} ~* '^#[a-f0-9]{{6}}$')",
         )
 
     @staticmethod
     def get_inline_generated_always_as_constraint(
-        own_table: str, generic_fname: str, own_column: str, foreign_table: str
+        own_view: str, generic_fname: str, own_column: str, foreign_collection: str
     ) -> str:
         return Helper.get_constraint_with_line_break(
             HelperGetNames.get_generated_always_as_constraint_name(
-                own_table, generic_fname
+                own_view, generic_fname
             ),
-            f"GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_table}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED",
+            f"GENERATED ALWAYS AS (CASE WHEN split_part({own_column}, '/', 1) = '{foreign_collection}' THEN cast(split_part({own_column}, '/', 2) AS INTEGER) ELSE null END) STORED",
         )
 
     @staticmethod
@@ -866,10 +873,10 @@ class Helper:
 
     @classmethod
     def get_unique_together_constraint_definition(
-        cls, table: str, fields: list[str], strict: bool
+        cls, view_name: str, fields: list[str], strict: bool
     ) -> str:
         strict_definition = " NULLS NOT DISTINCT" if strict else ""
-        return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE{strict_definition} ({', '.join(fields)}),\n"
+        return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(view_name, fields)} UNIQUE{strict_definition} ({', '.join(fields)}),\n"
 
     @staticmethod
     def get_enum_types_definitions() -> str:
@@ -895,16 +902,16 @@ class Helper:
     @staticmethod
     def get_foreign_key_notify_trigger(
         table_name: str,
-        foreign_table: str,
+        foreign_view: str,
         ref_column: str,
         updated_field: str,
     ) -> str:
+        # TODO IMHO should use view name here.
         trigger_name = HelperGetNames.get_notify_related_trigger_name(
             table_name, ref_column
         )
-        own_table = HelperGetNames.get_table_name(table_name)
-        return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}', '{updated_field}');\n"""
+        return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR DELETE OR UPDATE OF {ref_column} ON {table_name}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_view}', '{ref_column}', '{updated_field}');\n"""
 
     @staticmethod
     def get_log_calculated_id_array_trigger_data(
@@ -913,6 +920,10 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         log_trigger: dict[str, str],
         processed_tables: dict[str, int],
     ) -> tuple[str, str, str, str]:
+        """
+        Meant for usage with the log_triggers field attribute.
+        Processed tables is a dictionary counting triggers per table using that id for guarantying name uniqueness.
+        """
         on_table = log_trigger["on_table"]
         on_columns = log_trigger.get("on_columns")
 
@@ -929,14 +940,13 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             )
         )
 
-        trigger_columns_iu = f" OR UPDATE OF {on_columns}" if on_columns else ""
-        trigger_columns_ud = f" UPDATE OF {on_columns} OR" if on_columns else ""
+        trigger_columns = f" OR UPDATE OF {on_columns}" if on_columns else ""
 
         return (
             trigger_name_iu,
             trigger_name_ud,
-            f"BEFORE INSERT{trigger_columns_iu}",
-            f"AFTER{trigger_columns_ud} DELETE",
+            f"BEFORE INSERT{trigger_columns}",
+            f"AFTER DELETE{trigger_columns}",
         )
 
     @staticmethod
@@ -1025,8 +1035,8 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             own_table_field, foreign_table_field
         )
         table_name = HelperGetNames.get_table_name(nm_table_name)
-        table1 = HelperGetNames.get_table_name(own_table_field.table)
-        table2 = HelperGetNames.get_table_name(foreign_table_field.table)
+        table1 = own_table_field.table
+        table2 = foreign_table_field.table
         fk_idx1 = HelperGetNames.get_fk_and_index_name(table_name, field1, table1, "id")
         fk_idx2 = HelperGetNames.get_fk_and_index_name(table_name, field2, table2, "id")
         text = Helper.INTERMEDIATE_TABLE_N_M_RELATION_TEMPLATE.substitute(
@@ -1069,7 +1079,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         own_table_field: TableFieldType, foreign_table_fields: list[TableFieldType]
     ) -> tuple[str, str, dict[str, TableFieldType], str, str, list[str], list[str]]:
         gm_table_name = HelperGetNames.get_gm_table_name(own_table_field)
-        own_table_name = HelperGetNames.get_table_name(own_table_field.table)
+        own_table_name = own_table_field.table
         own_table_column = own_table_field.intermediate_column
         own_table_name_with_ref_column = (
             HelperGetNames.get_own_table_name_with_ref_column(own_table_field)
@@ -1079,24 +1089,24 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         indices_lines = []
         intermediate_field_to_foreign_table_field: dict[str, TableFieldType] = {}
         for foreign_table_field in foreign_table_fields:
-            foreign_table_name = foreign_table_field.table
+            foreign_view_name = foreign_table_field.view
             gm_content_field = HelperGetNames.get_gm_content_field(
-                own_table_column, foreign_table_name
+                own_table_column, foreign_view_name
             )
             intermediate_field_to_foreign_table_field[gm_content_field] = (
                 foreign_table_field
             )
             fk_idx = HelperGetNames.get_fk_and_index_name(
-                gm_table_name, gm_content_field, foreign_table_name, "id"
+                gm_table_name, gm_content_field, foreign_view_name, "id"
             )
             subst_dict = {
                 "own_table_column": own_table_column,
                 "fk_name": fk_idx[0],
-                "foreign_table_name": HelperGetNames.get_table_name(foreign_table_name),
-                "foreign_view_name": foreign_table_name,
+                "foreign_table_name": foreign_table_field.table,
+                "foreign_view_name": foreign_view_name,
                 "gm_content_field": gm_content_field,
                 "constraint_name": HelperGetNames.get_generated_always_as_constraint_name(
-                    own_table_field.table, own_table_column
+                    own_table_field.view, own_table_column
                 ),
             }
             foreign_table_ref_lines.append(
@@ -1130,7 +1140,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
             "('"
             + "', '".join(
                 [
-                    foreign_table_field.table
+                    foreign_table_field.view
                     for foreign_table_field in foreign_table_fields
                 ]
             )
@@ -1174,7 +1184,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
                     gm_table_name, own_table_column
                 ),
                 "valid_constraint_name": HelperGetNames.get_generic_valid_constraint_name(
-                    own_table_field.table, own_table_column
+                    own_table_field.view, own_table_column
                 ),
                 "unique_constraint_name": HelperGetNames.get_generic_unique_constraint_name(
                     own_table_name_with_ref_column, own_table_column
@@ -1190,7 +1200,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         )
 
     @staticmethod
-    def get_trigger_for_intermediate_table(
+    def get_log_trigger_for_intermediate_table(
         own_table_field: TableFieldType, foreign_table_field: TableFieldType
     ) -> str:
 
@@ -1210,26 +1220,25 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
 
         return f"""
-CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{own_table_field.column}','{foreign_table_field.table}','{field2}','{foreign_table_field.column}');
-CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
+CREATE TRIGGER {trigger_name} AFTER INSERT OR DELETE OR UPDATE ON {nm_table_name}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.view}','{field1}','{own_table_field.column}','{foreign_table_field.view}','{field2}','{foreign_table_field.column}');
+CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR DELETE OR UPDATE ON {nm_table_name}
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 """
 
     @staticmethod
     def get_log_trigger_for_generic_relation(
-        table_name: str,
+        own_table_name: str,
         generic_plain_field_name: str,
         updated_field: str,
-        foreign_table: str,
+        foreign_view: str,
     ) -> str:
         trigger_name = HelperGetNames.get_notify_related_trigger_name(
-            foreign_table, generic_plain_field_name
+            foreign_view, generic_plain_field_name
         )
-        own_table_name = HelperGetNames.get_table_name(table_name)
         return f"""
-CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}','{updated_field}');
+CREATE TRIGGER {trigger_name} AFTER INSERT OR DELETE OR UPDATE OF {generic_plain_field_name} ON {own_table_name}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_view}','{generic_plain_field_name}','{updated_field}');
 """
 
     @staticmethod
@@ -1242,19 +1251,19 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{ge
 
         for foreign_table_field in foreign_table_fields:
             gm_content_field = HelperGetNames.get_gm_content_field(
-                own_table_field.intermediate_column, foreign_table_field.table
+                own_table_field.intermediate_column, foreign_table_field.view
             )
             trigger_name = HelperGetNames.get_notify_gm_related_trigger_name(
                 gm_content_field, gm_table_name
             )
             own_table_name_with_ref_column = (
-                f"{own_table_field.table}_{own_table_field.ref_column}"
+                f"{own_table_field.view}_{own_table_field.ref_column}"
             )
             trigger_text += f"""
-CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
-FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{own_table_field.column}','{foreign_table_field.table}','{gm_content_field}','{foreign_table_field.column}');
+CREATE TRIGGER {trigger_name} AFTER INSERT OR DELETE OR UPDATE OF {gm_content_field} ON {gm_table_name}
+FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.view}','{own_table_name_with_ref_column}','{own_table_field.column}','{foreign_table_field.view}','{gm_content_field}','{foreign_table_field.column}');
 """
-        trigger_text += f"""CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {gm_table_name}
+        trigger_text += f"""CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR DELETE OR UPDATE ON {gm_table_name}
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();
 """
         return trigger_text
@@ -1268,7 +1277,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         - The name of the table that should be used
         - If the field can be updated
         """
-        collection = table_field.table
+        collection = table_field.view
         on_update_fields = []
         for field in fields:
             if isinstance(field, TableFieldType):
@@ -1282,7 +1291,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 field_name = field
             if field_def and not field_def.get("constant"):
                 on_update_fields.append(field_name)
-        return HelperGetNames.get_table_name(table_field.table), on_update_fields
+        return table_field.table, on_update_fields
 
     @staticmethod
     def get_event_string(on_update_fields: list[str]) -> str:
@@ -1325,7 +1334,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 own_column,
                 foreign_table,
                 foreign_table_field.column,
-                foreign_table_field.table,
+                foreign_table_field.view,
             )
         )
         return (
@@ -1336,13 +1345,13 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             own_on_update_fields,
             foreign_on_update_fields,
             own_event_str,
-            own_table_field.table,
+            own_table_field.view,
             own_column,
         )
 
     @staticmethod
     def get_formatted_default_value(
-        table_name: str,
+        view_name: str,
         field_name: str,
         default: str | int | bool | float | list[str],
         type_: str,
@@ -1355,12 +1364,12 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             return '{"' + '", "'.join(default) + '"}' if default else "'{}'"
         else:
             raise Exception(
-                f"{table_name}.{field_name}: seems to be an invalid default value"
+                f"{view_name}.{field_name}: seems to be an invalid default value"
             )
 
     @staticmethod
     def get_type_definition(
-        table_name: str, fname: str, type_: str, fdata: dict[str, Any]
+        view_name: str, fname: str, type_: str, fdata: dict[str, Any]
     ) -> str:
         enum_type: str | None = None
         if (enum_ := fdata.get("enum")) or (
@@ -1371,10 +1380,10 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
             elif isinstance(enum_, list) and all(
                 isinstance(item, str) for item in enum_
             ):
-                enum_type = HelperGetNames.get_enum_name_for_column(table_name, fname)
+                enum_type = HelperGetNames.get_enum_name_for_column(view_name, fname)
                 InternalHelper.ENUMS[enum_type] = enum_
             else:
-                raise Exception(f"{table_name}.{fname}: is an unsupported enum value")
+                raise Exception(f"{view_name}.{fname}: is an unsupported enum value")
             if "[]" in fdata.get("type", ""):
                 enum_type += "[]"
             return enum_type
@@ -1384,22 +1393,18 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 return pg_type.substitute(
                     {
                         "color_constraint": Helper.get_inline_color_constraint(
-                            table_name, fname
+                            view_name, fname
                         )
                     }
                 )
             return pg_type.substitute(
-                {
-                    "maxLength": Helper.get_varchar_max_length(fdata, type_),
-                    "field_name": fname,
-                    "table_name": table_name,
-                }
+                {"maxLength": Helper.get_varchar_max_length(fdata, type_)}
             )
         return pg_type
 
     @staticmethod
     def get_initials(
-        table_name: str, fname: str, type_: str, fdata: dict[str, Any]
+        view_name: str, fname: str, type_: str, fdata: dict[str, Any]
     ) -> tuple[SubstDict, SchemaZoneTexts]:
         """
         Helper method to generate common constraints and type definitions for all columns.
@@ -1413,7 +1418,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         subst.update(
             {
                 "field_name": fname,
-                "type": Helper.get_type_definition(table_name, fname, type_, fdata),
+                "type": Helper.get_type_definition(view_name, fname, type_, fdata),
             }
         )
         if fdata.get("required"):
@@ -1421,36 +1426,36 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
                 subst["required"] = " NOT NULL"
             else:
                 subst["required"] = Helper.get_inline_required_constraint(
-                    table_name, fname
+                    view_name, fname
                 )
         if fdata.get("unique"):
-            subst["unique"] = Helper.get_inline_unique_constraint(table_name, fname)
+            subst["unique"] = Helper.get_inline_unique_constraint(view_name, fname)
         if (default := fdata.get("default")) is not None:
             default_value = Helper.get_formatted_default_value(
-                table_name, fname, default, type_
+                view_name, fname, default, type_
             )
             subst["default"] = Helper.get_inline_default_constraint(
-                table_name, fname, default_value
+                view_name, fname, default_value
             )
         if type_ == "timezone":
             subst["check_timezone"] = Helper.get_inline_timezone_constraint(
-                table_name, fname
+                view_name, fname
             )
         if (minimum := fdata.get("minimum")) is not None:
             subst["minimum"] = Helper.get_inline_minimum_constraint(
-                table_name, fname, minimum
+                view_name, fname, minimum
             )
         if (maximum := fdata.get("maximum")) is not None:
             subst["maximum"] = Helper.get_inline_maximum_constraint(
-                table_name, fname, maximum
+                view_name, fname, maximum
             )
         if minLength := fdata.get("minLength"):
             subst["minLength"] = Helper.get_inline_minlength_constraint(
-                table_name, fname, minLength
+                view_name, fname, minLength
             )
         if comment := fdata.get("description"):
             text["alter_table"] = Helper.get_post_view_comment(
-                HelperGetNames.get_table_name(table_name), fname, comment
+                HelperGetNames.get_table_name(view_name), fname, comment
             )
         return subst, text
 
@@ -1461,37 +1466,36 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 
     @staticmethod
     def get_generic_combined_fields(
-        table_name: str,
+        view_name: str,
         generic_plain_field_name: str,
         own_column: str,
         foreign_field: TableFieldType,
     ) -> str:
-        foreign_table = foreign_field.table
         foreign_card, error = InternalHelper.get_cardinality(foreign_field)
         if error:
             raise Exception(error)
         if foreign_card.startswith("1"):
             unique = Helper.get_inline_unique_constraint(
-                table_name, generic_plain_field_name
+                view_name, generic_plain_field_name
             )
         else:
             unique = ""
 
         generated_always_as = Helper.get_inline_generated_always_as_constraint(
-            table_name, generic_plain_field_name, own_column, foreign_table
+            view_name, generic_plain_field_name, own_column, foreign_field.view
         )
 
         return f"    {generic_plain_field_name} integer{unique}{generated_always_as},\n"
 
     @staticmethod
     def get_generic_field_constraint(
-        collection: str, own_column: str, foreign_tables: list[str]
+        collection: str, own_column: str, foreign_collections: list[str]
     ) -> str:
         constraint_name = HelperGetNames.get_generic_valid_constraint_name(
             collection, own_column
         )
-        return f"""    CONSTRAINT {constraint_name} CHECK (split_part({own_column}, '/', 1) IN ('{"','".join(foreign_tables)}')),\n"""
+        return f"""    CONSTRAINT {constraint_name} CHECK (split_part({own_column}, '/', 1) IN ('{"','".join(foreign_collections)}')),\n"""
 
     @staticmethod
-    def prefix_error(method_or_str: str, table_name: str, fname: str) -> str:
-        return f"    {table_name}/{fname}: {method_or_str}"
+    def prefix_error(method_or_str: str, collection_name: str, fname: str) -> str:
+        return f"    {collection_name}/{fname}: {method_or_str}"
