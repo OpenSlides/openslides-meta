@@ -7,7 +7,7 @@ from .helper_get_names import HelperGetNames
 class AlterSchemaHelper:
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
-        table_name: str,
+        own_table: str,
         foreign_table: str,
         own_column: str,
         fk_column: str,
@@ -19,8 +19,6 @@ class AlterSchemaHelper:
             "CREATE INDEX ${index} ON ${own_table} (${own_column});\n"
         )
 
-        own_table = HelperGetNames.get_table_name(table_name)
-        foreign_table = HelperGetNames.get_table_name(foreign_table)
         fk_idx = HelperGetNames.get_fk_and_index_name(
             own_table, own_column, foreign_table, fk_column
         )
