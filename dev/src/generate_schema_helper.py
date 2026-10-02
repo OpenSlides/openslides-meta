@@ -875,13 +875,17 @@ class Helper:
     def get_enum_types_definitions() -> str:
         result = "\n"
         for name, values in InternalHelper.ENUMS.items():
-            result += Helper.ENUM_DEFINITION_TEMPLATE.substitute(
-                {
-                    "name": name,
-                    "values": ", ".join([f"'{item}'" for item in values]),
-                }
-            )
+            result += Helper.get_enum_type_definition(name, values)
         return result
+
+    @staticmethod
+    def get_enum_type_definition(name: str, enum_list: list[str]) -> str:
+        return Helper.ENUM_DEFINITION_TEMPLATE.substitute(
+            {
+                "name": name,
+                "values": ", ".join([f"'{item}'" for item in enum_list]),
+            }
+        )
 
     @staticmethod
     def get_on_action_mode(action: str, delete: bool) -> str:
@@ -1465,6 +1469,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         generic_plain_field_name: str,
         own_column: str,
         foreign_field: TableFieldType,
+        is_add: bool = False,
     ) -> str:
         foreign_table = foreign_field.table
         foreign_card, error = InternalHelper.get_cardinality(foreign_field)
@@ -1480,17 +1485,22 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         generated_always_as = Helper.get_inline_generated_always_as_constraint(
             table_name, generic_plain_field_name, own_column, foreign_table
         )
+        add_text = "ADD COLUMN " if is_add else ""
 
-        return f"    {generic_plain_field_name} integer{unique}{generated_always_as},\n"
+        return f"    {add_text}{generic_plain_field_name} integer{unique}{generated_always_as},\n"
 
     @staticmethod
     def get_generic_field_constraint(
-        collection: str, own_column: str, foreign_tables: list[str]
+        collection: str,
+        own_column: str,
+        foreign_tables: list[str],
+        is_add: bool = False,
     ) -> str:
         constraint_name = HelperGetNames.get_generic_valid_constraint_name(
             collection, own_column
         )
-        return f"""    CONSTRAINT {constraint_name} CHECK (split_part({own_column}, '/', 1) IN ('{"','".join(foreign_tables)}')),\n"""
+        add_text = "ADD " if is_add else ""
+        return f"""    {add_text}CONSTRAINT {constraint_name} CHECK (split_part({own_column}, '/', 1) IN ('{"','".join(foreign_tables)}')),\n"""
 
     @staticmethod
     def prefix_error(method_or_str: str, table_name: str, fname: str) -> str:
