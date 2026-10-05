@@ -40,7 +40,6 @@ fields:
     restriction_mode: A
   default_required_majority:
     type: string
-    enum: required_majority
     default: no_majority
     restriction_mode: A
   onehundred_percent_base:
@@ -51,9 +50,6 @@ fields:
     type: relation-list
     to: group/used_in_meeting_poll_default_ids
     equal_fields: meeting_id
-    restriction_mode: A
-  display_chart:
-    type: string
     restriction_mode: A
   used_as_assignment_poll_config_in_meeting_id:
     type: relation
