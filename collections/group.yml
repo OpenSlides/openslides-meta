@@ -123,9 +123,9 @@ fields:
     to: poll/entitled_group_ids
     equal_fields: meeting_id
     restriction_mode: A
-  used_in_meeting_poll_default_ids:
+  used_in_meeting_poll_setting_ids:
     type: relation-list
-    to: meeting_poll_default/group_ids
+    to: meeting_poll_setting/group_ids
     restriction_mode: A
   meeting_id:
     type: relation

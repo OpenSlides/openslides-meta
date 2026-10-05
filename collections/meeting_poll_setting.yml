@@ -25,7 +25,7 @@ fields:
     default: false
     restriction_mode: A
   # Defaults for poll create form
-  default_method:
+  method:
     type: string
     enum: poll_methods
     restriction_mode: A
@@ -34,11 +34,11 @@ fields:
     enum: poll_visibility
     default: secret
     restriction_mode: A
-  default_live_voting_enabled:
+  enable_live_voting:
     type: boolean
     default: false
     restriction_mode: A
-  default_required_majority:
+  required_majority:
     type: string
     default: no_majority
     restriction_mode: A
@@ -48,7 +48,7 @@ fields:
     restriction_mode: A
   group_ids:
     type: relation-list
-    to: group/used_in_meeting_poll_default_ids
+    to: group/used_in_meeting_poll_setting_ids
     equal_fields: meeting_id
     restriction_mode: A
   used_as_assignment_poll_config_in_meeting_id:
@@ -70,6 +70,6 @@ fields:
     type: relation
     required: true
     reference: meeting
-    to: meeting/poll_default_ids
+    to: meeting/poll_setting_ids
     constant: true
     restriction_mode: A
