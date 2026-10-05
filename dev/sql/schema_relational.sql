@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'b677771c4d811a0b85c28f1b8fbfa9ef'
+-- MODELS_YML_CHECKSUM = '04bc77cc3041081ef9a1680d6c297b06'
 
 
 -- ENUM definitions
@@ -1537,13 +1537,13 @@ CREATE TABLE meeting_poll_default_t (
         CONSTRAINT default_meeting_poll_default_enable_cumulative_voting DEFAULT False,
     enable_max_options_limit boolean
         CONSTRAINT default_meeting_poll_default_enable_max_options_limit DEFAULT False,
-    default_method enum_poll_methods,
+    method enum_poll_methods,
     visibility enum_poll_visibility
         CONSTRAINT default_meeting_poll_default_visibility DEFAULT 'secret',
-    default_live_voting_enabled boolean
-        CONSTRAINT default_meeting_poll_default_default_live_voting_enabled DEFAULT False,
-    default_required_majority varchar(256)
-        CONSTRAINT default_meeting_poll_default_default_required_majority DEFAULT 'no_majority',
+    enable_live_voting boolean
+        CONSTRAINT default_meeting_poll_default_enable_live_voting DEFAULT False,
+    required_majority varchar(256)
+        CONSTRAINT default_meeting_poll_default_required_majority DEFAULT 'no_majority',
     onehundred_percent_base varchar(256)
         CONSTRAINT default_meeting_poll_default_onehundred_percent_base DEFAULT 'valid',
     meeting_id integer

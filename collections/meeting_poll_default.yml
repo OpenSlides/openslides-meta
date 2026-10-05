@@ -25,7 +25,7 @@ fields:
     default: false
     restriction_mode: A
   # Defaults for poll create form
-  default_method:
+  method:
     type: string
     enum: poll_methods
     restriction_mode: A
@@ -34,11 +34,11 @@ fields:
     enum: poll_visibility
     default: secret
     restriction_mode: A
-  default_live_voting_enabled:
+  enable_live_voting:
     type: boolean
     default: false
     restriction_mode: A
-  default_required_majority:
+  required_majority:
     type: string
     default: no_majority
     restriction_mode: A
