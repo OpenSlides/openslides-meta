@@ -48,7 +48,7 @@ fields:
     restriction_mode: A
   group_ids:
     type: relation-list
-    to: group/used_in_meeting_poll_default_ids
+    to: group/used_in_meeting_poll_setting_ids
     equal_fields: meeting_id
     restriction_mode: A
   used_as_assignment_poll_config_in_meeting_id:
@@ -70,6 +70,6 @@ fields:
     type: relation
     required: true
     reference: meeting
-    to: meeting/poll_default_ids
+    to: meeting/poll_setting_ids
     constant: true
     restriction_mode: A

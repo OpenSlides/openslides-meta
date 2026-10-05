@@ -626,20 +626,20 @@ fields:
     restriction_mode: B
   assignment_poll_config_id:
     type: relation
-    reference: meeting_poll_default
-    to: meeting_poll_default/used_as_assignment_poll_config_in_meeting_id
+    reference: meeting_poll_setting
+    to: meeting_poll_setting/used_as_assignment_poll_config_in_meeting_id
     restriction_mode: B
   # Motion poll
   motion_poll_config_id:
     type: relation
-    reference: meeting_poll_default
-    to: meeting_poll_default/used_as_motion_poll_config_in_meeting_id
+    reference: meeting_poll_setting
+    to: meeting_poll_setting/used_as_motion_poll_config_in_meeting_id
     restriction_mode: B
   # Topic poll
   topic_poll_config_id:
     type: relation
-    reference: meeting_poll_default
-    to: meeting_poll_default/used_as_topic_poll_config_in_meeting_id
+    reference: meeting_poll_setting
+    to: meeting_poll_setting/used_as_topic_poll_config_in_meeting_id
     restriction_mode: B
   # Polls
   poll_couple_countdown:
@@ -802,9 +802,9 @@ fields:
     reference: poll
     on_delete: CASCADE
     restriction_mode: B
-  poll_default_ids:
+  poll_setting_ids:
     type: relation-list
-    to: meeting_poll_default/meeting_id
+    to: meeting_poll_setting/meeting_id
     on_delete: CASCADE
     restriction_mode: B
   assignment_ids:
