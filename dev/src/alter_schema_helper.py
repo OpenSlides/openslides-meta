@@ -78,10 +78,12 @@ class AlterSchemaHelper:
     def get_alter_type_part(type_name: str) -> str:
         return f"ALTER TYPE {type_name}"
 
-    @staticmethod
+    @classmethod
     def get_rename_view_column(
-        view_name: str, column_name_old: str, column_name_new: str
+        cls, view_name: str, column_name_old: str, column_name_new: str
     ) -> str:
+        if view_name in cls.dropped_views:
+            return ""
         avp = AlterSchemaHelper.get_alter_view_part(view_name)
         rcp = AlterSchemaHelper.get_rename_column_part(column_name_old, column_name_new)
         return f"{avp} {rcp};\n"
@@ -94,8 +96,10 @@ class AlterSchemaHelper:
         rcp = AlterSchemaHelper.get_rename_column_part(column_name_old, column_name_new)
         return f"{atp} {rcp};\n"
 
-    @staticmethod
-    def get_rename_view(view_name_old: str, view_name_new: str) -> str:
+    @classmethod
+    def get_rename_view(cls, view_name_old: str, view_name_new: str) -> str:
+        if view_name_old in cls.dropped_views:
+            return ""
         avp = AlterSchemaHelper.get_alter_view_part(view_name_old)
         rp = AlterSchemaHelper.get_rename_part("", view_name_new)
         return f"{avp} {rp};\n"
