@@ -5,6 +5,8 @@ from .helper_get_names import HelperGetNames
 
 
 class AlterSchemaHelper:
+    dropped_views: set[str] = set()
+
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
         table_name: str,
@@ -225,9 +227,14 @@ class AlterSchemaHelper:
     ) -> str:
         return f"DROP TRIGGER {trigger_name} ON {HelperGetNames.get_table_name(collection_or_table_name)};\n"
 
-    @staticmethod
-    def get_drop_view_statement(collection_name: str) -> str:
-        return f'DROP VIEW IF EXISTS "{collection_name}";\n'
+    @classmethod
+    def get_drop_view_statement(cls, collection_name: str) -> str:
+        if collection_name not in cls.dropped_views:
+            cls.dropped_views.add(collection_name)
+            return f'DROP VIEW "{collection_name}";\n'
+        else:
+            print(f"View {collection_name} was dropped before.")
+            return ""
 
     @staticmethod
     def generate_change_column_type_statements(
