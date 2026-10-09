@@ -68,7 +68,7 @@ class AlterSchemaHelper:
 
     @staticmethod
     def get_alter_view_part(view_name: str) -> str:
-        return f"ALTER VIEW {view_name}"
+        return f'ALTER VIEW "{view_name}"'
 
     @staticmethod
     def get_alter_table_part(table_name: str) -> str:
@@ -249,7 +249,7 @@ class AlterSchemaHelper:
     @staticmethod
     def get_add_value_to_enum(enum_name: str, value: str) -> str:
         atp = AlterSchemaHelper.get_alter_type_part(enum_name)
-        return f"{atp} ADD VALUE {value};\n"
+        return f"{atp} ADD VALUE '{value}';\n"
 
     @staticmethod
     def get_rename_value_in_enum(enum_name: str, value_old: str, value_new: str) -> str:
