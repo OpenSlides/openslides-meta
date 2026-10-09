@@ -235,7 +235,7 @@ class AlterSchemaHelper:
     def get_drop_view_statement(cls, collection_name: str) -> str:
         if collection_name not in cls.dropped_views:
             cls.dropped_views.add(collection_name)
-            return f'DROP VIEW "{collection_name}";\n'
+            return f'DROP VIEW IF EXISTS "{collection_name}";\n'
         else:
             print(f"View {collection_name} was dropped before.")
             return ""
