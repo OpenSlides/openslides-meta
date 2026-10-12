@@ -247,11 +247,12 @@ class AlterSchemaHelper:
         column_name: str,
         value: Any,
         type_: str,
-        condition: str,
+        condition: str | None = None,
     ) -> str:
+        condition_string = f" WHERE {condition}" if condition else ""
         return AlterSchemaHelper.get_update_table_statement(
             collection_or_table_name,
-            f"SET {column_name} = {Helper.format_value(collection_or_table_name, column_name, value, type_)} WHERE {condition}",
+            f"SET {column_name} = {Helper.format_value(collection_or_table_name, column_name, value, type_)}{condition_string}",
         )
 
     @staticmethod
@@ -263,7 +264,6 @@ class AlterSchemaHelper:
             column_name,
             value,
             type_,
-            "TRUE",
         )
 
     @staticmethod
