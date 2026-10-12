@@ -176,12 +176,6 @@ class AlterSchemaHelper:
         )
 
     @staticmethod
-    def get_drop_index_statement(collection_or_table_name: str, index: str) -> str:
-        return AlterSchemaHelper.get_alter_table_statement(
-            collection_or_table_name, f"DROP INDEX {index}"
-        )
-
-    @staticmethod
     def get_alter_column_statement(
         collection_or_table_name: str, column_name: str, action: str
     ) -> str:
@@ -220,6 +214,10 @@ class AlterSchemaHelper:
         return AlterSchemaHelper.get_alter_table_statement(
             collection_or_table_name, f"DROP CONSTRAINT {constraint_name}"
         )
+
+    @staticmethod
+    def get_drop_index_statement(index: str) -> str:
+        return f"DROP INDEX {index}"
 
     @staticmethod
     def get_drop_trigger_statement(
