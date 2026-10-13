@@ -150,8 +150,13 @@ class AlterSchemaHelper:
             HelperGetNames.get_enum_name_for_column(collection_name, column_name)
         )
 
-    @staticmethod
-    def get_drop_table_statement(collection_or_table_name: str) -> str:
+    @classmethod
+    def get_drop_table_statement(
+        cls, collection_or_table_name: str, all_views_sql: dict[str, str]
+    ) -> str:
+        for view, view_code in all_views_sql.items():
+            if collection_or_table_name in view_code:
+                cls.dropped_views.add(view)
         return f"DROP TABLE {HelperGetNames.get_table_name(collection_or_table_name)} CASCADE;\n"
 
     @staticmethod
@@ -161,10 +166,19 @@ class AlterSchemaHelper:
         )
         return f"{alter_table_part} {action};\n"
 
-    @staticmethod
+    @classmethod
     def get_drop_column_statement(
-        collection_or_table_name: str, column_name: str
+        cls,
+        collection_or_table_name: str,
+        column_name: str,
+        all_views_sql: dict[str, str],
     ) -> str:
+        for view, view_code in all_views_sql.items():
+            if any(
+                collection_or_table_name in line and column_name in line
+                for line in view_code.split("\n")
+            ):
+                cls.dropped_views.add(view)
         return AlterSchemaHelper.get_alter_table_statement(
             collection_or_table_name, f"DROP COLUMN {column_name} CASCADE"
         )
