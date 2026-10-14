@@ -559,8 +559,8 @@ class GenerateCodeBlocks:
                 )
             text["alter_table_final"] = (
                 AlterSchemaHelper.get_foreign_key_table_constraint_as_alter_table(
-                    view_name,
-                    foreign_view,
+                    own_table_field.table,
+                    foreign_table_field.table,
                     fname,
                     foreign_table_field.ref_column,
                 )
