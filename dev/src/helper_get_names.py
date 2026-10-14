@@ -51,14 +51,14 @@ def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
 class TableFieldType:
     def __init__(
         self,
-        table: str,
+        collection: str,
         column: str,
         field_def: dict[str, Any] | None,
         ref_column: str = "id",
     ):
-        # TODO: TableFieldType is always created with collection name and not a table name => should be renamed.
-        # TODO: consider introducing the new attribute `table` generated from collection using get_table_name.
-        self.table = table
+        assert not collection.endswith("_t")
+        self.table = HelperGetNames.get_table_name(collection)
+        self.view = collection
         self.column = column
         self.intermediate_column = column[:-1]
         self.field_def: dict[str, Any] = field_def or {}
@@ -66,8 +66,8 @@ class TableFieldType:
 
     @property
     def collectionfield(self) -> str:
-        if self.table:
-            return f"{self.table}{KEYSEPARATOR}{self.column}"
+        if self.view:
+            return f"{self.view}{KEYSEPARATOR}{self.column}"
         else:
             return "-"
 
@@ -86,6 +86,14 @@ class TableFieldType:
             tname, ref_column = InternalHelper.get_foreign_key_table_column(reference)
 
         return TableFieldType(tname, fname, tfield, ref_column)
+
+    # def is_view_field(self) -> bool:
+    #     # get the foreign field list and check the relations
+    #     foreign_fields = InternalHelper.get_definitions_from_foreign_list(
+    #         self.field_def.get("to", None), self.field_def.get("reference", None)
+    #     )
+    #     state, *_ = InternalHelper.check_relation_definitions(self, foreign_fields)
+    #     return state == FieldSqlErrorType.SQL
 
 
 class ToDict(TypedDict):
@@ -147,18 +155,18 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_view_name(table_name: str) -> str:
-        """gets the name of a view. Its the collection name in quotes"""
-        return f'"{table_name}"'
+    def get_view_name(view_name: str) -> str:
+        """Gets the double quoted name of a view."""
+        return f'"{view_name}"'
 
     @staticmethod
     @max_length
     def get_nm_table_name(own: TableFieldType, foreign: TableFieldType) -> str:
         """gets the table name n:m-relations intermediate table"""
-        if (f"{own.table}_{own.column}") < (f"{foreign.table}_{foreign.column}"):
-            return f"nm_{own.table}_{HelperGetNames.get_initial_letters(own.column)}_{foreign.table}_t"
+        if (f"{own.view}_{own.column}") < (f"{foreign.view}_{foreign.column}"):
+            return f"nm_{own.view}_{HelperGetNames.get_initial_letters(own.column)}_{foreign.view}_t"
         else:
-            return f"nm_{foreign.table}_{HelperGetNames.get_initial_letters(foreign.column)}_{own.table}_t"
+            return f"nm_{foreign.view}_{HelperGetNames.get_initial_letters(foreign.column)}_{own.view}_t"
 
     @staticmethod
     @max_length
@@ -167,7 +175,7 @@ class HelperGetNames:
         Gets the table name for generic-list:many-relations intermediate table
         Does not deliver correct results on non-primary relations.
         """
-        return f"gm_{table_field.table}_{table_field.column}_t"
+        return f"gm_{table_field.view}_{table_field.column}_t"
 
     @staticmethod
     @max_length
@@ -178,10 +186,10 @@ class HelperGetNames:
         If both sides of the relation are in same table, the foreign field name without 's' is used,
         otherwise the related tables names are used
         """
-        if own_table_field.table == foreign_table_field.table:
+        if own_table_field.view == foreign_table_field.view:
             return foreign_table_field.intermediate_column
         else:
-            return f"{own_table_field.table}_id"
+            return f"{own_table_field.view}_id"
 
     @staticmethod
     @max_length
@@ -192,15 +200,15 @@ class HelperGetNames:
     @staticmethod
     @max_length
     def get_generic_plain_field_name(
-        own_column: str, foreign_table: str, ref_column: str
+        own_column: str, foreign_view: str, ref_column: str
     ) -> str:
-        return f"{own_column}_{foreign_table}_{ref_column}"
+        return f"{own_column}_{foreign_view}_{ref_column}"
 
     @staticmethod
     @max_length
-    def get_generic_valid_constraint_name(table_name: str, fname: str) -> str:
+    def get_generic_valid_constraint_name(view_name: str, fname: str) -> str:
         """gets the name of a generic valid constraint"""
-        return f"valid_{table_name}_{fname}_part1"
+        return f"valid_{view_name}_{fname}_part1"
 
     @staticmethod
     @max_length
@@ -216,13 +224,13 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_unique_constraint_name(table_name: str, fields: list[str]) -> str:
-        return f"unique_{table_name}_{'_'.join(fields)}"
+    def get_unique_constraint_name(view_name: str, fields: list[str]) -> str:
+        return f"unique_{view_name}_{'_'.join(fields)}"
 
     @staticmethod
-    def get_enum_name_for_column(table_name: str, fname: str) -> str:
+    def get_enum_name_for_column(view_name: str, fname: str) -> str:
         """gets the name of the enum type"""
-        return HelperGetNames.get_enum_name(f"{table_name}_{fname}")
+        return HelperGetNames.get_enum_name(f"{view_name}_{fname}")
 
     @staticmethod
     @max_length
@@ -231,45 +239,45 @@ class HelperGetNames:
 
     @staticmethod
     @max_length
-    def get_required_constraint_name(table_name: str, fname: str) -> str:
+    def get_required_constraint_name(view_name: str, fname: str) -> str:
         """gets the name of required constraint"""
-        return f"required_{table_name}_{fname}"
+        return f"required_{view_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_default_constraint_name(table_name: str, fname: str) -> str:
+    def get_default_constraint_name(view_name: str, fname: str) -> str:
         """gets the name of default constraint"""
-        return f"default_{table_name}_{fname}"
+        return f"default_{view_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_minimum_constraint_name(table_name: str, fname: str) -> str:
+    def get_minimum_constraint_name(view_name: str, fname: str) -> str:
         """gets the name of minimum constraint"""
-        return f"minimum_{table_name}_{fname}"
+        return f"minimum_{view_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_maximum_constraint_name(table_name: str, fname: str) -> str:
+    def get_maximum_constraint_name(view_name: str, fname: str) -> str:
         """gets the name of maximum constraint"""
-        return f"maximum_{table_name}_{fname}"
+        return f"maximum_{view_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_minlength_constraint_name(table_name: str, fname: str) -> str:
+    def get_minlength_constraint_name(view_name: str, fname: str) -> str:
         """gets the name of minLength constraint"""
-        return f"minlength_{table_name}_{fname}"
+        return f"minlength_{view_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_color_constraint_name(table_name: str, fname: str) -> str:
+    def get_color_constraint_name(view_name: str, fname: str) -> str:
         """gets the name of color constraint"""
-        return f"color_{table_name}_{fname}"
+        return f"color_{view_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_generated_always_as_constraint_name(table_name: str, fname: str) -> str:
+    def get_generated_always_as_constraint_name(view_name: str, fname: str) -> str:
         """gets the name of GENERATED ALWAYS AS constraint"""
-        return f"generated_always_as_{table_name}_{fname}"
+        return f"generated_always_as_{view_name}_{fname}"
 
     @staticmethod
     @max_length
@@ -315,102 +323,102 @@ class HelperGetNames:
     @staticmethod
     @max_length
     def get_not_null_insert_trigger_name_base(
-        table_name: str,
+        view_name: str,
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null"""
-        return f"tr_i_not_null_{table_name}_{column_name}"
+        return f"tr_i_not_null_{view_name}_{column_name}"
 
     @staticmethod
     @max_length
     def get_not_null_delete_trigger_name_base(
-        table_name: str,
+        view_name: str,
         column_name: str,
     ) -> str:
         """Gets the name of the delete trigger for not null."""
-        return f"tr_d_not_null_{table_name}_{column_name}"
+        return f"tr_d_not_null_{view_name}_{column_name}"
 
     @staticmethod
     @max_length
     def get_not_null_upd_del_trigger_name_base(
-        table_name: str,
+        view_name: str,
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null"""
-        return f"tr_ud_not_null_{table_name}_{column_name}"
+        return f"tr_ud_not_null_{view_name}_{column_name}"
 
     @staticmethod
     @max_length
     def get_not_null_rel_list_insert_trigger_name(
-        table_name: str,
+        view_name: str,
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null on relation lists"""
         return HelperGetNames.get_not_null_insert_trigger_name_base(
-            table_name, column_name
+            view_name, column_name
         )
 
     @staticmethod
     @max_length
     def get_not_null_rel_list_delete_trigger_name(
-        table_name: str,
+        view_name: str,
         column_name: str,
     ) -> str:
         """Gets the name of the delete trigger for not null on relation lists."""
         return HelperGetNames.get_not_null_delete_trigger_name_base(
-            table_name, column_name
+            view_name, column_name
         )
 
     @staticmethod
     @max_length
     def get_not_null_rel_list_upd_del_trigger_name(
-        table_name: str,
+        view_name: str,
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null on relation lists"""
         return HelperGetNames.get_not_null_upd_del_trigger_name_base(
-            table_name, column_name
+            view_name, column_name
         )
 
     @staticmethod
     @max_length
     def get_not_null_1_1_rel_insert_trigger_name(
-        table_name: str,
+        view_name: str,
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null on 1:1 relations"""
         return HelperGetNames.get_not_null_insert_trigger_name_base(
-            table_name, column_name
+            view_name, column_name
         )
 
     @staticmethod
     @max_length
     def get_not_null_1_1_rel_upd_del_trigger_name(
-        table_name: str,
+        view_name: str,
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null on 1:1 relations"""
         return HelperGetNames.get_not_null_upd_del_trigger_name_base(
-            table_name, column_name
+            view_name, column_name
         )
 
     @staticmethod
     @max_length
-    def get_constant_field_trigger_name(table_name: str, fname: str) -> str:
+    def get_constant_field_trigger_name(view_name: str, fname: str) -> str:
         """gets the name of constant constraint"""
-        return f"tr_constant_{table_name}_{fname}"
+        return f"tr_constant_{view_name}_{fname}"
 
     @staticmethod
     @max_length
-    def get_notify_trigger_name(table_name: str) -> str:
+    def get_notify_trigger_name(view_name: str) -> str:
         """gets the name of the trigger for logging changes on models"""
-        return f"tr_log_{table_name}"
+        return f"tr_log_{view_name}"
 
     @staticmethod
     @max_length
-    def get_notify_related_trigger_name(table_name: str, column_name: str) -> str:
+    def get_notify_related_trigger_name(view_name: str, column_name: str) -> str:
         """gets the name of the trigger for logging changes on related models"""
-        return f"tr_log_{table_name}_{column_name}"
+        return f"tr_log_{view_name}_{column_name}"
 
     @staticmethod
     @max_length
@@ -423,7 +431,7 @@ class HelperGetNames:
     @staticmethod
     @max_length
     def get_log_calculated_id_array_trigger_name_iu(
-        table_name: str,
+        view_name: str,
         column_name: str,
         trigger_table: str,
         update: bool,
@@ -433,12 +441,12 @@ class HelperGetNames:
         Gets the name of the trigger for logging changes on calculated fields
         on insert and update operations on the related table.
         """
-        return f"tr_log_i{'u' if update else ''}_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
+        return f"tr_log_i{'u' if update else ''}_{view_name}_{column_name}_from_{trigger_table}{unique_index}"
 
     @staticmethod
     @max_length
     def get_log_calculated_id_array_trigger_name_ud(
-        table_name: str,
+        view_name: str,
         column_name: str,
         trigger_table: str,
         update: bool,
@@ -448,11 +456,11 @@ class HelperGetNames:
         Gets the name of the trigger for logging changes on calculated fields
         on update and delete operations on the related table.
         """
-        return f"tr_log_{'u' if update else ''}d_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
+        return f"tr_log_{'u' if update else ''}d_{view_name}_{column_name}_from_{trigger_table}{unique_index}"
 
     @staticmethod
     def get_log_calculated_id_array_trigger_names(
-        table_name: str,
+        view_name: str,
         column_name: str,
         trigger_table: str,
         update: bool,
@@ -461,16 +469,16 @@ class HelperGetNames:
         """Gets the named of the triggers for logging changes on calculated fields"""
         index_string = f"_{unique_index}" if unique_index is not None else ""
         return HelperGetNames.get_log_calculated_id_array_trigger_name_iu(
-            table_name, column_name, trigger_table, update, index_string
+            view_name, column_name, trigger_table, update, index_string
         ), HelperGetNames.get_log_calculated_id_array_trigger_name_ud(
-            table_name, column_name, trigger_table, update, index_string
+            view_name, column_name, trigger_table, update, index_string
         )
 
     @staticmethod
     @max_length
-    def get_timezone_constraint_name(table_name: str, field_name: str) -> str:
+    def get_timezone_constraint_name(view_name: str, field_name: str) -> str:
         """gets the name of the constraint for timezone fields"""
-        return f"timezone_{table_name}_{field_name}"
+        return f"timezone_{view_name}_{field_name}"
 
     @staticmethod
     @max_length
@@ -509,17 +517,17 @@ class HelperGetNames:
     ) -> str:
         return f"{HelperGetNames.get_equal_field_trigger_name_helper(equal_field, table_name, column, foreign_table)}_intermediate"
 
-    @staticmethod
-    @max_length
-    def get_equal_field_back_trigger_name(
-        equal_field: str, table_name: str, column: str, foreign_table: str | None = None
-    ) -> str:
-        return f"{HelperGetNames.get_equal_field_trigger_name_helper(equal_field, table_name, column, foreign_table)}_back"
+    # @staticmethod
+    # @max_length
+    # def get_equal_field_back_trigger_name(
+    #     equal_field: str, table_name: str, column: str, foreign_table: str | None = None
+    # ) -> str:
+    #     return f"{HelperGetNames.get_equal_field_trigger_name_helper(equal_field, table_name, column, foreign_table)}_back"
 
     @staticmethod
     @max_length
     def get_own_table_name_with_ref_column(own_table_field: TableFieldType) -> str:
-        return f"{own_table_field.table}_{own_table_field.ref_column}"
+        return f"{own_table_field.view}_{own_table_field.ref_column}"
 
     @staticmethod
     def get_trigger_names_for_check_equals(

@@ -9,7 +9,7 @@ class AlterSchemaHelper:
 
     @staticmethod
     def get_foreign_key_table_constraint_as_alter_table(
-        table_name: str,
+        own_table: str,
         foreign_table: str,
         own_column: str,
         fk_column: str,
@@ -21,8 +21,6 @@ class AlterSchemaHelper:
             "CREATE INDEX ${index} ON ${own_table} (${own_column});\n"
         )
 
-        own_table = HelperGetNames.get_table_name(table_name)
-        foreign_table = HelperGetNames.get_table_name(foreign_table)
         fk_idx = HelperGetNames.get_fk_and_index_name(
             own_table, own_column, foreign_table, fk_column
         )
@@ -154,10 +152,11 @@ class AlterSchemaHelper:
     def get_drop_table_statement(
         cls, collection_or_table_name: str, all_views_sql: dict[str, str]
     ) -> str:
+        table_name = HelperGetNames.get_table_name(collection_or_table_name)
         for view, view_code in all_views_sql.items():
-            if collection_or_table_name in view_code:
+            if table_name in view_code:
                 cls.dropped_views.add(view)
-        return f"DROP TABLE {HelperGetNames.get_table_name(collection_or_table_name)} CASCADE;\n"
+        return f"DROP TABLE {table_name} CASCADE;\n"
 
     @staticmethod
     def get_alter_table_statement(collection_or_table_name: str, action: str) -> str:
