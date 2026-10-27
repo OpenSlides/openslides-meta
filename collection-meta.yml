@@ -7,15 +7,6 @@ enum_definitions:
     - ru
     - cs
     - fr
-  onehundred_percent_bases:
-    - no_general
-    - yes_no
-    - yes_no_abstain
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
   required_majority:
     - no_majority
     - two_third_majority
