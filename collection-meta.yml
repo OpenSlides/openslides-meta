@@ -16,36 +16,6 @@ enum_definitions:
     - entitled
     - entitled_present
     - disabled
-  approval_onehundred_percent_bases:
-    - yes_no
-    - yes_no_abstain
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
-  rating_approval_onehundred_percent_bases:
-    - yes_no
-    - yes_no_abstain
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
-  rating_score_onehundred_percent_bases:
-    - no_general
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
-  selection_onehundred_percent_bases:
-    - no_general
-    - valid
-    - cast
-    - entitled
-    - entitled_present
-    - disabled
   required_majority:
     - no_majority
     - two_third_majority
@@ -60,14 +30,6 @@ enum_definitions:
     - named
     - open
     - secret
-  poll_methods:
-    - approval.yes_no
-    - approval.yes_no_abstain
-    - selection.yes
-    - selection.no
-    - rating_score
-    - rating_approval.yes_no
-    - rating_approval.yes_no_abstain
 id_field: &id_field
   type: number
   restriction_mode: A

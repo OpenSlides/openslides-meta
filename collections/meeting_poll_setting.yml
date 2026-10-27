@@ -27,7 +27,14 @@ fields:
   # Defaults for poll create form
   method:
     type: string
-    enum: poll_methods
+    enum:
+      - approval.yes_no
+      - approval.yes_no_abstain
+      - selection.yes
+      - selection.no
+      - rating_score
+      - rating_approval.yes_no
+      - rating_approval.yes_no_abstain
     restriction_mode: A
   visibility:
     type: string

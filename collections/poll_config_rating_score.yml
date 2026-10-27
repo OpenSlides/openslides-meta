@@ -32,7 +32,13 @@ fields:
   onehundred_percent_base:
     type: string
     required: true
-    enum: rating_score_onehundred_percent_bases
+    enum:
+      - no_general
+      - valid
+      - cast
+      - entitled
+      - entitled_present
+      - disabled
     restriction_mode: A
   required_majority:
     type: string
