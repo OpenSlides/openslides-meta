@@ -33,7 +33,7 @@ enum_definitions:
     - entitled_present
     - disabled
   rating_score_onehundred_percent_bases:
-    - yes_no
+    - no_general
     - valid
     - cast
     - entitled
