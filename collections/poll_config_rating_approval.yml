@@ -27,7 +27,14 @@ fields:
   onehundred_percent_base:
     type: string
     required: true
-    enum: rating_approval_onehundred_percent_bases
+    enum:
+      - yes_no
+      - yes_no_abstain
+      - valid
+      - cast
+      - entitled
+      - entitled_present
+      - disabled
     restriction_mode: A
   required_majority:
     type: string
