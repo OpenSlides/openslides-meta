@@ -45,6 +45,15 @@ class GenerateCodeBlocks:
         InternalHelper.read_models_yml()
 
     @classmethod
+    def reset_class_attributes(cls) -> None:
+        cls.table_sql = {}
+        cls.view_sql = {}
+        cls.alter_table_final_sql = {}
+        cls.trigger_sql = defaultdict(lambda: defaultdict(lambda: defaultdict(str)))
+        cls.intermediate_sql = {}
+        cls.intermediate_tables = {}
+
+    @classmethod
     def generate_the_code(
         cls,
     ) -> tuple[
@@ -114,6 +123,7 @@ class GenerateCodeBlocks:
             "unique",
             "constant",
         }
+        cls.reset_class_attributes()
         collection_meta_handled_attributes = {
             "unique_together",
         }
