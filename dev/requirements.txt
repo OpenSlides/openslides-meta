@@ -2,7 +2,7 @@ autoflake==2.4.0
 black==26.10.1
 flake8==7.5.0
 isort==9.0.2
-sqlfluff==4.4.0
+sqlfluff==4.5.0
 mypy==2.4.1
 pytest==9.2.0
 pyupgrade==3.22.0
