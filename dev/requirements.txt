@@ -15,5 +15,5 @@ python-sql==1.8.1
 
 # typing
 types-PyYAML==6.0.12.20260906
-types-requests==2.33.0.20261006
+types-requests==2.33.0.20261030
 types-simplejson==4.2.0.20261006
