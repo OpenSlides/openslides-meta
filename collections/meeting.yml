@@ -521,6 +521,10 @@ fields:
     type: boolean
     default: true
     restriction_mode: B
+  motions_enable_consultation_sequence:
+    type: boolean
+    default: true
+    restriction_mode: B
   # Motion poll
   motion_poll_ballot_paper_selection:
     type: string
