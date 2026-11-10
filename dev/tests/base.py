@@ -5,7 +5,6 @@ from unittest import TestCase
 import psycopg
 from psycopg import sql
 from psycopg.types.json import Jsonb
-
 from src.db_utils import DbUtils
 from src.python_sql import Table
 
