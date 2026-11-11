@@ -60,6 +60,9 @@ fields:
       - on_table: meeting_user_t
         log_collection_id_sql: SELECT committee_id FROM meeting_t WHERE id = ($1).meeting_id
         log_value_column: user_id
+      - on_table: meeting_t
+        log_collection_id_column: committee_id
+        log_value_sql: SELECT user_id FROM meeting_user_t WHERE meeting_id = ($1).id
       - on_table: nm_committee_manager_ids_user_t
         log_collection_id_column: committee_id
         log_value_column: user_id
