@@ -567,7 +567,7 @@ class Helper:
                     log_collection_ids := ARRAY[log_collection_id];
                 END IF;
 
-                IF log_collection_ids IS NULL OR array_length(log_collection_ids,1) = 0 THEN
+                IF array_length(log_collection_ids,1) IS NULL THEN
                     RETURN ${trigger_return_value};
                 END IF;
 
@@ -583,7 +583,7 @@ class Helper:
                     ${changed_item_state}_items := ARRAY[${changed_item_state}_item];
                 END IF;
 
-                IF ${changed_item_state}_items IS NULL OR array_length(${changed_item_state}_items,1) = 0 THEN
+                IF array_length(${changed_item_state}_items,1) IS NULL THEN
                     RETURN ${trigger_return_value};
                 END IF;
 
