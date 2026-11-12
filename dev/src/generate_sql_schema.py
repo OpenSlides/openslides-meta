@@ -720,6 +720,8 @@ class GenerateCodeBlocks:
                             f"Tried to create im_table '{nm_table_name}' twice"
                         )
             if sql := fdata.get("sql", ""):
+                if sql.endswith("\n"):
+                    sql = sql[:-1]
                 text["view"] = sql + ",\n"
                 text["create_trigger_notify"] = (
                     "\n"
