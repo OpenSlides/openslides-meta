@@ -720,6 +720,8 @@ class GenerateCodeBlocks:
                             f"Tried to create im_table '{nm_table_name}' twice"
                         )
             if sql := fdata.get("sql", ""):
+                if sql.endswith("\n"):
+                    sql = sql[:-1]
                 text["view"] = sql + ",\n"
                 text["create_trigger_notify"] = (
                     "\n"
@@ -847,28 +849,36 @@ class GenerateCodeBlocks:
     ) -> str:
         table_letter = Helper.get_table_letter(table_name)
         foreign_letter = Helper.get_table_letter(foreign_table_name, [table_letter])
-        AGG_TEMPLATE = f"select array_agg({foreign_letter}.{{}} ORDER BY {foreign_letter}.{{}}) from {foreign_table_name} {foreign_letter}"
+        AGG_TEMPLATE = f"array(select {foreign_letter}.{{}} from {foreign_table_name} {foreign_letter}{{}} ORDER BY {foreign_letter}.{{}})"
         COND_TEMPLATE = (
             f" where {foreign_letter}.{{}} = {table_letter}.{own_ref_column}"
         )
         if not foreign_table_column or not self_reference:
             query = AGG_TEMPLATE.format(
-                foreign_table_ref_column, foreign_table_ref_column
+                foreign_table_ref_column,
+                (
+                    COND_TEMPLATE.format(foreign_table_column)
+                    if foreign_table_column
+                    else ""
+                ),
+                foreign_table_ref_column,
             )
-            if foreign_table_column:
-                query += COND_TEMPLATE.format(foreign_table_column)
         else:
             assert foreign_table_ref_column == (
                 col := foreign_table_column
             ), f"own {col} and foreign {foreign_table_ref_column} should be equal"
-            arr1 = AGG_TEMPLATE.format(f"{col}_1", f"{col}_1") + COND_TEMPLATE.format(
-                f"{col}_2"
+            arr1 = AGG_TEMPLATE.format(
+                f"{col}_1",
+                COND_TEMPLATE.format(f"{col}_2"),
+                f"{col}_1",
             )
-            arr2 = AGG_TEMPLATE.format(f"{col}_2", f"{col}_2") + COND_TEMPLATE.format(
-                f"{col}_1"
+            arr2 = AGG_TEMPLATE.format(
+                f"{col}_2",
+                COND_TEMPLATE.format(f"{col}_1"),
+                f"{col}_2",
             )
-            query = f"select array_cat(({arr1}), ({arr2}))"
-        return f"({query}) as {fname},\n"
+            query = f"array_cat({arr1}, {arr2})"
+        return f"{query} as {fname},\n"
 
     @staticmethod
     def get_constraint_unique_together(
