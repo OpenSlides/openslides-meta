@@ -558,7 +558,7 @@ class Helper:
             BEGIN
                 -- No related log_collection instance -> return
                 IF (log_collection_id_sql <> '') THEN
-                    EXECUTE format('SELECT array_agg(id) FROM (%s);', log_collection_id_sql) INTO log_collection_ids USING ${hstore};
+                    EXECUTE format('SELECT array_agg(DISTINCT id) FROM (%s);', log_collection_id_sql) INTO log_collection_ids USING ${hstore};
                 ELSE
                     log_collection_id := ${hstore_type}_hstore -> log_collection_id_column;
                     IF log_collection_id IS NULL THEN
@@ -574,7 +574,7 @@ class Helper:
                 -- No value in column used for log_field -> return
                 ${comment}
                 IF (${changed_item_state}_item_sql <> '') THEN
-                    EXECUTE format('SELECT array_agg(id) FROM (%s);', ${changed_item_state}_item_sql) INTO ${changed_item_state}_items USING ${hstore};
+                    EXECUTE format('SELECT array_agg(DISTINCT id) FROM (%s);', ${changed_item_state}_item_sql) INTO ${changed_item_state}_items USING ${hstore};
                 ELSE
                     ${changed_item_state}_item := ${hstore_type}_hstore -> ${changed_item_state}_item_column;
                     IF ${changed_item_state}_item IS NULL THEN
