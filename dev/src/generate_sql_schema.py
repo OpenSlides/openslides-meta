@@ -1293,21 +1293,21 @@ def main() -> None:
         errors,
     ) = GenerateCodeBlocks.generate_the_code()
     with open(DESTINATION, "w") as dest:
-        dest.write(Helper.FILE_TEMPLATE_HEADER)
-        dest.write("-- MODELS_YML_CHECKSUM = " + repr(checksum) + "\n")
-        dest.write("\n\n-- ENUM definitions\n")
-        dest.write(enum_definitions)
-        dest.write("\n\n-- Function and meta table definitions\n")
-        dest.write(Helper.FILE_TEMPLATE_CONSTANT_DEFINITIONS)
-        dest.write(pre_code)
-        dest.write("\n\n-- Table definitions\n")
-        dest.write(table_name_code)
-        dest.write("\n\n-- Intermediate table definitions\n")
-        dest.write(im_table_code)
-        dest.write("\n\n-- View definitions\n")
-        dest.write(view_name_code)
-        dest.write("\n\n-- Alter table relations\n")
-        dest.write(alter_table_code)
+        # dest.write(Helper.FILE_TEMPLATE_HEADER)
+        # dest.write("-- MODELS_YML_CHECKSUM = " + repr(checksum) + "\n")
+        # dest.write("\n\n-- ENUM definitions\n")
+        # dest.write(enum_definitions)
+        # dest.write("\n\n-- Function and meta table definitions\n")
+        # dest.write(Helper.FILE_TEMPLATE_CONSTANT_DEFINITIONS)
+        # dest.write(pre_code)
+        # dest.write("\n\n-- Table definitions\n")
+        # dest.write(table_name_code)
+        # dest.write("\n\n-- Intermediate table definitions\n")
+        # dest.write(im_table_code)
+        # dest.write("\n\n-- View definitions\n")
+        # dest.write(view_name_code)
+        # dest.write("\n\n-- Alter table relations\n")
+        # dest.write(alter_table_code)
         dest.write("\n\n-- Create triggers generating partitioned sequences\n")
         dest.write(create_trigger_partitioned_sequences_code)
         dest.write(
@@ -1334,21 +1334,21 @@ def main() -> None:
             "\n\n-- Create triggers checking equal_fields settings in relations\n"
         )
         dest.write(create_trigger_equal_fields_code)
-        dest.write(Helper.RELATION_LIST_AGENDA)
-        dest.write("/*\n")
-        dest.write(final_info_code)
-        dest.write("*/\n")
-        if errors:
-            dest.write(f"/*\nThere are {len(errors)} errors/warnings\n")
-            dest.write("".join(errors))
-            dest.write("*/\n")
-        dest.write(
-            f"\n/*   Missing attribute handling for {', '.join(missing_handled_attributes)} */"
-        )
-        if missing_handled_collections_meta_attributes:
-            dest.write(
-                f"\n/*   Missing handling for collections _meta attributes: {', '.join(missing_handled_collections_meta_attributes)} */"
-            )
+        # dest.write(Helper.RELATION_LIST_AGENDA)
+        # dest.write("/*\n")
+        # dest.write(final_info_code)
+        # dest.write("*/\n")
+        # if errors:
+        #     dest.write(f"/*\nThere are {len(errors)} errors/warnings\n")
+        #     dest.write("".join(errors))
+        #     dest.write("*/\n")
+        # dest.write(
+        #     f"\n/*   Missing attribute handling for {', '.join(missing_handled_attributes)} */"
+        # )
+        # if missing_handled_collections_meta_attributes:
+        #     dest.write(
+        #         f"\n/*   Missing handling for collections _meta attributes: {', '.join(missing_handled_collections_meta_attributes)} */"
+        #     )
     if errors:
         print(f"Models file {DESTINATION} created with {len(errors)} errors/warnings\n")
         print("".join(errors))

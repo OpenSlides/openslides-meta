@@ -90,11 +90,11 @@ Each collection-file has the following format:
       - `log_collection_id_column` or `log_collection_id_sql`: how to get the id of
         the calculated field's collection for the log entry:
         - Use `log_collection_id_column` for direct access from the instance of `on_table`.
-        - Use `log_collection_id_sql` when id must be fetched from another table.
+        - Use `log_collection_id_sql` when id must be fetched from another table. Resulting column needs to be named `id`.
       - `log_value_column` or `log_value_sql`: how to get the id added to the
         calculated field result or deleted from it (depending on the operation type):
         - Use `log_value_column` for direct access from the instance of `on_table`.
-        - Use `log_value_sql` when the value must be retrieved from another table.
+        - Use `log_value_sql` when the value must be retrieved from another table. Resulting column needs to be named `id`.
 - Restriction Mode:
   The field `restriction_mode` is required for every field. It puts the field into a
   restriction group. See https://github.com/OpenSlides/OpenSlides/wiki/Restrictions-Overview
