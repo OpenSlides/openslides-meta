@@ -14,6 +14,6 @@ psycopg[binary]==3.3.7
 python-sql==1.8.1
 
 # typing
-types-PyYAML==6.0.12.20261030
+types-PyYAML==6.0.12.20261103
 types-requests==2.33.0.20261030
-types-simplejson==4.2.0.20261031
+types-simplejson==4.2.0.20261104
