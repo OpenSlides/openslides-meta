@@ -535,11 +535,11 @@ class Helper:
             -- 0. log_collection – Target collection for the log entry
             -- 1. log_collection_id_column – Column used to fetch the 'log_collection' id
             --    (ignored if 'log_collection_id_sql' is provided => may be NULL)
-            -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
+            -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id. Result column needs to be called 'id'
             -- 3. log_field – Field to be logged
             -- 4. ${changed_item_state}_item_column – Column used to fetch the value ${changed_item_state_phrase} 'log_field'
             --    (ignored if '${changed_item_state}_item_sql' is provided => may be NULL)
-            -- 5. ${changed_item_state}_item_sql – Custom SQL to fetch the value ${changed_item_state_phrase} 'log_field'
+            -- 5. ${changed_item_state}_item_sql – Custom SQL to fetch the value ${changed_item_state_phrase} 'log_field'. Result column needs to be called 'id'
             DECLARE
                 log_collection TEXT := TG_ARGV[0];
                 log_collection_id_column TEXT := TG_ARGV[1];
@@ -550,39 +550,51 @@ class Helper:
 
                 ${hstore_type}_hstore hstore := hstore(${hstore});
                 log_collection_id INTEGER;
+                log_collection_ids INTEGER[];
                 ${changed_item_state}_item INTEGER;
+                ${changed_item_state}_items INTEGER[];
                 ${fetched_log_value_state}_log_field_value INTEGER[];
                 fqid_var TEXT;
             BEGIN
                 -- No related log_collection instance -> return
                 IF (log_collection_id_sql <> '') THEN
-                    EXECUTE log_collection_id_sql INTO log_collection_id USING ${hstore};
+                    EXECUTE format('SELECT array_agg(DISTINCT id) FROM (%s);', log_collection_id_sql) INTO log_collection_ids USING ${hstore};
                 ELSE
                     log_collection_id := ${hstore_type}_hstore -> log_collection_id_column;
+                    IF log_collection_id IS NULL THEN
+                        RETURN ${trigger_return_value};
+                    END IF;
+                    log_collection_ids := ARRAY[log_collection_id];
                 END IF;
 
-                IF log_collection_id IS NULL THEN
+                IF array_length(log_collection_ids,1) IS NULL THEN
                     RETURN ${trigger_return_value};
                 END IF;
 
                 -- No value in column used for log_field -> return
                 ${comment}
                 IF (${changed_item_state}_item_sql <> '') THEN
-                    EXECUTE ${changed_item_state}_item_sql INTO ${changed_item_state}_item USING ${hstore};
+                    EXECUTE format('SELECT array_agg(DISTINCT id) FROM (%s);', ${changed_item_state}_item_sql) INTO ${changed_item_state}_items USING ${hstore};
                 ELSE
                     ${changed_item_state}_item := ${hstore_type}_hstore -> ${changed_item_state}_item_column;
+                    IF ${changed_item_state}_item IS NULL THEN
+                        RETURN ${trigger_return_value};
+                    END IF;
+                    ${changed_item_state}_items := ARRAY[${changed_item_state}_item];
                 END IF;
 
-                IF ${changed_item_state}_item IS NULL THEN
+                IF array_length(${changed_item_state}_items,1) IS NULL THEN
                     RETURN ${trigger_return_value};
                 END IF;
 
-                -- Add log entry only if log_field value actually changes
-                EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO ${fetched_log_value_state}_log_field_value;
-                IF ${fetched_log_value_state}_log_field_value IS NULL OR NOT (${changed_item_state}_item = ANY(${fetched_log_value_state}_log_field_value)) THEN
-                    fqid_var := log_collection || '/' || log_collection_id;
-                    CALL log_field_change('update', fqid_var, ARRAY[log_field]);
-                END IF;
+                -- Add log entries only if log_field value actually changes
+                FOREACH log_collection_id IN ARRAY log_collection_ids LOOP
+                    EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO ${fetched_log_value_state}_log_field_value;
+                    IF ${fetched_log_value_state}_log_field_value IS NULL OR NOT (${changed_item_state}_items <@ ${fetched_log_value_state}_log_field_value) THEN
+                        fqid_var := log_collection || '/' || log_collection_id;
+                        CALL log_field_change('update', fqid_var, ARRAY[log_field]);
+                    END IF;
+                END LOOP;
 
                 RETURN ${trigger_return_value};
             END;
