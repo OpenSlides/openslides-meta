@@ -317,6 +317,7 @@ class Checker:
         if type in RELATION_TYPES:
             valid_attributes.append("on_delete")
             if "on_delete" in field and field["on_delete"] not in (
+                "SET_NULL",
                 "CASCADE",
                 "PROTECT",
             ):
