@@ -15,10 +15,12 @@ DEFAULT_COLLECTION_META = os.path.join(ROOT, "collection-meta.yml")
 DEFAULT_COLLECTIONS_DIR = os.path.join(ROOT, "collections")
 PERMISSIONS_SOURCE = os.path.join(ROOT, "permission.yml")
 
-def remove_t_key(name: str)-> str:
+
+def remove_t_key(name: str) -> str:
     if name.endswith("_t"):
         return name[:-2]
     return name
+
 
 def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
     result = {}
