@@ -7,7 +7,7 @@ mypy==2.4.1
 pytest==9.2.0
 pyupgrade==3.22.0
 pyyaml==6.0.3
-simplejson==4.2.0
+simplejson==4.3.0
 debugpy==1.8.22
 requests==2.34.2
 psycopg[binary]==3.3.7
