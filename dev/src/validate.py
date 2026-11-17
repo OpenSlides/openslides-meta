@@ -294,9 +294,9 @@ class Checker:
                     field["enum"] = shared_enum
             for attr in ("minLength", "maxLength"):
                 valid_attributes.append(attr)
-                if not isinstance(field.get("maxLength", 0), int):
+                if not isinstance(field.get(attr, 0), int):
                     self.errors.append(
-                        f"'maxLength' for {collectionfield} is not a number."
+                        f"'{attr}' for {collectionfield} is not a number."
                     )
             if (
                 "default" in field
@@ -328,7 +328,7 @@ class Checker:
                 valid_attributes.append("reference")
             if nested and type in ("relation", "relation-list"):
                 valid_attributes.append("enum")
-            valid_attributes.extend(("deferred", "sql"))
+            valid_attributes.append("sql")
             if field.get("sql"):
                 valid_attributes.append("log_triggers")
                 self.check_log_triggers(collectionfield, field)
