@@ -101,10 +101,10 @@ fields:
     restriction_mode: C
   conference_stream_url:
     type: string
-    restriction_mode: C
+    restriction_mode: D
   conference_stream_poster_url:
     type: string
-    restriction_mode: C
+    restriction_mode: D
   conference_open_microphone:
     type: boolean
     default: false

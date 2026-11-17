@@ -1,6 +1,8 @@
 import logging
 from collections import defaultdict
 from collections.abc import Callable
+from decimal import Decimal
+from enum import StrEnum
 from pathlib import Path
 from textwrap import dedent, indent
 from typing import Any, cast
