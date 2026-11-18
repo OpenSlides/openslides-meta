@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '53b2b60ef7c64284b22e4ce1a692b7f5'
+-- MODELS_YML_CHECKSUM = '02052aa7f72ea420eb6b36a0a30eb996'
 
 
 -- ENUM definitions
@@ -1152,7 +1152,6 @@ CREATE TABLE idp_mapping_t (
     default_string varchar(256),
     default_decimal decimal(16,6),
     default_boolean boolean,
-    attribute varchar(256),
     allow_update boolean,
     override_update boolean,
     mapper_id integer
@@ -1978,7 +1977,8 @@ CREATE TABLE organization_t (
     saml_metadata_idp text,
     saml_metadata_sp text,
     saml_private_key text,
-    subdivision_regex varchar(256),
+    idp_subdivision_field varchar(256),
+    idp_subdivision_regex varchar(256),
     theme_id integer
         CONSTRAINT required_organization_theme_id NOT NULL
         CONSTRAINT unique_organization_theme_id UNIQUE,

@@ -28,9 +28,6 @@ fields:
   default_boolean:
     type: boolean
     restriction_mode: A
-  attribute:
-    type: string
-    restriction_mode: A
   allow_update:
     type: boolean
     restriction_mode: A

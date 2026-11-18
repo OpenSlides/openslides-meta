@@ -90,7 +90,10 @@ fields:
   saml_private_key:
     type: text
     restriction_mode: D
-  subdivision_regex:
+  idp_subdivision_field:
+    type: string
+    restriction_mode: A
+  idp_subdivision_regex:
     type: string
     restriction_mode: C
   idp_mapper_ids:
