@@ -90,12 +90,9 @@ fields:
   saml_private_key:
     type: text
     restriction_mode: D
-  idp_subdivision_field:
+  idp_identity_key:
     type: string
     restriction_mode: A
-  idp_subdivision_id:
-    type: string
-    restriction_mode: C
   idp_mapper_ids:
     type: relation-list
     to: idp_mapper/organization_id

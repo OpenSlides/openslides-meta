@@ -31,7 +31,7 @@ fields:
   allow_update:
     type: boolean
     restriction_mode: A
-  override_update:
+  override_default:
     type: boolean
     restriction_mode: A
   mapper_id:

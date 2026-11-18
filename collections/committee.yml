@@ -15,7 +15,7 @@ fields:
     type: string
     unique: true
     restriction_mode: A
-  idp_subdivision_pattern:
+  identity_key:
     type: string
     restriction_mode: A
   meeting_ids:

@@ -8,16 +8,10 @@ fields:
     type: string
     required: true
     restriction_mode: A
-  os_field:
+  condition:
     type: string
-    enum:
-      - groups
-      - structure_levels
-      - number
-      - vote_weight
-      - present
-      - comment
     required: true
+    definition: Regex to match against
     restriction_mode: A
   mapper_id:
     type: relation
