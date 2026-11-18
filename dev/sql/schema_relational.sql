@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '02052aa7f72ea420eb6b36a0a30eb996'
+-- MODELS_YML_CHECKSUM = '4336b76697d3e9bb06ed782505c0c83c'
 
 
 -- ENUM definitions
@@ -1041,8 +1041,7 @@ CREATE TABLE committee_t (
     description text,
     external_id varchar(256)
         CONSTRAINT unique_committee_external_id UNIQUE,
-    subdivision_id varchar(256)
-        CONSTRAINT unique_committee_subdivision_id UNIQUE,
+    idp_subdivision_pattern varchar(256),
     default_meeting_id integer
         CONSTRAINT unique_committee_default_meeting_id UNIQUE,
     parent_id integer,
@@ -1122,7 +1121,6 @@ CREATE TABLE idp_condition_t (
         CONSTRAINT required_idp_condition_idp_field NOT NULL,
     os_field enum_idp_condition_os_field
         CONSTRAINT required_idp_condition_os_field NOT NULL,
-    regex varchar(256),
     mapper_id integer
         CONSTRAINT required_idp_condition_mapper_id NOT NULL
 );
@@ -1978,7 +1976,7 @@ CREATE TABLE organization_t (
     saml_metadata_sp text,
     saml_private_key text,
     idp_subdivision_field varchar(256),
-    idp_subdivision_regex varchar(256),
+    idp_subdivision_id varchar(256),
     theme_id integer
         CONSTRAINT required_organization_theme_id NOT NULL
         CONSTRAINT unique_organization_theme_id UNIQUE,

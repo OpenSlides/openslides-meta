@@ -19,9 +19,6 @@ fields:
       - comment
     required: true
     restriction_mode: A
-  regex:
-    type: string
-    restriction_mode: A
   mapper_id:
     type: relation
     to: idp_mapper/condition_ids

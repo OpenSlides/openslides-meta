@@ -15,9 +15,8 @@ fields:
     type: string
     unique: true
     restriction_mode: A
-  subdivision_id:
+  idp_subdivision_pattern:
     type: string
-    unique: true
     restriction_mode: A
   meeting_ids:
     type: relation-list
