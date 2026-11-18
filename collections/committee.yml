@@ -18,6 +18,7 @@ fields:
   identity_key:
     type: string
     restriction_mode: A
+    description: Mainly used by idp matching. Key by which users are matched to committees.
   meeting_ids:
     type: relation-list
     to: meeting/committee_id

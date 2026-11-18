@@ -93,6 +93,7 @@ fields:
   idp_identity_key:
     type: string
     restriction_mode: C
+    description: Attribute in the idp data that identifies the user. Used to match against committees identity_key to determine membership.
   idp_mapper_ids:
     type: relation-list
     to: idp_mapper/organization_id
