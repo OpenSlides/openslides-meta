@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'f9173e0aeb06001aa8df3c311340ce89'
+-- MODELS_YML_CHECKSUM = '0a693db661a73348ea8139b09dc713e2'
 
 
 -- ENUM definitions
@@ -1267,8 +1267,8 @@ CREATE TABLE meeting_t (
     enable_anonymous boolean
         CONSTRAINT default_meeting_enable_anonymous DEFAULT False,
     custom_translations jsonb,
-    enable_idp_mapping boolean
-        CONSTRAINT default_meeting_enable_idp_mapping DEFAULT False,
+    enable_idp_matching boolean
+        CONSTRAINT default_meeting_enable_idp_matching DEFAULT False,
     conference_show boolean
         CONSTRAINT default_meeting_conference_show DEFAULT False,
     conference_auto_connect boolean
