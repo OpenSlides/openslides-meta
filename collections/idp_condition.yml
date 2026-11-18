@@ -8,10 +8,10 @@ fields:
     type: string
     required: true
     restriction_mode: A
-  condition:
+  regex:
     type: string
     required: true
-    definition: Regex to match against
+    definition: Assertation regex to match against the idp_field
     restriction_mode: A
   mapper_id:
     type: relation
