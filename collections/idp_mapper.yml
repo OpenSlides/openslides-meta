@@ -1,0 +1,30 @@
+fields:
+  id:
+    type: number
+    restriction_mode: A
+    constant: true
+    required: true
+  ext_group_ids:
+    type: string[]
+    required: true
+    unique: true
+    restriction_mode: A
+  weight:
+    type: number
+    required: true
+    restriction_mode: A
+  idp_mapping_ids:
+    type: relation-list
+    to: idp_mapping/idp_mapper_id
+    restriction_mode: A
+  mapper_condition_ids:
+    type: relation-list
+    to: idp_mapping/idp_mapper_id
+    to: idp_mapping/idp_mapper_id
+    restriction_mode: A
+  organization_id:
+    type: relation
+    to: organization/idp_mapper_ids
+    reference: organization
+    required: true
+    restriction_mode: A

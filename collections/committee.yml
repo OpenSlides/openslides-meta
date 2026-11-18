@@ -11,6 +11,10 @@ fields:
   description:
     type: HTMLStrict
     restriction_mode: A
+  subdivision_id:
+    type: string
+    unique: true
+    restriction_mode: A
   external_id:
     type: string
     unique: true
