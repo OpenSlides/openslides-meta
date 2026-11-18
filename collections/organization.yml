@@ -92,7 +92,7 @@ fields:
     restriction_mode: D
   idp_identity_key:
     type: string
-    restriction_mode: A
+    restriction_mode: C
   idp_mapper_ids:
     type: relation-list
     to: idp_mapper/organization_id
