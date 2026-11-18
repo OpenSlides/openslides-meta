@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '92c0271ec627f21619347ee16508bbcc'
+-- MODELS_YML_CHECKSUM = '458c64b49029c42af95d759c391d2b69'
 
 
 -- ENUM definitions
@@ -1149,9 +1149,7 @@ CREATE TABLE idp_mapping_t (
         CONSTRAINT required_idp_mapping_idp_field NOT NULL,
     os_field enum_idp_mapping_os_field
         CONSTRAINT required_idp_mapping_os_field NOT NULL,
-    default_string varchar(256),
-    default_decimal decimal(16,6),
-    default_boolean boolean,
+    default_value varchar(256),
     allow_update boolean,
     override_default boolean,
     mapper_id integer

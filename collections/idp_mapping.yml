@@ -19,14 +19,8 @@ fields:
       - comment
     required: true
     restriction_mode: A
-  default_string:
+  default_value:
     type: string
-    restriction_mode: A
-  default_decimal:
-    type: decimal(6)
-    restriction_mode: A
-  default_boolean:
-    type: boolean
     restriction_mode: A
   allow_update:
     type: boolean
