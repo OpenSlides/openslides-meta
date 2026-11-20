@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '458c64b49029c42af95d759c391d2b69'
+-- MODELS_YML_CHECKSUM = 'bdadbe249702fe9a513551f5cacd047c'
 
 
 -- ENUM definitions
@@ -1050,7 +1050,7 @@ CREATE TABLE committee_t (
 
 
 
-comment on column committee_t.identity_key is 'Mainly used by idp matching. Key by which users are matched to committees.';
+comment on column committee_t.identity_key is 'Mainly used by idp matching. A committee is assigned when the users IDP identity value (see organization/idp_identity_key) starts with this string.';
 
 
 CREATE TABLE gender_t (
@@ -1127,7 +1127,7 @@ CREATE TABLE idp_condition_t (
 
 
 
-comment on column idp_condition_t.regex is 'Assertation regex to match against the idp_field';
+comment on column idp_condition_t.regex is 'Assertation regex to match against the idp_fields value.';
 
 
 CREATE TABLE idp_mapper_t (
