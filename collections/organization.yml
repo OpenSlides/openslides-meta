@@ -90,6 +90,16 @@ fields:
   saml_private_key:
     type: text
     restriction_mode: D
+  idp_subdivision_field:
+    type: string
+    restriction_mode: A
+  subdivison_regex:
+    type: string
+    restriction_mode: A
+  idp_mapper_ids:
+    type: relation-list
+    to: idp_mapper/organization_id
+    restriction_mode: A
   committee_ids:
     type: relation-list
     to: committee/organization_id

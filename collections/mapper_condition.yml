@@ -1,0 +1,21 @@
+fields:
+  id:
+    type: number
+    restriction_mode: A
+    constant: true
+    required: true
+  idp_field:
+    type: string
+    required: true
+    restriction_mode: A
+  # os_field (fallback?):
+  regex:
+    type: string
+    required: true
+    restriction_mode: A
+  idp_mapper_id:
+    type: relation
+    to: idp_mapper/mapper_condition_ids
+    reference: idp_mapper
+    required: true
+    restriction_mode: A

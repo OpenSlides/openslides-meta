@@ -51,6 +51,9 @@ fields:
   end_time:
     type: timestamp
     restriction_mode: F
+  sso_active:
+    type: boolean
+    restriction_mode: F
   locked_from_inside:
     type: boolean
     restriction_mode: F
