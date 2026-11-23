@@ -8,7 +8,7 @@ on:
       - "staging**"
 
 env:
-  PYTHON_VERSION: 3.10.x
+  PYTHON_VERSION: 3.12.x
 
 jobs:
   validate-models:
@@ -47,7 +47,9 @@ jobs:
 
       - name: Check pyupgrade
         if: always()
-        run: make pyupgrade
+        run: |
+          make pyupgrade
+          test $(git status --porcelain | wc -l) = 0
 
       - name: Validate models.yml
         if: always()

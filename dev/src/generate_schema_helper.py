@@ -535,11 +535,11 @@ class Helper:
             -- 0. log_collection – Target collection for the log entry
             -- 1. log_collection_id_column – Column used to fetch the 'log_collection' id
             --    (ignored if 'log_collection_id_sql' is provided => may be NULL)
-            -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id
+            -- 2. log_collection_id_sql – Custom SQL to fetch the 'log_collection' id. Result column needs to be called 'id'
             -- 3. log_field – Field to be logged
             -- 4. ${changed_item_state}_item_column – Column used to fetch the value ${changed_item_state_phrase} 'log_field'
             --    (ignored if '${changed_item_state}_item_sql' is provided => may be NULL)
-            -- 5. ${changed_item_state}_item_sql – Custom SQL to fetch the value ${changed_item_state_phrase} 'log_field'
+            -- 5. ${changed_item_state}_item_sql – Custom SQL to fetch the value ${changed_item_state_phrase} 'log_field'. Result column needs to be called 'id'
             DECLARE
                 log_collection TEXT := TG_ARGV[0];
                 log_collection_id_column TEXT := TG_ARGV[1];
@@ -550,39 +550,51 @@ class Helper:
 
                 ${hstore_type}_hstore hstore := hstore(${hstore});
                 log_collection_id INTEGER;
+                log_collection_ids INTEGER[];
                 ${changed_item_state}_item INTEGER;
+                ${changed_item_state}_items INTEGER[];
                 ${fetched_log_value_state}_log_field_value INTEGER[];
                 fqid_var TEXT;
             BEGIN
                 -- No related log_collection instance -> return
                 IF (log_collection_id_sql <> '') THEN
-                    EXECUTE log_collection_id_sql INTO log_collection_id USING ${hstore};
+                    EXECUTE format('SELECT array_agg(DISTINCT id) FROM (%s);', log_collection_id_sql) INTO log_collection_ids USING ${hstore};
                 ELSE
                     log_collection_id := ${hstore_type}_hstore -> log_collection_id_column;
+                    IF log_collection_id IS NULL THEN
+                        RETURN ${trigger_return_value};
+                    END IF;
+                    log_collection_ids := ARRAY[log_collection_id];
                 END IF;
 
-                IF log_collection_id IS NULL THEN
+                IF array_length(log_collection_ids,1) IS NULL THEN
                     RETURN ${trigger_return_value};
                 END IF;
 
                 -- No value in column used for log_field -> return
                 ${comment}
                 IF (${changed_item_state}_item_sql <> '') THEN
-                    EXECUTE ${changed_item_state}_item_sql INTO ${changed_item_state}_item USING ${hstore};
+                    EXECUTE format('SELECT array_agg(DISTINCT id) FROM (%s);', ${changed_item_state}_item_sql) INTO ${changed_item_state}_items USING ${hstore};
                 ELSE
                     ${changed_item_state}_item := ${hstore_type}_hstore -> ${changed_item_state}_item_column;
+                    IF ${changed_item_state}_item IS NULL THEN
+                        RETURN ${trigger_return_value};
+                    END IF;
+                    ${changed_item_state}_items := ARRAY[${changed_item_state}_item];
                 END IF;
 
-                IF ${changed_item_state}_item IS NULL THEN
+                IF array_length(${changed_item_state}_items,1) IS NULL THEN
                     RETURN ${trigger_return_value};
                 END IF;
 
-                -- Add log entry only if log_field value actually changes
-                EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO ${fetched_log_value_state}_log_field_value;
-                IF ${fetched_log_value_state}_log_field_value IS NULL OR NOT (${changed_item_state}_item = ANY(${fetched_log_value_state}_log_field_value)) THEN
-                    fqid_var := log_collection || '/' || log_collection_id;
-                    CALL log_field_change('update', fqid_var, ARRAY[log_field]);
-                END IF;
+                -- Add log entries only if log_field value actually changes
+                FOREACH log_collection_id IN ARRAY log_collection_ids LOOP
+                    EXECUTE format('SELECT %I from %I where id = %L', log_field, log_collection, log_collection_id) INTO ${fetched_log_value_state}_log_field_value;
+                    IF ${fetched_log_value_state}_log_field_value IS NULL OR NOT (${changed_item_state}_items <@ ${fetched_log_value_state}_log_field_value) THEN
+                        fqid_var := log_collection || '/' || log_collection_id;
+                        CALL log_field_change('update', fqid_var, ARRAY[log_field]);
+                    END IF;
+                END LOOP;
 
                 RETURN ${trigger_return_value};
             END;
@@ -761,7 +773,8 @@ class Helper:
         trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
         own_table = HelperGetNames.get_table_name(table_name)
         escaped_table_name = "'" + table_name + "'"
-        code = f"CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
+        code = f"-- notify triggers for {own_table} fields\n"
+        code += f"CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += f"FOR EACH ROW EXECUTE FUNCTION log_modified_models({escaped_table_name});\n"
         code += f"CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {own_table}\n"
         code += "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_end();\n"
@@ -786,7 +799,10 @@ class Helper:
         return f"\n        CONSTRAINT {constraint_name} {check}"
 
     @staticmethod
-    def get_inline_unique_constraint(table_name: str, fname: str) -> str:
+    def get_inline_unique_constraint(
+        table_name: str, fname: str, value: bool = True
+    ) -> str:
+        # unused parameter value to keep the signature aligned for generic method access
         return Helper.get_constraint_with_line_break(
             HelperGetNames.get_unique_constraint_name(table_name, [fname]),
             "UNIQUE",
@@ -872,15 +888,19 @@ class Helper:
         return f"    CONSTRAINT {HelperGetNames.get_unique_constraint_name(table, fields)} UNIQUE{strict_definition} ({', '.join(fields)}),\n"
 
     @staticmethod
+    def get_enum_type_definition(name: str, values: list[str]) -> str:
+        return Helper.ENUM_DEFINITION_TEMPLATE.substitute(
+            {
+                "name": name,
+                "values": ", ".join([f"'{item}'" for item in values]),
+            }
+        )
+
+    @staticmethod
     def get_enum_types_definitions() -> str:
         result = "\n"
         for name, values in InternalHelper.ENUMS.items():
-            result += Helper.ENUM_DEFINITION_TEMPLATE.substitute(
-                {
-                    "name": name,
-                    "values": ", ".join([f"'{item}'" for item in values]),
-                }
-            )
+            result += Helper.get_enum_type_definition(name, values)
         return result
 
     @staticmethod
@@ -898,16 +918,13 @@ class Helper:
         foreign_table: str,
         ref_column: str,
         updated_field: str,
-        fk_columns: list[str] | str,
-        initially_deferred: bool = False,
-        delete_action: str = "",
-        update_action: str = "",
     ) -> str:
         trigger_name = HelperGetNames.get_notify_related_trigger_name(
             table_name, ref_column
         )
         own_table = HelperGetNames.get_table_name(table_name)
-        return f"""CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
+        return f"""-- notify trigger for {own_table}.{ref_column}
+CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {ref_column} OR DELETE ON {own_table}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{ref_column}', '{updated_field}');\n"""
 
     @staticmethod
@@ -1214,6 +1231,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}', '{r
         trigger_name = HelperGetNames.get_notify_trigger_name(table_name)
 
         return f"""
+-- notify triggers for {own_table_field.table}.{own_table_field.column} and {foreign_table_field.table}.{foreign_table_field.column}
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{field1}','{own_table_field.column}','{foreign_table_field.table}','{field2}','{foreign_table_field.column}');
 CREATE CONSTRAINT TRIGGER notify_transaction_end AFTER INSERT OR UPDATE OR DELETE ON {nm_table_name}
@@ -1221,7 +1239,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
 """
 
     @staticmethod
-    def get_trigger_for_generic_relation(
+    def get_log_trigger_for_generic_relation(
         table_name: str,
         generic_plain_field_name: str,
         updated_field: str,
@@ -1232,6 +1250,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         )
         own_table_name = HelperGetNames.get_table_name(table_name)
         return f"""
+-- notify trigger for {own_table_name}.{generic_plain_field_name}
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {generic_plain_field_name} OR DELETE ON {own_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{generic_plain_field_name}','{updated_field}');
 """
@@ -1255,6 +1274,7 @@ FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{foreign_table}','{ge
                 f"{own_table_field.table}_{own_table_field.ref_column}"
             )
             trigger_text += f"""
+-- notify triggers for {own_table_field.table}.{own_table_field.column} fields
 CREATE TRIGGER {trigger_name} AFTER INSERT OR UPDATE OF {gm_content_field} OR DELETE ON {gm_table_name}
 FOR EACH ROW EXECUTE FUNCTION log_modified_related_models('{own_table_field.table}','{own_table_name_with_ref_column}','{own_table_field.column}','{foreign_table_field.table}','{gm_content_field}','{foreign_table_field.column}');
 """
@@ -1483,6 +1503,7 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         generic_plain_field_name: str,
         own_column: str,
         foreign_field: TableFieldType,
+        is_add: bool = False,
     ) -> str:
         foreign_table = foreign_field.table
         foreign_card, error = InternalHelper.get_cardinality(foreign_field)
@@ -1498,17 +1519,22 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notify_transaction_e
         generated_always_as = Helper.get_inline_generated_always_as_constraint(
             table_name, generic_plain_field_name, own_column, foreign_table
         )
+        add_text = "ADD COLUMN " if is_add else ""
 
-        return f"    {generic_plain_field_name} integer{unique}{generated_always_as},\n"
+        return f"    {add_text}{generic_plain_field_name} integer{unique}{generated_always_as},\n"
 
     @staticmethod
     def get_generic_field_constraint(
-        collection: str, own_column: str, foreign_tables: list[str]
+        collection: str,
+        own_column: str,
+        foreign_tables: list[str],
+        is_add: bool = False,
     ) -> str:
         constraint_name = HelperGetNames.get_generic_valid_constraint_name(
             collection, own_column
         )
-        return f"""    CONSTRAINT {constraint_name} CHECK (split_part({own_column}, '/', 1) IN ('{"','".join(foreign_tables)}')),\n"""
+        add_text = "ADD " if is_add else ""
+        return f"""    {add_text}CONSTRAINT {constraint_name} CHECK (split_part({own_column}, '/', 1) IN ('{"','".join(foreign_tables)}')),\n"""
 
     @staticmethod
     def prefix_error(method_or_str: str, table_name: str, fname: str) -> str:

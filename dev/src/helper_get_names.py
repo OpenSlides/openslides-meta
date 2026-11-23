@@ -16,6 +16,12 @@ DEFAULT_COLLECTIONS_DIR = os.path.join(ROOT, "collections")
 PERMISSIONS_SOURCE = os.path.join(ROOT, "permission.yml")
 
 
+def remove_t_key(name: str) -> str:
+    if name.endswith("_t"):
+        return name[:-2]
+    return name
+
+
 def build_models_yaml_content(meta_file: str, collections_dir: str) -> bytes:
     result = {}
 
@@ -321,7 +327,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the insert trigger for not null"""
-        return f"tr_i_not_null_{table_name}_{column_name}"
+        return f"tr_i_not_null_{remove_t_key(table_name)}_{column_name}"
 
     @staticmethod
     @max_length
@@ -330,7 +336,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """Gets the name of the delete trigger for not null."""
-        return f"tr_d_not_null_{table_name}_{column_name}"
+        return f"tr_d_not_null_{remove_t_key(table_name)}_{column_name}"
 
     @staticmethod
     @max_length
@@ -339,7 +345,7 @@ class HelperGetNames:
         column_name: str,
     ) -> str:
         """gets the name of the update/delete trigger for not null"""
-        return f"tr_ud_not_null_{table_name}_{column_name}"
+        return f"tr_ud_not_null_{remove_t_key(table_name)}_{column_name}"
 
     @staticmethod
     @max_length
@@ -400,19 +406,19 @@ class HelperGetNames:
     @max_length
     def get_constant_field_trigger_name(table_name: str, fname: str) -> str:
         """gets the name of constant constraint"""
-        return f"tr_constant_{table_name}_{fname}"
+        return f"tr_constant_{remove_t_key(table_name)}_{fname}"
 
     @staticmethod
     @max_length
     def get_notify_trigger_name(table_name: str) -> str:
         """gets the name of the trigger for logging changes on models"""
-        return f"tr_log_{table_name}"
+        return f"tr_log_{remove_t_key(table_name)}"
 
     @staticmethod
     @max_length
     def get_notify_related_trigger_name(table_name: str, column_name: str) -> str:
         """gets the name of the trigger for logging changes on related models"""
-        return f"tr_log_{table_name}_{column_name}"
+        return f"tr_log_{remove_t_key(table_name)}_{column_name}"
 
     @staticmethod
     @max_length
@@ -420,7 +426,7 @@ class HelperGetNames:
         gm_content_field: str, gm_table_name: str
     ) -> str:
         """gets the name of the trigger for logging changes on g:m-tables"""
-        return f"tr_log_{gm_content_field}_{gm_table_name}"
+        return f"tr_log_{gm_content_field}_{remove_t_key(gm_table_name)}"
 
     @staticmethod
     @max_length
@@ -435,7 +441,7 @@ class HelperGetNames:
         Gets the name of the trigger for logging changes on calculated fields
         on insert and update operations on the related table.
         """
-        return f"tr_log_i{'u' if update else ''}_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
+        return f"tr_log_i{'u' if update else ''}_{remove_t_key(table_name)}_{column_name}_from_{remove_t_key(trigger_table)}{unique_index}"
 
     @staticmethod
     @max_length
@@ -450,7 +456,7 @@ class HelperGetNames:
         Gets the name of the trigger for logging changes on calculated fields
         on update and delete operations on the related table.
         """
-        return f"tr_log_{'u' if update else ''}d_{table_name}_{column_name}_from_{trigger_table}{unique_index}"
+        return f"tr_log_{'u' if update else ''}d_{remove_t_key(table_name)}_{column_name}_from_{remove_t_key(trigger_table)}{unique_index}"
 
     @staticmethod
     def get_log_calculated_id_array_trigger_names(
@@ -478,21 +484,21 @@ class HelperGetNames:
     @max_length
     def get_partitioned_sequence_trigger_name(view_name: str, actual_field: str) -> str:
         """Gets the name of the constraint for sequential number fields."""
-        return f"tr_generate_sequence_{view_name}_{actual_field}"
+        return f"tr_generate_sequence_{remove_t_key(view_name)}_{actual_field}"
 
     @staticmethod
     @max_length
     def get_unique_ids_trigger_name(view: str, column: str) -> str:
         """Gets the name of the constraint for self referencing nm fields."""
-        return f"tr_restrict_unique_ids_pair_{view}_{column}"
+        return f"tr_restrict_unique_ids_pair_{remove_t_key(view)}_{column}"
 
     @staticmethod
     def get_equal_field_trigger_name_helper(
         equal_field: str, table_name: str, column: str, foreign_table: str | None
     ) -> str:
-        base = f"equal_{equal_field}_on_{table_name}_{column}"
+        base = f"equal_{equal_field}_on_{remove_t_key(table_name)}_{column}"
         if foreign_table:
-            base += f"_{foreign_table}"
+            base += f"_{remove_t_key(foreign_table)}"
         return base
 
     @staticmethod
@@ -832,6 +838,22 @@ class InternalHelper:
         if state == FieldSqlErrorType.ERROR:
             text += f"    {error}"
         return state, primary, text, error
+
+    @staticmethod
+    def get_foreign_definitions_from_field_def(
+        field_def: dict[str, Any],
+    ) -> list[TableFieldType]:
+        """This is the general purpose method that takes generic relations and others into account."""
+        if field_def["type"].startswith("generic"):
+            return InternalHelper.get_definitions_from_foreign_list(
+                field_def.get("to"), field_def.get("reference")
+            )
+        else:
+            return [
+                TableFieldType.get_definitions_from_foreign(
+                    field_def.get("to"), field_def.get("reference")
+                )
+            ]
 
     @staticmethod
     def get_definitions_from_foreign_list(

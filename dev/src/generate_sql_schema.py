@@ -16,7 +16,7 @@ from .helper_get_names import (
     InternalHelper,
     TableFieldType,
 )
-from .typing import SchemaZoneTexts, SubstDict
+from .typing import SchemaZoneTexts, SubstDict, TriggerSqlDict
 
 DESTINATION = (Path(__file__).parent / ".." / "sql" / "schema_relational.sql").resolve()
 
@@ -33,13 +33,25 @@ class GenerateCodeBlocks:
     table_sql: dict[str, str] = {}
     view_sql: dict[str, str] = {}
     alter_table_final_sql: dict[str, str] = {}
-    trigger_sql: dict[str, str] = defaultdict(str)
+    trigger_sql: TriggerSqlDict = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(str))
+    )
+    # Map of intermediate table name and sql definition of all intermediate tables
     intermediate_sql: dict[str, str] = {}
+    # In comparison to intermediate_sql, reinitialized for every collection.
+    intermediate_tables: dict[str, str] = {}
+
     if not InternalHelper.MODELS:
         InternalHelper.read_models_yml()
-    intermediate_tables: dict[str, str] = (
-        {}
-    )  # Key=Name, data: collected content of table
+
+    @classmethod
+    def reset_class_attributes(cls) -> None:
+        cls.table_sql = {}
+        cls.view_sql = {}
+        cls.alter_table_final_sql = {}
+        cls.trigger_sql = defaultdict(lambda: defaultdict(lambda: defaultdict(str)))
+        cls.intermediate_sql = {}
+        cls.intermediate_tables = {}
 
     @classmethod
     def generate_the_code(
@@ -111,6 +123,7 @@ class GenerateCodeBlocks:
             "unique",
             "constant",
         }
+        cls.reset_class_attributes()
         collection_meta_handled_attributes = {
             "unique_together",
         }
@@ -152,7 +165,6 @@ class GenerateCodeBlocks:
 
             fields = data["fields"]
             schema_zone_texts = cast(SchemaZoneTexts, defaultdict(str))
-            cls.intermediate_tables = {}
 
             for fname, fdata in fields.items():
                 for attr in fdata:
@@ -170,6 +182,8 @@ class GenerateCodeBlocks:
                     result, error = method_or_str(collection_name, fname, fdata, type_)
                     for k, v in result.items():
                         schema_zone_texts[k] += v or ""  # type: ignore[literal-required]
+                        if k.startswith("create_trigger_"):
+                            cls.trigger_sql[collection_name][fname][k] += v  # type: ignore[operator]
                     if error:
                         errors.append(
                             Helper.prefix_error(error, collection_name, fname)
@@ -221,38 +235,33 @@ class GenerateCodeBlocks:
                 cls.alter_table_final_sql[collection_name] = code + "\n"
                 alter_table_final_code += code + "\n"
             if code := schema_zone_texts["create_trigger_partitioned_sequences"]:
-                cls.trigger_sql[collection_name] = code + "\n"
                 create_trigger_partitioned_sequences_code += code + "\n"
             if code := schema_zone_texts["create_trigger_1_1_relation_not_null"]:
-                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_1_1_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_1_n_relation_not_null"]:
-                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_1_n_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_n_m_relation_not_null"]:
-                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_n_m_relation_not_null_code += code + "\n"
             if code := schema_zone_texts["create_trigger_prevent_updates_code"]:
-                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_prevent_updates_code += code + "\n"
             if code := schema_zone_texts["create_trigger_unique_ids_pair_code"]:
-                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_unique_ids_pair_code += code + "\n"
             if code := schema_zone_texts["create_trigger_equal_fields_code"]:
-                cls.trigger_sql[collection_name] += code + "\n"
                 create_trigger_equal_fields_code += code + "\n"
             if code := schema_zone_texts["final_info"]:
                 final_info_code += code + "\n"
-            for im_table in cls.intermediate_tables.values():
-                cls.intermediate_sql[collection_name] = im_table
-                im_table_code += im_table
+            for im_table_name, im_table_def in cls.intermediate_tables.items():
+                cls.intermediate_sql[im_table_name] = im_table_def
+                im_table_code += im_table_def
+            cls.intermediate_tables = {}
 
             # schema_zone_texts is filled per model field.
             # If any fields for this collection generated table code, create the main notify trigger on it.
             if schema_zone_texts["table"]:
-                create_trigger_notify_code += (
-                    Helper.get_notify_trigger(collection_name) + "\n"
-                )
+                trigger_code = cls.trigger_sql[collection_name]["_meta"][
+                    "create_trigger_notify"
+                ] = (Helper.get_notify_trigger(collection_name) + "\n")
+                create_trigger_notify_code += trigger_code
             # Special triggers (e.g. for relation fields) come after
             # TODO: needs to be filled in the get_*_relation_*_type functions
             if code := schema_zone_texts["create_trigger_notify"]:
@@ -555,16 +564,12 @@ class GenerateCodeBlocks:
                         equal_fields, own_table_field, foreign_table_field, state
                     )
                 )
-            initially_deferred = ModelsHelper.is_fk_initially_deferred(
-                table_name, foreign_table
-            )
             text["alter_table_final"] = (
                 AlterSchemaHelper.get_foreign_key_table_constraint_as_alter_table(
                     table_name,
                     foreign_table,
                     fname,
                     foreign_table_field.ref_column,
-                    initially_deferred,
                 )
             )
             table_name = HelperGetNames.get_table_name(table_name)
@@ -573,8 +578,6 @@ class GenerateCodeBlocks:
                 foreign_table_field.table,
                 fname,
                 foreign_table_field.column,
-                foreign_table_field.ref_column,
-                initially_deferred,
             )
         elif state == FieldSqlErrorType.SQL:
             if sql := fix(fdata.get("sql", "")):
@@ -1071,7 +1074,12 @@ class GenerateCodeBlocks:
 
     @classmethod
     def get_generic_relation_type(
-        cls, table_name: str, fname: str, fdata: dict[str, Any], type_: str
+        cls,
+        table_name: str,
+        fname: str,
+        fdata: dict[str, Any],
+        type_: str,
+        is_add: bool = False,
     ) -> tuple[SchemaZoneTexts, str]:
         text = cast(SchemaZoneTexts, defaultdict(str))
         own_table_field = TableFieldType(table_name, fname, fdata)
@@ -1089,14 +1097,7 @@ class GenerateCodeBlocks:
             text, error = cls.get_schema_simple_types(
                 table_name, fname, fdata, fdata["type"]
             )
-            initially_deferred = any(
-                ModelsHelper.is_fk_initially_deferred(
-                    table_name, foreign_table_field.table
-                )
-                for foreign_table_field in foreign_table_fields
-            )
             foreign_tables: list[str] = []
-            equal_fields_text = ""
             for foreign_table_field in foreign_table_fields:
                 generic_plain_field_name = HelperGetNames.get_generic_plain_field_name(
                     own_table_field.column,
@@ -1109,11 +1110,14 @@ class GenerateCodeBlocks:
                     generic_plain_field_name,
                     own_table_field.column,
                     foreign_table_field,
+                    is_add,
                 )
                 if equal_fields := cls.get_equal_fields(
                     own_table_field, foreign_table_field
                 ):
-                    equal_fields_text += cls.get_trigger_definitions_check_equals(
+                    text[
+                        "create_trigger_equal_fields_code"
+                    ] += cls.get_trigger_definitions_check_equals(
                         equal_fields,
                         own_table_field,
                         foreign_table_field,
@@ -1122,7 +1126,7 @@ class GenerateCodeBlocks:
                     )
                 text[
                     "create_trigger_notify"
-                ] += Helper.get_trigger_for_generic_relation(
+                ] += Helper.get_log_trigger_for_generic_relation(
                     table_name,
                     generic_plain_field_name,
                     foreign_table_field.column,
@@ -1135,12 +1139,9 @@ class GenerateCodeBlocks:
                     foreign_table_field.table,
                     generic_plain_field_name,
                     foreign_table_field.ref_column,
-                    initially_deferred,
                 )
-            if equal_fields_text:
-                text["create_trigger_equal_fields_code"] = equal_fields_text
             text["table"] += Helper.get_generic_field_constraint(
-                own_table_field.table, own_table_field.column, foreign_tables
+                own_table_field.table, own_table_field.column, foreign_tables, is_add
             )
         text["final_info"] = final_info
         return text, error
@@ -1219,29 +1220,6 @@ class GenerateCodeBlocks:
 
 
 class ModelsHelper:
-    @staticmethod
-    def is_fk_initially_deferred(own_table: str, foreign_table: str) -> bool:
-        """
-        The "Initially deferred" in fk-definition is necessary,
-        if 2 related tables require both the relation to the other table
-        """
-
-        def _first_to_second(t1: str, t2: str) -> bool:
-            for field in InternalHelper.MODELS[t1].values():
-                if field.get("required") and field["type"].startswith("relation"):
-                    ftable = ModelsHelper.get_foreign_table_from_to_or_reference(
-                        field.get("to"), field.get("reference")
-                    )
-                    if ftable == t2:
-                        return True
-            return False
-
-        return True
-        # TODO: Will be reverted in a future issue
-        # if _first_to_second(own_table, foreign_table):
-        #     return _first_to_second(foreign_table, own_table)
-        # return False
-
     @staticmethod
     def get_foreign_table_from_to_or_reference(
         to: str | None, reference: str | None
