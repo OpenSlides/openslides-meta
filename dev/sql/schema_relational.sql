@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = '97b21bbd97b06a2e2705b717e53512a9'
+-- MODELS_YML_CHECKSUM = '77fed5898af77a1986d039d3b1d6599e'
 
 
 -- ENUM definitions
@@ -3165,10 +3165,11 @@ array(select s.id from structure_level_t s where s.meeting_id = m.id ORDER BY s.
 (select c.id from committee_t c where c.default_meeting_id = m.id) as default_meeting_for_committee_id,
 array(select g.organization_tag_id from gm_organization_tag_tagged_ids_t g where g.tagged_id_meeting_id = m.id ORDER BY g.organization_tag_id) as organization_tag_ids,
 array(select n.user_id from nm_meeting_present_user_ids_user_t n where n.meeting_id = m.id ORDER BY n.user_id) as present_user_ids,
-(
-  SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id)
+ARRAY(
+  SELECT DISTINCT mu.user_id
   FROM meeting_user_t mu
   WHERE mu.meeting_id = m.id
+  ORDER BY mu.user_id
 ) AS user_ids,
 array(select p.id from projection_t p where p.content_object_id_meeting_id = m.id ORDER BY p.id) as projection_ids,
 array(select p.id from projector_t p where p.used_as_default_projector_for_agenda_item_list_in_meeting_id = m.id ORDER BY p.id) as default_projector_agenda_item_list_ids,
