@@ -101,10 +101,10 @@ fields:
     restriction_mode: C
   conference_stream_url:
     type: string
-    restriction_mode: C
+    restriction_mode: D
   conference_stream_poster_url:
     type: string
-    restriction_mode: C
+    restriction_mode: D
   conference_open_microphone:
     type: boolean
     default: false
@@ -518,6 +518,10 @@ fields:
     type: boolean
     restriction_mode: B
   motions_enable_restricted_editor_for_non_manager:
+    type: boolean
+    default: true
+    restriction_mode: B
+  motions_enable_consultation_sequence:
     type: boolean
     default: true
     restriction_mode: B
@@ -943,11 +947,10 @@ fields:
     description: Calculated. All user ids from all users assigned to groups of this meeting.
     read_only: true
     sql: |
-      ARRAY(
-        SELECT DISTINCT mu.user_id
+      (
+        SELECT array_agg(DISTINCT mu.user_id ORDER BY mu.user_id)
         FROM meeting_user_t mu
         WHERE mu.meeting_id = m.id
-        ORDER BY mu.user_id
       ) AS user_ids
     to: user/meeting_ids
     restriction_mode: A
