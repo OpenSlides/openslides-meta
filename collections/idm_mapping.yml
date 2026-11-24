@@ -4,7 +4,7 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-  idp_field:
+  idm_field:
     type: string
     required: true
     restriction_mode: A
@@ -30,7 +30,7 @@ fields:
     restriction_mode: A
   mapper_id:
     type: relation
-    to: idp_mapper/mapping_ids
+    to: idm_mapper/mapping_ids
     restriction_mode: A
     required: true
-    reference: idp_mapper
+    reference: idm_mapper

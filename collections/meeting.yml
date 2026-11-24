@@ -86,7 +86,7 @@ fields:
   custom_translations:
     type: JSON
     restriction_mode: B
-  enable_idp_matching:
+  enable_idm_matching:
     type: boolean
     default: false
     restriction_mode: E

@@ -4,18 +4,18 @@ fields:
     restriction_mode: A
     constant: true
     required: true
-  idp_field:
+  idm_field:
     type: string
     required: true
     restriction_mode: A
   regex:
     type: string
     required: true
-    description: Assertation regex to match against the idp_fields value.
+    description: Assertation regex to match against the idm_fields value.
     restriction_mode: A
   mapper_id:
     type: relation
-    to: idp_mapper/condition_ids
+    to: idm_mapper/condition_ids
     restriction_mode: A
     required: true
-    reference: idp_mapper
+    reference: idm_mapper

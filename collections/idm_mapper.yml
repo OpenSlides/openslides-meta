@@ -14,15 +14,15 @@ fields:
     restriction_mode: A
   organization_id:
     type: relation
-    to: organization/idp_mapper_ids
+    to: organization/idm_mapper_ids
     required: true
     restriction_mode: A
     reference: organization
   condition_ids:
     type: relation-list
-    to: idp_condition/mapper_id
+    to: idm_condition/mapper_id
     restriction_mode: A
   mapping_ids:
     type: relation-list
-    to: idp_mapping/mapper_id
+    to: idm_mapping/mapper_id
     restriction_mode: A
