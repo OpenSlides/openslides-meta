@@ -197,12 +197,6 @@ class AlterSchemaHelper:
         )
 
     @staticmethod
-    def get_drop_index_statement(collection_or_table_name: str, index: str) -> str:
-        return AlterSchemaHelper.get_alter_table_statement(
-            collection_or_table_name, f"DROP INDEX {index}"
-        )
-
-    @staticmethod
     def get_alter_column_statement(
         collection_or_table_name: str, column_name: str, action: str
     ) -> str:
@@ -327,17 +321,6 @@ class AlterSchemaHelper:
         return AlterSchemaHelper.get_update_table_statement(
             collection_or_table_name,
             f"SET {column_name} = {Helper.format_value(collection_or_table_name, column_name, value, type_)}{condition_string}",
-        )
-
-    @staticmethod
-    def get_update_all_entries_statement(
-        collection_or_table_name: str, column_name: str, value: Any, type_: str
-    ) -> str:
-        return AlterSchemaHelper.get_update_entries_statement(
-            collection_or_table_name,
-            column_name,
-            value,
-            type_,
         )
 
     @staticmethod
