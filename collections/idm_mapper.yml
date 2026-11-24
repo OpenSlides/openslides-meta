@@ -21,8 +21,10 @@ fields:
   condition_ids:
     type: relation-list
     to: idm_condition/mapper_id
+    on_delete: CASCADE
     restriction_mode: A
   mapping_ids:
     type: relation-list
     to: idm_mapping/mapper_id
+    on_delete: CASCADE
     restriction_mode: A
