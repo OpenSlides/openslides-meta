@@ -90,6 +90,22 @@ fields:
   saml_private_key:
     type: text
     restriction_mode: D
+  idm_identity_key:
+    type: string
+    restriction_mode: C
+    description: Attribute in the idm data that identifies the user. Used to match against committees identity_key to determine membership.
+  idm_organization_managment_key:
+    type: string
+    restriction_mode: C
+    description: String attribute in the idm data that identifies the users organization management level. Accepted values are 'can_manage_organization' and 'can_manage_users'. All other values, including 'superadmin', are not accepted.
+  idm_committee_management_key:
+    type: string
+    restriction_mode: C
+    description: Attribute in the idm data that identifies the users committee management rights. Formatted as a list of exact committee identity_keys.
+  idm_mapper_ids:
+    type: relation-list
+    to: idm_mapper/organization_id
+    restriction_mode: C
   committee_ids:
     type: relation-list
     to: committee/organization_id

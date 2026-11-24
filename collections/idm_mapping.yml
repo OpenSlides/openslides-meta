@@ -1,0 +1,36 @@
+fields:
+  id:
+    type: number
+    restriction_mode: A
+    constant: true
+    required: true
+  idm_field:
+    type: string
+    required: true
+    restriction_mode: A
+  os_field:
+    type: string
+    enum:
+      - groups
+      - structure_levels
+      - number
+      - vote_weight
+      - present
+      - comment
+    required: true
+    restriction_mode: A
+  default_value:
+    type: string
+    restriction_mode: A
+  allow_update:
+    type: boolean
+    restriction_mode: A
+  override_default:
+    type: boolean
+    restriction_mode: A
+  mapper_id:
+    type: relation
+    to: idm_mapper/mapping_ids
+    restriction_mode: A
+    required: true
+    reference: idm_mapper

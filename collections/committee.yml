@@ -15,6 +15,10 @@ fields:
     type: string
     unique: true
     restriction_mode: A
+  identity_key:
+    type: string
+    restriction_mode: A
+    description: Mainly used by idm matching. A committee is assigned when the users IDP identity value (see organization/idm_identity_key) starts with this string.
   meeting_ids:
     type: relation-list
     to: meeting/committee_id

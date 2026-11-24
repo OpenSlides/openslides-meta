@@ -86,6 +86,10 @@ fields:
   custom_translations:
     type: JSON
     restriction_mode: B
+  enable_idm_matching:
+    type: boolean
+    default: false
+    restriction_mode: E
   # Jitsi/Livestream settings
   conference_show:
     type: boolean
