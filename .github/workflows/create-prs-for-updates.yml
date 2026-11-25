@@ -26,6 +26,6 @@ jobs:
           - repository: openslides-backend
             assignee: luisa-beerboom
           - repository: openslides-client
-            assignee: bastianjoel, Elblinator
+            assignee: bastianjoel
           - repository: openslides-search-service
-            assignee: bastianjoel, Elblinator
+            assignee: bastianjoel
