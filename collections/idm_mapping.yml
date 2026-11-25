@@ -11,8 +11,7 @@ fields:
   os_field:
     type: string
     enum:
-      - groups
-      - structure_levels
+      - structure_level_ids
       - number
       - vote_weight
       - present
