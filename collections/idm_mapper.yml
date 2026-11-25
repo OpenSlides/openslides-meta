@@ -18,6 +18,8 @@ fields:
     required: true
     restriction_mode: A
     reference: organization
+    constant: true
+    default: 1
   condition_ids:
     type: relation-list
     to: idm_condition/mapper_id
