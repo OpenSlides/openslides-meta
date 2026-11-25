@@ -143,7 +143,9 @@ class HelperGetNames:
         Takes either collection or table name.
         """
         if migration:
-            if table_name.endswith("_t"):
+            if table_name.endswith("_m"):
+                return table_name
+            elif table_name.endswith("_t"):
                 table_name = table_name[:-2]
             return table_name + "_m"
         elif not table_name.endswith("_t"):
