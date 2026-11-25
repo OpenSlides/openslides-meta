@@ -1,7 +1,7 @@
 
 -- schema_relational.sql for initial database setup OpenSlides
 -- Code generated. DO NOT EDIT.
--- MODELS_YML_CHECKSUM = 'af79dc26f4e29b132b061d481248563b'
+-- MODELS_YML_CHECKSUM = '7403a31075dd771c5141bb89c70e9998'
 
 
 -- ENUM definitions
@@ -22,7 +22,7 @@ CREATE TYPE enum_assignment_phase AS ENUM ('search', 'voting', 'finished');
 
 CREATE TYPE enum_group_permissions AS ENUM ('agenda_item.can_manage', 'agenda_item.can_see', 'agenda_item.can_see_internal', 'assignment.can_manage', 'assignment.can_manage_polls', 'assignment.can_nominate_other', 'assignment.can_nominate_self', 'assignment.can_see', 'chat.can_manage', 'list_of_speakers.can_be_speaker', 'list_of_speakers.can_manage', 'list_of_speakers.can_see', 'list_of_speakers.can_manage_moderator_notes', 'list_of_speakers.can_see_moderator_notes', 'mediafile.can_manage', 'mediafile.can_see', 'meeting.can_manage_logos_and_fonts', 'meeting.can_manage_settings', 'meeting.can_see_autopilot', 'meeting.can_see_frontpage', 'meeting.can_see_history', 'meeting.can_see_livestream', 'motion.can_create', 'motion.can_create_amendments', 'motion.can_forward', 'motion.can_manage', 'motion.can_manage_metadata', 'motion.can_manage_polls', 'motion.can_see', 'motion.can_see_internal', 'motion.can_see_origin', 'motion.can_support', 'poll.can_manage', 'poll.can_see_progress', 'projector.can_manage', 'projector.can_see', 'tag.can_manage', 'user.can_manage', 'user.can_manage_presence', 'user.can_see_sensitive_data', 'user.can_see', 'user.can_update', 'user.can_edit_own_delegation');
 
-CREATE TYPE enum_idm_mapping_os_field AS ENUM ('groups', 'structure_levels', 'number', 'vote_weight', 'present', 'comment');
+CREATE TYPE enum_idm_mapping_os_field AS ENUM ('structure_level_ids', 'number', 'vote_weight', 'present', 'comment');
 
 CREATE TYPE enum_import_preview_name AS ENUM ('account', 'participant', 'topic', 'committee', 'motion');
 
